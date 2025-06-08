@@ -1,0 +1,19 @@
+# .ai-context
+name: "OpenStack Python Style Guide"
+version: "1.0"
+primary_file: "quick-rules.md"
+detailed_file: "comprehensive-guide.md"
+
+# Token counts for context management
+quick_rules_tokens: ~800
+comprehensive_tokens: ~2500
+
+# Usage recommendations
+use_quick_for:
+  - "code generation"
+  - "validation"
+  - "quick reference"
+use_comprehensive_for:
+  - "learning"
+  - "complex debugging"
+  - "policy questions"

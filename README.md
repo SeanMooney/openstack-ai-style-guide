@@ -5,8 +5,8 @@ A comprehensive style guide and ruleset specifically designed for AI code genera
 ## 🚀 Quick Start for AI Tools
 
 ### Primary Files
-- **[`quick-rules.md`](docs/quick-rules.md)** (~800 tokens) - Essential rules for immediate use
-- **[`comprehensive-guide.md`](docs/comprehensive-guide.md)** (~2500 tokens) - Detailed explanations and examples
+- **[`quick-rules.md`](docs/quick-rules.md)** (710 tokens) - Essential rules for immediate use
+- **[`comprehensive-guide.md`](docs/comprehensive-guide.md)** (4700 tokens) - Detailed explanations and examples
 
 ### Integration Commands
 ```bash
@@ -29,8 +29,8 @@ cat docs/quick-rules.md | xclip -selection clipboard  # Linux
 ```
 openstack-ai-style-guide/
 ├── docs/                          # Style guide documentation
-│   ├── quick-rules.md            # Concise reference (~800 tokens)
-│   ├── comprehensive-guide.md    # Detailed guide (~2500 tokens)
+│   ├── quick-rules.md            # Concise reference (710 tokens)
+│   ├── comprehensive-guide.md    # Detailed guide (4700 tokens)
 │   ├── examples/                 # Code examples and patterns
 │   │   ├── good/                # Correct OpenStack patterns
 │   │   └── bad/                 # Anti-patterns to avoid
@@ -116,9 +116,14 @@ Before submitting AI-generated OpenStack code:
 
 | Context | File | Tokens | Use Case |
 |---------|------|--------|----------|
-| Minimal | `quick-rules.md` | ~800 | Real-time generation |
-| Standard | Both files | ~3300 | Complex implementations |
-| Full | All docs + examples | ~5000+ | Learning/training |
+| Minimal | `quick-rules.md` | 710 | Real-time generation |
+| Standard | Both files | 5410 | Complex implementations |
+| Full | All docs + examples | ~7100+ | Learning/training |
+
+**Token Constraints:**
+- `quick-rules.md`: Target < 1000 tokens for standalone copying to other repos
+- `comprehensive-guide.md`: Target < 5000 tokens for comprehensive reference
+- Both files designed to be self-contained and readable without external dependencies
 
 ## 🤝 Contributing
 

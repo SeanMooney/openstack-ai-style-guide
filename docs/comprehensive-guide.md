@@ -1,10 +1,14 @@
 # OpenStack Python Comprehensive Style Guide for AI Code Generation
 
 > **Comprehensive Guide**: Detailed explanations and examples for AI tools generating OpenStack-compliant Python code.  
-> **For quick reference**: See the [OpenStack Python Quick Rules for AI](quick-version)
+> **For quick reference**: See the [OpenStack Python Quick Rules for AI](quick-version)  
+> **For working templates**: See [docs/templates/](templates/) for ready-to-use code patterns  
+> **For validation workflows**: See [docs/checklists/](checklists/) for pre-submit and review procedures
 
 ## Overview for AI Assistants
-This guide provides specific instructions for AI coding assistants (Claude Code, aider, etc.) to generate Python code that meets OpenStack contribution standards. Follow these rules precisely to ensure code passes OpenStack's strict linting and review processes.
+This guide provides specific instructions for AI coding assistants (Claude Code, aider, etc.) 
+to generate Python code that meets OpenStack contribution standards. Follow these rules precisely
+to ensure code passes OpenStack's strict linting and review processes.
 
 ## 1. Critical Code Generation Rules
 
@@ -127,6 +131,37 @@ except BaseException:
 
 ## 5. Testing Code Generation
 
+### Test Structure with oslotest
+OpenStack projects use oslotest for consistent test patterns:
+
+```python
+from oslotest import base
+from unittest import mock
+
+class TestResourceManager(base.BaseTestCase):
+    """Test cases for ResourceManager class."""
+
+    def setUp(self):
+        """Set up test fixtures."""
+        super(TestResourceManager, self).setUp()
+        self.mock_session = mock.MagicMock()
+        self.manager = ResourceManager(session=self.mock_session)
+
+    def test_method_success(self):
+        """Test successful operation."""
+        # Setup
+        expected_result = mock.MagicMock()
+        self.mock_session.query.return_value.filter_by.return_value.first\
+            .return_value = expected_result
+
+        # Execute
+        result = self.manager.get_resource('test-id')
+
+        # Verify
+        self.assertEqual(expected_result, result)
+        self.mock_session.query.assert_called_once()
+```
+
 ### Mock Usage (H210 - Critical)
 ```python
 # Always use autospec=True
@@ -135,17 +170,62 @@ def test_command_execution(self, mock_execute):
     mock_execute.return_value = ('output', '')
     # test code
 
+# Mock object methods with autospec
+with mock.patch.object(self.manager, '_save_to_database', autospec=True) as mock_save:
+    mock_save.return_value = expected_resource
+    result = self.manager.create_resource('test')
+    mock_save.assert_called_once()
+
 # Wrong - will fail H210 check:
 @mock.patch('nova.utils.execute')  # Missing autospec=True
 ```
 
-### Assertion Patterns
+### Advanced Assertion Patterns
 ```python
-# Correct assertions (H203, H214 compliant):
-self.assertIsNone(result)           # Not assertEqual(None, result)
-self.assertIn('key', dictionary)    # Not assertTrue('key' in dictionary)
-self.assertEqual(expected, actual)  # Order matters
-self.assertIsInstance(obj, MyClass)
+# Correct assertions (H203, H214, H212 compliant):
+self.assertIsNone(result)                    # Not assertEqual(None, result)
+self.assertIn('key', dictionary)             # Not assertTrue('key' in dictionary)
+self.assertEqual(expected, actual)            # Order matters
+self.assertIsInstance(obj, MyClass)            # Not assertEqual(type(obj), MyClass)
+self.assertRaises(SpecificException, func)     # Not generic Exception
+
+# Exception testing with context manager
+with self.assertRaises(ResourceNotFoundError):
+    self.manager.get_resource('nonexistent')
+
+# Multiple assertions in logical groups
+self.assertEqual(2, len(results))
+self.assertIn('item1', [r.id for r in results])
+self.assertIn('item2', [r.id for r in results])
+```
+
+### Database Testing Patterns
+```python
+def test_database_transaction_rollback(self):
+    """Test transaction rollback on error."""
+    with mock.patch.object(self.manager.session, 'begin') as mock_begin:
+        mock_begin.side_effect = db_exception.DBError("Connection failed")
+        
+        self.assertRaises(DatabaseError, self.manager.create_resource, 
+                         {'name': 'test'})
+        
+        # Verify transaction was attempted
+        mock_begin.assert_called_once()
+
+def test_pagination_logic(self):
+    """Test pagination edge cases."""
+    # Test limit boundary
+    instances, has_more = self.manager.list_instances(limit=10)
+    self.assertLessEqual(len(instances), 10)
+    
+    # Test marker functionality
+    with mock.patch.object(self.manager, 'session') as mock_session:
+        mock_session.query.return_value.filter_by.return_value.filter\
+            .return_value.limit.return_value.all.return_value = []
+        
+        self.manager.list_instances(marker='last-id')
+        mock_session.query.return_value.filter_by.return_value.filter\
+            .assert_called_with(Instance.id > 'last-id')
 ```
 
 ### Import unittest.mock (H216)
@@ -209,7 +289,51 @@ results = [item.id for item in items if item.active]
 #           for item in sublist if complex_condition(item)]
 ```
 
-## 8. OpenStack-Specific Patterns
+## 8. Exception Design Patterns
+
+### Custom Exception Classes
+OpenStack projects use structured exception classes with message formatting:
+
+```python
+class ModuleError(exception.BaseException):
+    """Base exception for MODULE_NAME errors."""
+    msg_fmt = "An error occurred in MODULE_NAME: %(reason)s"
+
+class ResourceNotFoundError(ModuleError):
+    """Raised when a resource cannot be found."""
+    msg_fmt = "Resource %(resource_id)s not found"
+
+class InvalidConfigurationError(ModuleError):
+    """Raised when configuration is invalid."""
+    msg_fmt = "Invalid configuration: %(config_key)s = %(config_value)s"
+```
+
+**Key Pattern Rules:**
+- Inherit from appropriate OpenStack exception base class
+- Use `msg_fmt` for consistent message formatting
+- Support parameter substitution with `%(param)s` syntax
+- Create specific exception classes for different error types
+
+### Exception Usage Patterns
+```python
+def get_resource(self, resource_id):
+    if not resource_id:
+        raise ValueError("resource_id cannot be empty")
+    
+    try:
+        resource = self._fetch_from_database(resource_id)
+        if not resource:
+            raise ResourceNotFoundError(resource_id=resource_id)
+        return resource
+    except (ValueError, TypeError) as e:
+        LOG.error("Invalid resource_id format: %s", e)
+        raise InvalidInputError(reason=str(e))
+    except Exception as e:
+        LOG.exception("Unexpected error retrieving resource %s", resource_id)
+        raise ModuleError(reason=str(e))
+```
+
+## 9. OpenStack-Specific Patterns
 
 ### Configuration Options
 ```python
@@ -240,6 +364,129 @@ with session.begin():
     instance = session.query(Instance).filter_by(uuid=uuid).one()
     instance.update(updates)
 ```
+
+### Database Session Patterns
+OpenStack uses oslo.db with proper transaction management:
+
+```python
+from oslo_db import exception as db_exception
+
+def create_instance(self, instance_data):
+    """Create a new database instance with proper error handling."""
+    try:
+        with self.session.begin():
+            instance = Instance(**instance_data)
+            self.session.add(instance)
+            self.session.flush()  # Get ID without committing
+            return instance
+    except db_exception.DBDuplicateEntry:
+        LOG.error("Instance %s already exists", instance_data['name'])
+        raise InstanceExistsError(name=instance_data['name'])
+    except db_exception.DBError as e:
+        LOG.exception("Database error creating instance")
+        raise DatabaseError(reason=str(e))
+
+def update_instance(self, instance_id, updates):
+    """Update instance with atomic transaction."""
+    try:
+        with self.session.begin():
+            instance = self.session.query(Instance).filter_by(
+                id=instance_id).with_for_update().one()
+            if not instance:
+                raise InstanceNotFoundError(instance_id=instance_id)
+            instance.update(updates)
+            return instance
+    except db_exception.DBError as e:
+        LOG.exception("Failed to update instance %s", instance_id)
+        raise DatabaseError(reason=str(e))
+```
+
+### Database Query Patterns
+```python
+# Efficient querying with proper error handling
+def get_active_instances(self, limit=None):
+    """Get active instances with optional limit."""
+    try:
+        query = self.session.query(Instance).filter_by(
+            deleted=False, active=True)
+        if limit:
+            query = query.limit(limit)
+        return query.all()
+    except db_exception.DBError as e:
+        LOG.exception("Database error fetching active instances")
+        raise DatabaseError(reason=str(e))
+
+# Pagination for large result sets
+def list_instances(self, marker=None, limit=None):
+    """List instances with pagination support."""
+    try:
+        query = self.session.query(Instance).filter_by(deleted=False)
+        if marker:
+            query = query.filter(Instance.id > marker)
+        if limit:
+            query = query.limit(limit + 1)  # +1 to check for more
+        instances = query.all()
+        has_more = len(instances) > limit if limit else False
+        if has_more:
+            instances = instances[:-1]  # Remove the extra
+        return instances, has_more
+    except db_exception.DBError as e:
+        LOG.exception("Error listing instances")
+        raise DatabaseError(reason=str(e))
+```
+
+### API Service Method Patterns
+OpenStack API controllers require specific error handling and response patterns:
+
+```python
+import webob.exc
+from oslo_log import log
+
+LOG = log.getLogger(__name__)
+
+def api_method(self, request, resource_id):
+    """Standard API method with proper error handling."""
+    context = request.environ['context']
+    
+    try:
+        resource = self.manager.get_resource(context, resource_id)
+        return {'resource': resource}
+    except ResourceNotFoundError as e:
+        raise webob.exc.HTTPNotFound(
+            explanation=e.msg_fmt % e.kwargs)
+    except InvalidParameterError as e:
+        raise webob.exc.HTTPBadRequest(
+            explanation=e.msg_fmt % e.kwargs)
+    except Exception as e:
+        LOG.exception('Unexpected error in api_method')
+        raise webob.exc.HTTPInternalServerError()
+
+def create_resource(self, request, resource_data):
+    """Create resource with validation and proper error handling."""
+    context = request.environ['context']
+    
+    try:
+        # Validate input
+        if not resource_data.get('name'):
+            raise InvalidParameterError(param='name', value='missing')
+        
+        resource = self.manager.create_resource(context, resource_data)
+        return {'resource': resource}, 201  # Created status
+    except ResourceAlreadyExistsError as e:
+        raise webob.exc.HTTPConflict(
+            explanation=e.msg_fmt % e.kwargs)
+    except Exception as e:
+        LOG.exception('Failed to create resource')
+        raise webob.exc.HTTPInternalServerError()
+```
+
+**Key API Pattern Rules:**
+- Extract context from `request.environ['context']`
+- Catch specific exceptions and return appropriate HTTP status codes
+- Use `webob.exc` for HTTP exceptions with proper explanations
+- Log unexpected errors with `LOG.exception()`
+- Return 201 status for resource creation
+- Always include error explanations in exception messages
 
 ## 9. Naming Conventions
 
@@ -427,14 +674,6 @@ Use **"Assisted-By:"** for **predictive AI** tools that provide suggestions or m
 - **Document AI contributions** - Explain what AI generated and what you modified
 - **Take responsibility** - Your DCO sign-off certifies you reviewed and approved all content
 
-### AI Tool Configuration Requirements
-Before generating OpenStack code, ensure:
-
-1. **License Compatibility Mode**: Configure AI tools to respect open source licensing
-2. **Code Scanning**: Enable features that flag output resembling publicly available code
-3. **Duplicate Detection**: Use tools that block suggestions matching existing codebases
-4. **Attribution Features**: Enable licensing information display when available
-
 ## 11. AI-Specific Generation Guidelines
 
 ### When Generating New Files
@@ -459,6 +698,8 @@ When using AI tools, ALWAYS include:
 5. **Review confirmation**: Implicitly demonstrate you reviewed all AI-generated code through your explanations
 
 ## 12. Common Anti-Patterns to Avoid
+
+For complete examples of anti-patterns to avoid, see [docs/examples/bad/anti_patterns.py](examples/bad/anti_patterns.py) which demonstrates all common violations with explanations.
 
 ### Critical Violations (Will Fail CI)
 
@@ -500,6 +741,18 @@ LOG.info("Value: {}".format(val))  # Also wrong
 # H105 - Author tags (don't use)
 # Author: Jane Doe  # Use version control instead
 # Fix: Remove author tags entirely
+
+# H106 - Vim configuration (don't use)
+# vim: syntax=python:tabstop=4:shiftwidth=4
+# Fix: Remove vim configuration entirely
+
+# H212 - Type checking with assertEqual
+assertEqual(type(obj), MyClass)  # Wrong approach
+# Fix: assertIsInstance(obj, MyClass)
+
+# H213 - Deprecated assertRaisesRegexp
+self.assertRaisesRegexp(ValueError, "pattern", func)  # Deprecated
+# Fix: self.assertRaises(ValueError, func)  # Or with context manager
 
 # H232 - Mutable default arguments
 def process_items(items=[]):  # Dangerous!
@@ -599,22 +852,93 @@ Before generating code, verify:
 - [ ] Commit subject line ≤ 50 characters, imperative mood
 - [ ] Commit body explains WHY and WHAT, wrapped at 72 characters
 
-## 14. Verification Commands
+## 14. Validation Workflows and Commands
 
-After generating code, suggest these verification commands:
+### Pre-Commit Validation
+After generating code, run these validation commands:
 
 ```bash
-# Run style checks:
+# Syntax check all Python files
+python -m py_compile $(find . -name "*.py")
+
+# Style checks
 tox -e pep8
+# OR
+flake8 .
 
-# Or with pre-commit (if available):
-pre-commit run --all-files
-
-# License check:
+# License header verification
 find . -name "*.py" -exec grep -L "Apache License" {} \;
 
-# DCO sign-off:
-git commit -s
+# Line length verification
+flake8 --select=E501 .
+
+# Import order verification
+flake8 --select=H301,H303,H304,H306 .
+
+# Hacking rules verification
+flake8 --select=H201,H210,H216,H501,H105,H106,H212 .
+
+# DCO sign-off verification
+git log -1 --pretty=%B | grep "Signed-off-by:"
+```
+
+### Git Hook Setup for Change-Id
+Install Gerrit Change-Id hook:
+
+```bash
+# Install commit-msg hook
+scp -p -P 29418 username@review.opendev.org:hooks/commit-msg .git/hooks/
+chmod +x .git/hooks/commit-msg
+
+# Verify Change-Id is present
+git log -1 --pretty=%B | grep "Change-Id:"
+```
+
+### Full Validation Pipeline
+```bash
+# Complete validation before pushing
+python -m py_compile $(find . -name "*.py") && \
+tox -e pep8 && \
+tox -e py3 && \
+git log -1 --pretty=%B | grep "Signed-off-by:" && \
+git log -1 --pretty=%B | grep "Change-Id:" && \
+echo "✓ Ready to push!"
+```
+
+### CI Failure Troubleshooting
+
+**Common pep8 failures:**
+```bash
+# Fix locally
+tox -e pep8
+# Address all issues
+git commit --amend -s
+git review
+```
+
+**Unit test failures:**
+```bash
+# Run specific failing test
+tox -e py3 -- path/to/test_file.py:TestClass.test_method
+# Fix failing tests
+git commit --amend -s
+git review
+```
+
+**Missing DCO sign-off:**
+```bash
+# Amend commit with sign-off
+git commit --amend -s
+git review
+```
+
+**Missing Change-Id:**
+```bash
+# Install hook and amend
+scp -p -P 29418 username@review.opendev.org:hooks/commit-msg .git/hooks/
+chmod +x .git/hooks/commit-msg
+git commit --amend -s
+git review
 ```
 
 ## 15. IDE Integration Notes

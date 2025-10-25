@@ -8,8 +8,8 @@ This is the **OpenStack AI Style Guide** repository containing comprehensive cod
 
 ## Key Files and Purpose
 
-- **`quick-rules.md`** (~800 tokens): Concise reference for AI tools with essential OpenStack Python coding standards
-- **`comprehensive-guide.md`** (~2500 tokens): Detailed explanations and examples for complex OpenStack compliance requirements
+- **`quick-rules.md`** (710 tokens): Concise reference for AI tools with essential OpenStack Python coding standards
+- **`comprehensive-guide.md`** (4700 tokens): Detailed explanations and examples for complex OpenStack compliance requirements
 - **`README.md`**: Instructions for AI tools on how to use these guides
 
 ## Usage Pattern for AI Tools
@@ -45,7 +45,10 @@ This repository emphasizes compliance with:
 
 When modifying the style guide files:
 - Maintain the token count targets mentioned in README.md
+- **Keep `quick-rules.md` below 1000 tokens** for standalone copying to other repositories
+- **Keep `comprehensive-guide.md` below 5000 tokens** for comprehensive reference
 - Keep `quick-rules.md` concise for fast AI consumption
 - Use `comprehensive-guide.md` for detailed explanations and examples
 - Ensure consistency between the quick rules and comprehensive guide
 - Update both files when adding new requirements or patterns
+- Both files should be self-contained and readable without external dependencies

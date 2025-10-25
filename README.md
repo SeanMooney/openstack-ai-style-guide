@@ -28,16 +28,29 @@ cat docs/quick-rules.md | xclip -selection clipboard  # Linux
 
 ```
 openstack-ai-style-guide/
-├── docs/                     # Style guide documentation
-│   ├── quick-rules.md       # Concise reference (~800 tokens)
-│   └── comprehensive-guide.md # Detailed guide (~2500 tokens)
-├── examples/                # Code examples and patterns
-│   ├── good/               # Correct OpenStack patterns
-│   └── bad/                # Anti-patterns to avoid
-├── tools/                  # Validation and helper scripts
-├── CONTRIBUTING.md         # Contribution guidelines for AI-generated content
-├── LICENSE                 # Apache 2.0 license
-└── README.md              # This file
+├── docs/                          # Style guide documentation
+│   ├── quick-rules.md            # Concise reference (~800 tokens)
+│   ├── comprehensive-guide.md    # Detailed guide (~2500 tokens)
+│   ├── examples/                 # Code examples and patterns
+│   │   ├── good/                # Correct OpenStack patterns
+│   │   └── bad/                 # Anti-patterns to avoid
+│   ├── checklists/              # Validation checklists
+│   │   ├── pre-submit.md       # Before committing and pushing
+│   │   └── code-review.md      # Reviewing AI code
+│   └── templates/               # Code and commit templates
+│       ├── python_module.py.template
+│       ├── python_test.py.template
+│       ├── commit_message.txt
+│       └── pre-commit-config.yaml
+├── references/                   # Authoritative source documents
+│   ├── ai-policy.md             # OpenInfra AI Policy
+│   ├── dco.md                   # Developer Certificate of Origin
+│   ├── hacking.md               # OpenStack Hacking Rules
+│   └── pep8.md                  # PEP 8 Style Guide
+├── tools/                        # Validation and helper scripts
+├── CONTRIBUTING.md               # Contribution guidelines
+├── LICENSE                       # Apache 2.0 license
+└── README.md                     # This file
 
 ```
 
@@ -96,8 +109,8 @@ Before submitting AI-generated OpenStack code:
 - [ ] `autospec=True` in all mock decorators
 - [ ] Delayed logging interpolation used
 - [ ] Proper import organization
-- [ ] AI attribution in commit message
-- [ ] DCO sign-off included (required post July 1, 2025)
+- [ ] AI attribution in commit message (Generated-By/Assisted-By)
+- [ ] **DCO sign-off included** (git commit -s - REQUIRED)
 
 ## 📊 Token Usage Guide
 

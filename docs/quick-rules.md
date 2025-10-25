@@ -59,7 +59,7 @@ def method(param):
     """
 ```
 
-### 4. Commit Message Format
+### 4. Commit Message Format (ALL REQUIRED)
 ```
 Subject: imperative, <50 chars, no period
 
@@ -67,16 +67,18 @@ Body explaining WHY and WHAT. Wrap at 72 chars.
 Include technical approach and AI tool context.
 
 Generated-By: claude-code  # or Assisted-By: tool-name
-Signed-off-by: Name <email>  # Required July 1, 2025
+Signed-off-by: Name <email>  # REQUIRED for all commits
 Closes-Bug: #123456
 Change-Id: Ihash...
 ```
 
 ### 5. AI Policy Compliance
-- **Generative AI**: Use `Generated-By: tool-name`
-- **Predictive AI**: Use `Assisted-By: tool-name`
-- **Document**: What AI generated + manual modifications
-- **Review**: Confirm all AI code for correctness/security
+- **Generative AI** (substantial code): Use `Generated-By: tool-name`
+- **Predictive AI** (suggestions/autocomplete): Use `Assisted-By: tool-name`
+- **Human in loop**: Always review and understand AI-generated code
+- **Treat as untrusted**: Apply same scrutiny as unknown contributor code
+- **Document context**: What AI generated + manual modifications
+- **DCO sign-off**: git commit -s (certifies you reviewed all content)
 
 ## Forbidden Patterns
 ```python
@@ -87,15 +89,15 @@ from mock import patch     # H216 - use unittest.mock
 LOG.info(f'Val: {x}')     # H702 - use delayed interpolation
 ```
 
-## Quick Checklist
+## Quick Checklist (ALL REQUIRED)
 - [ ] Apache license header
 - [ ] 79 char line limit
 - [ ] No bare except
 - [ ] autospec=True in mocks
 - [ ] Proper import order
 - [ ] Delayed logging
-- [ ] AI label in commit
-- [ ] DCO sign-off (post July 1)
+- [ ] AI label in commit (Generated-By/Assisted-By)
+- [ ] **DCO sign-off** (git commit -s)
 - [ ] 50 char commit subject
 
 ## Verification

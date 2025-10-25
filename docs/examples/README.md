@@ -46,10 +46,10 @@ Include relevant examples in your AI tool context:
 
 ```bash
 # For code generation
-cat examples/good/basic_service.py | ai-tool --context
+cat docs/examples/good/basic_service.py | ai-tool --context
 
 # For validation
-diff generated_code.py examples/good/basic_service.py
+diff generated_code.py docs/examples/good/basic_service.py
 ```
 
 ### For Learning
@@ -60,11 +60,11 @@ diff generated_code.py examples/good/basic_service.py
 ### For Testing
 ```bash
 # Validate good examples pass style checks
-python -m py_compile examples/good/*.py
+python -m py_compile docs/examples/good/*.py
 tox -e pep8
 
 # Verify bad examples fail appropriately
-python -m py_compile examples/bad/*.py  # Should show style violations
+python -m py_compile docs/examples/bad/*.py  # Should show style violations
 ```
 
 ## Contributing Examples
@@ -76,4 +76,4 @@ When adding new examples:
 3. **Documentation**: Include comments explaining the patterns
 4. **Attribution**: Follow AI contribution guidelines in CONTRIBUTING.md
 
-See [CONTRIBUTING.md](../CONTRIBUTING.md) for detailed guidelines on contributing examples.
+See [CONTRIBUTING.md](../../CONTRIBUTING.md) for detailed guidelines on contributing examples.

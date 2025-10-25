@@ -1,0 +1,146 @@
+# Pre-commit hooks for OpenStack Python projects
+# Based on real OpenStack project configurations (nova, neutron, etc.)
+#
+# To use this configuration:
+# 1. cp templates/pre-commit-config.yaml .pre-commit-config.yaml
+# 2. pip install pre-commit
+# 3. pre-commit install
+# 4. (optional) pre-commit run --all-files
+#
+# Hooks will run automatically on 'git commit'
+#
+# NOTE: OpenStack does NOT use black or isort as they conflict with hacking rules
+
+default_language_version:
+  python: python3
+
+repos:
+  # Standard pre-commit hooks
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v5.0.0
+    hooks:
+      - id: trailing-whitespace
+        exclude: ^.*\.svg$
+      - id: mixed-line-ending
+        args: ['--fix=lf']  # Enforce UNIX line endings (H903)
+        exclude: ^.*\.svg$
+      - id: end-of-file-fixer
+        exclude: ^.*\.svg$
+      - id: check-yaml
+      - id: check-json
+      - id: debug-statements
+      - id: check-merge-conflict
+      - id: check-case-conflict
+      - id: detect-private-key
+
+  # Remove tabs (OpenStack uses spaces only)
+  - repo: https://github.com/Lucas-C/pre-commit-hooks
+    rev: v1.5.5
+    hooks:
+      - id: remove-tabs
+        exclude: ^.*\.svg$
+
+  # Autopep8 - OpenStack's preferred formatter (NOT black)
+  - repo: https://github.com/hhatto/autopep8
+    rev: v2.3.2
+    hooks:
+      - id: autopep8
+        args: ['--max-line-length=79', '--in-place']
+
+  # OpenStack Hacking - MUST run after autopep8
+  - repo: https://opendev.org/openstack/hacking
+    rev: 7.0.0
+    hooks:
+      - id: hacking
+        additional_dependencies: []  # Add project dependencies if needed
+
+  # Optional: MyPy type checking (used by many OpenStack projects)
+  # Uncomment if your project uses type hints
+  # - repo: https://github.com/pre-commit/mirrors-mypy
+  #   rev: v1.15.0
+  #   hooks:
+  #     - id: mypy
+  #       additional_dependencies: []  # Add typing stubs as needed
+
+  # Optional: Documentation linting
+  # Uncomment if your project has RST documentation
+  # - repo: https://github.com/sphinx-contrib/sphinx-lint
+  #   rev: v1.0.0
+  #   hooks:
+  #     - id: sphinx-lint
+  #       args: [--enable=all, --disable=line-too-long]
+  #       files: ^(doc|releasenotes)/.*\.rst$
+
+  # Optional: Codespell for catching typos
+  # - repo: https://github.com/codespell-project/codespell
+  #   rev: v2.4.1
+  #   hooks:
+  #     - id: codespell
+  #       args: [--ignore-words=.codespell-ignore]
+
+  # License header check (local hook)
+  - repo: local
+    hooks:
+      - id: check-apache-license
+        name: Check Apache License Header
+        entry: bash -c 'for file in "$@"; do grep -q "Apache License" "$file" || { echo "Missing Apache license in $file"; exit 1; }; done' --
+        language: system
+        files: \.py$
+        exclude: '^(tests/|doc/|.*/__pycache__/)'
+
+  # DCO sign-off check (local hook)
+  - repo: local
+    hooks:
+      - id: check-dco-signoff
+        name: Check DCO Sign-off
+        entry: bash -c 'git log -1 --pretty=%B | grep -q "^Signed-off-by:" || { echo "ERROR: Commit must include DCO sign-off. Use: git commit -s"; exit 1; }'
+        language: system
+        stages: [commit-msg]
+        always_run: true
+        pass_filenames: false
+
+  # AI attribution check (local hook - warning only)
+  - repo: local
+    hooks:
+      - id: check-ai-attribution
+        name: Check AI Attribution
+        entry: bash -c 'git log -1 --pretty=%B | grep -qE "(Generated-By:|Assisted-By:)" || { echo "WARNING: AI-generated code should include Generated-By or Assisted-By label"; exit 0; }'
+        language: system
+        stages: [commit-msg]
+        always_run: true
+        pass_filenames: false
+        verbose: true
+
+# Files to exclude from all hooks
+exclude: |
+  (?x)^(
+      \.tox/|
+      \.git/|
+      \.venv/|
+      venv/|
+      .*\.egg-info/|
+      build/|
+      dist/|
+      __pycache__/|
+      \.pytest_cache/|
+      doc/|
+      releasenotes/
+  )$
+
+# Minimum pre-commit version
+minimum_pre_commit_version: '2.20.0'
+
+# Notes for AI code generation:
+# - This config enforces OpenStack compliance automatically
+# - Uses autopep8 (NOT black) - black conflicts with hacking
+# - Does NOT use isort - import order is handled by hacking
+# - DCO sign-off is checked on every commit
+# - All Python files must have Apache license headers
+# - Line length is strictly enforced at 79 characters
+# - Hacking rules (H201, H210, etc.) are enforced
+#
+# To temporarily skip hooks (NOT RECOMMENDED):
+# git commit --no-verify
+#
+# To run hooks manually:
+# pre-commit run --all-files

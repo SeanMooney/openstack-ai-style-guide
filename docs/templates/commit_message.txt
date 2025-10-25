@@ -1,0 +1,199 @@
+Add FEATURE to COMPONENT (max 50 chars, no period)
+
+[PROBLEM DESCRIPTION: Explain the original problem being solved.
+Do NOT assume the reviewer understands the problem or has access
+to external bug trackers. The commit message must be self-contained
+and provide all context needed to understand the change.]
+
+The COMPONENT_NAME currently PROBLEM_DESCRIPTION. This causes
+NEGATIVE_IMPACT and affects users when SCENARIO_DESCRIPTION.
+
+[TECHNICAL APPROACH: Describe WHAT is being changed and HOW it
+is being fixed. For large changes, describe the overall structure.
+Focus on the intent and reasoning, not just the mechanics.]
+
+This change WHAT_IS_BEING_DONE to address the problem by
+APPROACH_DESCRIPTION. The implementation:
+
+- SPECIFIC_CHANGE_1 to handle SCENARIO_1
+- SPECIFIC_CHANGE_2 for improved ASPECT_2
+- SPECIFIC_CHANGE_3 ensuring REQUIREMENT_3
+
+The new behavior is BEHAVIOR_DESCRIPTION, which provides
+BENEFIT_DESCRIPTION.
+
+[FUTURE IMPROVEMENTS: Optional section describing known
+limitations or scope for future enhancements. Shows the
+broader picture has been considered.]
+
+Known limitations:
+- LIMITATION_DESCRIPTION (to be addressed in FUTURE_WORK)
+
+Future scope:
+- ENHANCEMENT_DESCRIPTION could be added for BENEFIT
+
+[AI USAGE CONTEXT: suggested for AI-assisted contributions.
+Be specific about what was generated vs manually written. Explain
+the context provided to the AI tool and your review process.
+This must be breif and no more hten 1 paragraph of at most 4-5
+sentences]
+
+I used TOOL_NAME to generate DESCRIPTION_OF_GENERATED_CODE based
+on existing patterns in PROJECT/MODULE. The context provided to
+the AI included CONTEXT_DESCRIPTION.
+
+[METADATA: Place at the very end of commit message. Update
+appropriately for your change. Change-Id will be auto-generated
+by the Gerrit commit-msg hook.]
+
+Generated-By: TOOL_NAME
+Signed-off-by: YOUR_REAL_NAME <YOUR_EMAIL>
+Closes-Bug: #XXXXXX
+Implements: blueprint BLUEPRINT-NAME
+Change-Id: WILL_BE_AUTO_GENERATED
+
+---
+USAGE INSTRUCTIONS (DELETE THIS ENTIRE SECTION BEFORE COMMITTING):
+
+## Subject Line Requirements (Line 1)
+
+- Maximum 50 characters (strict limit)
+- Imperative mood: "Add feature" NOT "Added" or "Adding"
+- No period at end
+- Identify component when relevant: "nova:", "neutron:", "libvirt:"
+- Be specific: "Fix memory leak in compute" NOT "Fix bug"
+- This line appears in: email subjects, git annotate, gitk, merge
+  commits, and many space-constrained contexts
+
+Examples of good subject lines:
+  Add libvirt min version check, 0.9.7
+  Update default policies for KVM guest timers
+  Fix missing import in compute/utils.py
+
+Examples of bad subject lines:
+  Fixed a bug (too vague, wrong tense)
+  This patch adds a new feature to the scheduler (too long, wrong style)
+  bug 12345 (doesn't describe the change)
+
+## Body Requirements (Lines 3+)
+
+- Wrap at 72 characters (strict limit)
+- Leave blank line after subject
+- Explain WHY before WHAT before HOW
+- Be self-contained (don't assume bug tracker access)
+- Include all information needed to review the patch
+- "Less is not more. More is more." - provide complete context
+
+### Required Sections:
+
+1. **Problem Description**: What is broken or missing? Why does it
+   matter? What is the user impact?
+
+2. **Technical Approach**: What changes are being made? How do they
+   solve the problem? What is the overall architecture?
+
+3. **Test Plan** (if applicable): For changes requiring manual testing,
+   list specific test cases executed with PASS/FAIL status.
+
+5. **Metadata**: External references and sign-offs at the very end.
+
+### What NOT to Include:
+
+- Patch set-specific comments like "Patch set 2: rebased" or
+  "Added unit tests" (use Gerrit comments for these)
+- Assumptions about reviewer knowledge
+- References to external docs without context
+- Vague descriptions like "various improvements"
+- detialed ai promts or chat queries
+
+## AI Attribution Requirements
+
+Choose the appropriate tag:
+
+- **Generated-By: tool-name** - Use when substantial code was
+  AI-generated (entire modules, classes, complex logic)
+
+- **Assisted-By: tool-name** - Use when AI provided minor assistance
+  (autocomplete, simple suggestions, formatting) or when they impleent
+  very narrowly scoped explict code changes that have been guide by a
+  human. 
+
+ALWAYS include:
+ - the tool used
+ - the model if known
+
+## Metadata Tags
+
+Required for ALL commits:
+- **Signed-off-by:** YOUR_REAL_NAME <YOUR_EMAIL>
+  Created with: git commit -s
+  Certifies you agree to the Developer Certificate of Origin
+
+Optional based on change type:
+- **Closes-Bug: #XXXXXX** - Fully fixes and closes the bug
+- **Partial-Bug: #XXXXXX** - Partial fix for the bug
+- **Related-Bug: #XXXXXX** - Related to but doesn't fix the bug
+- **Story: XXXXXXX** - Storyboard story number
+- **Task: XXXXX** - Storyboard task number
+- **Implements: blueprint NAME** - Implements the named blueprint
+- **DocImpact** - Requires documentation updates
+- **APIImpact** - Changes public HTTP API (requires API WG review)
+- **SecurityImpact** - Has security implications
+- **UpgradeImpact** - Affects upgrade process
+- **Co-Authored-By: Name <email>** - For multiple authors
+- **Change-Id:** AUTO_GENERATED (don't edit this manually)
+
+## Metadata Order
+
+Place metadata at the very end in this order:
+1. Generated-By or Assisted-By (if applicable)
+2. Co-Authored-By (if applicable)
+3. Signed-off-by (REQUIRED)
+4. Bug references (Closes-Bug, Partial-Bug, Related-Bug)
+5. Story/Task references (for Storyboard)
+6. Implements (for blueprints)
+7. Impact flags (DocImpact, APIImpact, etc.)
+8. Change-Id (auto-generated by commit-msg hook)
+
+## Git Configuration
+
+Ensure your git is configured with your real name and email:
+
+  git config --global user.name "Your Real Name"
+  git config --global user.email "your.email@example.com"
+
+Optionally enable automatic sign-off:
+
+  git config --global format.signoff true
+
+## Creating the Commit
+
+Always use the -s flag to add Signed-off-by:
+
+  git commit -s
+
+To use this template:
+
+  git config --global commit.template path/to/this/file
+
+## Verification
+
+Before pushing, verify your commit message:
+
+  git log -1 --pretty=%B
+
+Check for:
+- Subject line ≤ 50 characters
+- Body lines ≤ 72 characters
+- Signed-off-by present
+- Change-Id present (after first commit with hook installed)
+- AI attribution (if AI-assisted)
+- All placeholders replaced
+- No usage instructions remaining
+
+## References
+
+For complete guidance, see:
+- references/commit-message.md (OpenStack official guidance)
+- docs/examples/good/commit_messages.md (good examples)
+- docs/examples/bad/commit_messages.md (anti-patterns to avoid)

@@ -72,7 +72,9 @@ git checkout -b feature/new-pattern-examples
 ### 3. Make Changes
 Follow the repository structure:
 - Style rules: Update `docs/quick-rules.md` and `docs/comprehensive-guide.md`
-- Examples: Add to `examples/good/` or `examples/bad/`
+- Examples: Add to `docs/examples/good/` or `docs/examples/bad/`
+- Templates: Add to `docs/templates/`
+- Checklists: Add to `docs/checklists/`
 - Tools: Add scripts to `tools/`
 
 ### 4. Test Changes
@@ -82,7 +84,7 @@ wc -w docs/quick-rules.md    # Should be ~800 tokens
 wc -w docs/comprehensive-guide.md  # Should be ~2500 tokens
 
 # Test any code examples
-python -m py_compile examples/good/*.py
+python -m py_compile docs/examples/good/*.py
 ```
 
 ### 5. Commit with Proper Attribution
@@ -150,7 +152,7 @@ tiktoken count docs/quick-rules.md
 1. New OpenStack hacking rules
 2. Critical compliance patterns
 3. Common AI tool integration issues
-4. DCO sign-off examples (post July 1, 2025)
+4. DCO sign-off examples and best practices
 
 ### Medium Priority
 1. Additional code examples
@@ -251,13 +253,13 @@ python tools/count_tokens.py docs/quick-rules.md
 
 ---
 
-## 📜 Legal Compliance
+## 📜 Legal Compliance (ALL REQUIRED)
 
 By contributing to this repository, you agree to:
 
 1. **License Compatibility**: All contributions are licensed under Apache 2.0
-2. **AI Attribution**: Properly attribute AI-generated content
-3. **DCO Compliance**: Sign-off all commits (required post July 1, 2025)
+2. **AI Attribution**: Properly attribute AI-generated content (Generated-By/Assisted-By)
+3. **DCO Compliance**: Sign-off ALL commits with git commit -s (REQUIRED)
 4. **OpenInfra Foundation AI Policy**: Follow all applicable guidelines
 5. **No Proprietary Content**: Do not contribute proprietary or copyrighted material
 

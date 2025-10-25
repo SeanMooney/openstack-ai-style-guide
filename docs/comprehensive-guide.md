@@ -277,10 +277,10 @@ MAX_RETRY_ATTEMPTS = 3
 API_VERSION = '2.1'
 ```
 
-## 10. OpenInfra Foundation AI Policy Compliance
+## 10. OpenInfra Foundation AI Policy and DCO Compliance
 
 ### Commit Message Requirements (MANDATORY)
-All AI-generated contributions MUST include proper commit message labeling per OpenInfra Foundation AI Policy AND DCO sign-off (effective July 1, 2025):
+All AI-generated contributions MUST include proper commit message labeling per OpenInfra Foundation AI Policy AND Developer Certificate of Origin (DCO) sign-off:
 
 #### OpenStack Commit Message Structure
 Follow this exact format for all commits:
@@ -393,16 +393,39 @@ UpgradeImpact: Affects upgrade procedures
 Change-Id: I1234567890abcdef1234567890abcdef12345678
 ```
 
-#### DCO Sign-off Requirements (Effective July 1, 2025)
-- **All new commits** must include `Signed-off-by: Your Name <your.email@example.com>`
+#### DCO Sign-off Requirements (REQUIRED)
+- **Every commit** must include `Signed-off-by: Your Name <your.email@example.com>`
 - **Use your real name** (no pseudonyms or anonymous contributions)
-- **Email must match** your Git configuration
-- **Configure Git** to automatically add sign-off:
+- **Email must match** your Git configuration and Gerrit account
+- **Always use the -s flag** when committing:
 ```bash
 git config --global user.name "Your Real Name"
 git config --global user.email "your.email@example.com"
 git commit -s  # The -s flag adds Signed-off-by automatically
 ```
+
+### AI Policy: Generated-By vs Assisted-By
+
+#### When to Use "Generated-By:"
+Use **"Generated-By:"** for **generative AI** tools that produce substantial code artifacts:
+- AI generated complete functions, classes, or modules
+- AI created the initial implementation that you then modified
+- Substantial portions of the code came from AI prompts
+- Examples: Claude Code, ChatGPT, GitHub Copilot (when accepting large completions)
+
+#### When to Use "Assisted-By:"
+Use **"Assisted-By:"** for **predictive AI** tools that provide suggestions or minor edits:
+- AI provided autocomplete suggestions you accepted
+- AI helped with minor refactoring or renaming
+- AI made small targeted changes based on prompts
+- Examples: GitHub Copilot (autocomplete), Tabnine, code formatting tools
+
+#### Key Principles (ALL AI Usage)
+- **Human must be in the loop** - Always review and understand AI-generated code
+- **Treat as untrusted source** - Apply the same scrutiny as code from unknown contributors
+- **Ensure open source compatibility** - Configure tools to respect licensing
+- **Document AI contributions** - Explain what AI generated and what you modified
+- **Take responsibility** - Your DCO sign-off certifies you reviewed and approved all content
 
 ### AI Tool Configuration Requirements
 Before generating OpenStack code, ensure:
@@ -437,29 +460,91 @@ When using AI tools, ALWAYS include:
 
 ## 12. Common Anti-Patterns to Avoid
 
-```python
-# NEVER generate these patterns:
+### Critical Violations (Will Fail CI)
 
-# H201 - Bare except
+```python
+# H201 - Bare except (CRITICAL)
 try:
     operation()
-except:  # Will fail CI
+except:  # NEVER use bare except
     pass
+# Fix: except (ValueError, TypeError) as e:
 
-# H210 - Missing autospec
-@mock.patch('module.function')  # Add autospec=True
+# H210 - Missing autospec in mock (CRITICAL)
+@mock.patch('module.function')  # Missing autospec=True
+def test_method(self, mock_func):
+    pass
+# Fix: @mock.patch('module.function', autospec=True)
 
-# H216 - Wrong mock import
-from mock import patch  # Use: from unittest import mock
-
-# H501 - locals() usage
-"%(var)s" % locals()  # Use explicit formatting
+# H216 - Wrong mock import (CRITICAL)
+from mock import patch  # Third-party mock library
+# Fix: from unittest import mock
 
 # H304 - Relative imports
-from .utils import helper  # Use: from package.utils import helper
+from .utils import helper  # Don't use relative imports
+# Fix: from package.utils import helper
 
-# String formatting in logging
-LOG.info(f"Value: {val}")  # Use: LOG.info("Value: %s", val)
+# H702 - String formatting in logging (CRITICAL)
+LOG.info(f"Value: {val}")  # Immediate interpolation
+LOG.info("Value: {}".format(val))  # Also wrong
+# Fix: LOG.info("Value: %s", val)  # Delayed interpolation
+```
+
+### Code Quality Violations
+
+```python
+# H101 - TODO format
+# TODO fix this  # Missing author name
+# Fix: # TODO(yourname): Fix this issue
+
+# H105 - Author tags (don't use)
+# Author: Jane Doe  # Use version control instead
+# Fix: Remove author tags entirely
+
+# H232 - Mutable default arguments
+def process_items(items=[]):  # Dangerous!
+    items.append('new')
+    return items
+# Fix: def process_items(items=None):
+#          items = items or []
+
+# H501 - locals() usage
+msg = "Error: %(error)s" % locals()  # Unclear what's being used
+# Fix: msg = "Error: %s" % error  # Explicit
+
+# H903 - UNIX line endings only
+# Files with Windows line endings (\r\n) will fail
+# Fix: Use UNIX line endings (\n) only
+```
+
+### Testing Violations
+
+```python
+# H202 - Testing for generic Exception
+def test_operation(self):
+    with self.assertRaises(Exception):  # Too broad
+        risky_operation()
+# Fix: with self.assertRaises(SpecificException):
+
+# H203 - Use assertIsNone/assertIsNotNone
+self.assertEqual(None, result)  # Less specific
+# Fix: self.assertIsNone(result)
+
+# H204 - Use assertEqual/assertNotEqual
+self.assertTrue(a == b)  # Less specific
+# Fix: self.assertEqual(a, b)
+
+# H205 - Use assertGreater/assertLess
+self.assertTrue(a > b)  # Less specific
+# Fix: self.assertGreater(a, b)
+
+# H211 - Use assertIsInstance
+self.assertTrue(isinstance(obj, MyClass))  # Verbose
+# Fix: self.assertIsInstance(obj, MyClass)
+
+# H214 - Use assertIn/assertNotIn
+self.assertTrue('key' in dictionary)  # Less specific
+# Fix: self.assertIn('key', dictionary)
 ```
 
 #### Common Commit Message Anti-Patterns to Avoid
@@ -486,15 +571,15 @@ Switch to new libvirt reset API
 
 ## 13. Comprehensive Checklists
 
-### Legal Compliance Checklist
+### Legal Compliance Checklist (ALL REQUIRED)
 - [ ] AI tool configured for open source compatibility
 - [ ] Generated code reviewed for copyright issues
 - [ ] No proprietary claims by AI vendor on output
 - [ ] Code is compatible with Apache 2.0 license
 - [ ] Proper "Generated-By:" or "Assisted-By:" label added to commit
 - [ ] Context explanation included in commit message
-- [ ] DCO sign-off included (Signed-off-by line)
-- [ ] Real name and valid email used in sign-off
+- [ ] **DCO sign-off included** (`Signed-off-by: Your Name <email>`)
+- [ ] **Real name and valid email** used in sign-off (no pseudonyms)
 - [ ] Commit message follows OpenStack structure (50 char subject, 72 char body)
 - [ ] Commit message explains WHY, WHAT, and HOW of the change
 - [ ] AI usage and technical approach documented in commit message
@@ -510,7 +595,7 @@ Before generating code, verify:
 - [ ] Imports properly organized
 - [ ] "Generated-By:" or "Assisted-By:" label prepared for commit message
 - [ ] AI tool configured for open source compatibility
-- [ ] DCO sign-off ready (post July 1, 2025)
+- [ ] **DCO sign-off ready** (git commit -s)
 - [ ] Commit subject line ≤ 50 characters, imperative mood
 - [ ] Commit body explains WHY and WHAT, wrapped at 72 characters
 

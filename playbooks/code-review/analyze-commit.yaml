@@ -1,0 +1,64 @@
+---
+- name: Get project source directory
+  set_fact:
+    project_src_dir: "{{ ansible_user_dir }}/{{ zuul.project.src_dir }}"
+
+- name: Verify project source directory exists
+  stat:
+    path: "{{ project_src_dir }}"
+  register: project_dir
+
+- name: Fail if project directory not found
+  fail:
+    msg: "Project source directory not found at {{ project_src_dir }}"
+  when: not project_dir.stat.exists
+
+- name: Create commit analysis prompt
+  set_fact:
+    commit_prompt: >-
+      Analyze current git commit in repository at {{ project_src_dir }}.
+      Extract commit metadata, generate an ASCII file tree relitive to
+      {{ project_src_dir }}, identify bug/feature markers
+      following OpenStack conventions, and summarize what changed and why.
+      Follow commit-summarizer agent instructions.
+      Write a structured commit summary to {{ review_output_dir }}/commit-summary.md.
+      Do not output the report in {{ project_src_dir }}.
+      Prefer using absolute paths when creating files to ensure they are created
+      at the expected location.
+      You MUST verify that the summary was created at
+      {{ review_output_dir }}/commit-summary.md before completing this task.
+      If the structured commit summary was output to a diffent location move it
+      to {{ review_output_dir }}/commit-summary.md
+
+- name: Create ocr command
+  set_fact:
+    ocr_cmd: >-
+      opencode run --print-logs --log-level "WARN" --agent "commit-summary" 
+      --model "{{ context_model }}" "{{ commit_prompt }}"
+
+- name: print ocr command
+  debug:
+    msg: "ocr command is: {{ ocr_cmd }}"
+
+
+- name: Run commit-summarizer with OpenCode
+  shell:
+    cmd: "{{ ocr_cmd }}"
+    chdir: "{{ project_src_dir }}"
+  register: commit_analysis
+  environment:
+    OPENCODE_CONFIG: "{{ opencode_config_dir }}/opencode.json"
+
+- name: Display commit analysis result
+  debug:
+    msg: "Commit analysis completed. Output at {{ review_output_dir }}/commit-summary.md"
+
+- name: Verify commit analysis output
+  stat:
+    path: "{{ review_output_dir }}/commit-summary.md"
+  register: commit_file
+
+- name: Fail if commit analysis failed
+  fail:
+    msg: "Commit analysis did not produce expected output file"
+  when: not commit_file.stat.exists

@@ -1,0 +1,64 @@
+---
+- name: Create temporary directory for inventory
+  file:
+    path: "{{ ansible_user_dir }}/tmp"
+    state: directory
+    mode: '0755'
+
+- name: Copy inventory from executor to remote node
+  copy:
+    src: "{{ zuul.executor.inventory_file }}"
+    dest: "{{ ansible_user_dir }}/tmp/inventory.yaml"
+    mode: '0644'
+
+- name: Verify inventory file was copied
+  stat:
+    path: "{{ ansible_user_dir }}/tmp/inventory.yaml"
+  register: inventory_file
+
+- name: Fail if inventory copy failed
+  fail:
+    msg: "Could not copy Zuul inventory file from executor"
+  when: not inventory_file.stat.exists
+
+- name: Set inventory path
+  set_fact:
+    zuul_inventory_path: "{{ ansible_user_dir }}/tmp/inventory.yaml"
+
+- name: Create context extraction prompt with @file reference
+  set_fact:
+    context_prompt: >-
+      Read and analyze the Zuul inventory file at @{{ zuul_inventory_path }}.
+      Extract execution context including workspace locations, change information, and output paths.
+      Generate a structured context summary following the zuul-context-extractor agent instructions.
+      Write the output to {{ review_output_dir }}/zuul-context.md
+
+- name: Create ocr command
+  set_fact:
+    ocr_cmd: >-
+      opencode run --print-logs --log-level "WARN" --agent "zuul-context-extractor" 
+      --model "{{ context_model }}" "{{ context_prompt }}"
+
+- name: print ocr command
+  debug:
+    msg: "ocr command is: {{ ocr_cmd }}"
+
+- name: Run zuul-context-extractor with OpenCode
+  shell: "{{ ocr_cmd }}"
+  register: context_extraction
+  environment:
+    OPENCODE_CONFIG: "{{ opencode_config_dir }}/opencode.json"
+
+- name: Display context extraction result
+  debug:
+    msg: "Context extraction completed. Output at {{ review_output_dir }}/zuul-context.md"
+
+- name: Verify context extraction output
+  stat:
+    path: "{{ review_output_dir }}/zuul-context.md"
+  register: context_file
+
+- name: Fail if context extraction failed
+  fail:
+    msg: "Context extraction did not produce expected output file"
+  when: not context_file.stat.exists

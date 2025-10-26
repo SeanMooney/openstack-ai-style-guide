@@ -1,0 +1,113 @@
+---
+- name: Verify prerequisite context files exist
+  stat:
+    path: "{{ item }}"
+  register: prereq_files
+  loop:
+    - "{{ review_output_dir }}/zuul-context.md"
+    - "{{ review_output_dir }}/commit-summary.md"
+    - "{{ ansible_user_dir }}/{{ style_guide_project }}/docs/quick-rules.md"
+    - "{{ ansible_user_dir }}/{{ style_guide_project }}/docs/comprehensive-guide.md"
+
+- name: Fail if prerequisite files missing
+  fail:
+    msg: "Missing prerequisite file: {{ item.item }}"
+  when: not item.stat.exists
+  loop: "{{ prereq_files.results }}"
+
+- name: Set style guide path
+  set_fact:
+    style_guide_path: "{{ ansible_user_dir }}/{{ style_guide_project }}/docs/quick-rules.md"
+
+- name: Set comprehensive guide path
+  set_fact:
+    comprehensive_guide_path: "{{ ansible_user_dir }}/{{ style_guide_project }}/docs/comprehensive-guide.md"
+
+- name: Create code review prompt with @file references
+  set_fact:
+    review_prompt: >-
+      Perform a comprehensive code review of the OpenStack change using the following context files:
+      
+      Read @{{ review_output_dir }}/zuul-context.md for Zuul execution context.
+      Read @{{ review_output_dir }}/commit-summary.md for commit metadata and change summary.
+      Read @{{ style_guide_path }} for essential OpenStack coding standards and rules.
+      Read @{{ comprehensive_guide_path }} for detailed explanations and complex scenarios.
+      
+      The project under review is located at: {{ project_src_dir }}
+      
+      Follow the code-review-agent instructions to analyze the code for:
+      - Style compliance (PEP 8, Hacking rules)
+      - Code quality and maintainability
+      - Testing adequacy (including proper usage of mock and fixtures)
+      - API design and backward compatibility
+      - Security considerations
+      - Performance implications
+      - Documentation completeness
+      
+      Generate a structured review report with severity-categorized findings
+      (Critical Issues, Warnings, Suggestions, Positive Observations).
+      
+      Write the comprehensive review report to {{ review_output_dir }}/review-report.md
+      Do not output the report in {{ project_src_dir }}.
+      Prefer using absolute paths when creating files to ensure they are created
+      at the expected location.
+      You MUST verify that the report was created at
+      {{ review_output_dir }}/review-report.md before completing this task.
+      If the report was output to a diffent location move it
+      to {{ review_output_dir }}/review-report.md
+
+
+- name: Create ocr command
+  set_fact:
+    ocr_cmd: >-
+      opencode run --print-logs --log-level "WARN" --agent "code-review-agent" 
+      --model "{{ review_model }}" "{{ review_prompt }}"
+
+- name: print ocr command
+  debug:
+    msg: "ocr command is: {{ ocr_cmd }}"
+
+
+- name: Run code-review-agent with OpenCode
+  shell:
+    cmd: "{{ ocr_cmd }}"
+    chdir: "{{ project_src_dir }}"
+  register: code_review
+  environment:
+    OPENCODE_CONFIG: "{{ opencode_config_dir }}/opencode.json"
+
+- name: Display review completion
+  debug:
+    msg: "Code review completed. Report at {{ review_output_dir }}/review-report.md"
+
+- name: Verify review report output
+  stat:
+    path: "{{ review_output_dir }}/review-report.md"
+  register: review_file
+
+- name: Fail if review failed to generate report
+  fail:
+    msg: "Code review did not produce expected report file"
+  when: not review_file.stat.exists
+
+- name: Analyze review report for issues
+  shell: |
+    grep -E "^### (Critical Issues|Warnings)" "{{ review_output_dir }}/review-report.md" || true
+  register: issue_markers
+
+- name: Count issues found
+  shell: |
+    grep -c "^\*\*\[" "{{ review_output_dir }}/review-report.md" || echo "0"
+  register: issue_count
+
+- name: Set review result facts
+  set_fact:
+    has_issues: "{{ issue_count.stdout | int > 0 }}"
+    issue_count: "{{ issue_count.stdout | int }}"
+
+- name: Display review summary
+  debug:
+    msg: |
+      Review Summary:
+      - Issues found: {{ issue_count }}
+      - Status: {{ 'NEEDS ATTENTION' if has_issues else 'CLEAN' }}

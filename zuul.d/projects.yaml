@@ -1,0 +1,9 @@
+---
+- project:
+    name: github.com/SeanMooney/openstack-ai-style-guide
+    check:
+      jobs:
+        - openstack-ai-code-review
+    gate:
+      jobs:
+        - openstack-ai-code-review

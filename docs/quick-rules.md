@@ -26,7 +26,7 @@ from nova import utils  # local project
 - **79 chars max per line** (strict)
 - **4 spaces indentation** (no tabs)
 - **No bare except:** - always specify exceptions
-- **autospec=True** in all @mock.patch decorators
+- **autospec=True** in all @mock.patch decorators (recommended practice)
 - **Delayed logging**: `LOG.info('Value: %s', val)` not f-strings
 
 ### 3. Required Patterns
@@ -85,7 +85,7 @@ def api_method(self, request, resource_id):
         LOG.exception('Unexpected error in api_method')
         raise webob.exc.HTTPInternalServerError()
 
-# Mock usage
+# Mock usage (recommended)
 @mock.patch('nova.utils.execute', autospec=True)
 def test_method(self, mock_execute):
 
@@ -159,7 +159,7 @@ def api_method_no_error_handling(self, request):
 - [ ] Apache license header
 - [ ] 79 char line limit
 - [ ] No bare except
-- [ ] autospec=True in mocks
+- [ ] autospec=True in mocks (recommended)
 - [ ] Proper import order
 - [ ] Delayed logging
 - [ ] No locals() in formatting

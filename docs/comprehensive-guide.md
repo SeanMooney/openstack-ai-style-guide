@@ -162,10 +162,15 @@ class TestResourceManager(base.BaseTestCase):
         self.mock_session.query.assert_called_once()
 ```
 
-### Mock Usage (H210 - Critical)
+### Mock Usage (H210 - Recommended)
 ```python
-# Always use autospec=True
+# Always use autospec=True (recommended practice)
 @mock.patch('nova.utils.execute', autospec=True)
+
+# Exception: When editing existing code that doesn't follow this pattern
+# maintain consistency with existing code rather than forcing changes unless:
+# 1. The existing mock pattern is causing test failures
+# 2. You're adding new tests or substantially refactoring existing ones
 def test_command_execution(self, mock_execute):
     mock_execute.return_value = ('output', '')
     # test code
@@ -837,11 +842,36 @@ Switch to new libvirt reset API
 - [ ] Commit message explains WHY, WHAT, and HOW of the change
 - [ ] AI usage and technical approach documented in commit message
 
+## 4. Context-Aware Best Practices
+
+### When Editing Existing Code
+When modifying existing OpenStack code files, follow these guidelines:
+
+#### Maintain Consistency Over Perfection
+- **Preserve existing patterns** even if they don't follow current recommendations
+- **Don't force refactors** just to align with best practices unless there's a compelling reason
+- **Match local conventions** used throughout the specific file or module
+
+#### Exceptions to Recommendations
+You may deviate from recommended practices when:
+1. **Consistency would be broken** - Existing code uses a different pattern consistently
+2. **Risk of introducing bugs** - Changing patterns could destabilize working code
+3. **Limited scope** - You're only fixing a specific bug, not refactoring
+4. **Downstream dependencies** - Other code depends on current implementation
+
+#### When to Apply Recommendations
+For new code or substantial refactors:
+1. **New files** - Follow all recommended practices
+2. **New methods/classes** - Use recommended patterns even in existing files
+3. **Test additions** - Apply best practices to new test code
+4. **Security fixes** - Update to current security practices
+5. **Performance improvements** - Modernize patterns for better performance
+
 ### Error Prevention Checklist
 Before generating code, verify:
 - [ ] Line length ≤ 79 characters
 - [ ] No bare `except:` statements
-- [ ] `autospec=True` in all `@mock.patch` decorators
+- [ ] `autospec=True` in all `@mock.patch` decorators (for new code)
 - [ ] Proper logging interpolation (use `%s`, not f-strings)
 - [ ] Specific exception handling
 - [ ] Apache license header present

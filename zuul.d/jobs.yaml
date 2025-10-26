@@ -1,0 +1,53 @@
+---
+- job:
+    name: openstack-ai-code-review-base
+    description: |
+      Base job for AI-assisted code review of OpenStack projects.
+      Uses OpenCode with LiteLLM proxy for secure model access.
+      OpenCode is pre-installed in the ci-node-opencode image.
+    abstract: true
+    run: playbooks/code-review/run.yaml
+    post-run: playbooks/code-review/post.yaml
+    timeout: 600
+    nodeset: debian-opencode-single-node-pod
+    required-projects:
+      - name: github.com/SeanMooney/openstack-ai-style-guide
+        override-checkout: master
+    vars:
+      # OpenCode is pre-installed
+      opencode_binary: "opencode"
+      opencode_config_dir: "{{ ansible_user_dir }}/.config/opencode"
+      
+      # Model selection
+      context_model: "litellm-homelab/glm-4.5-air"
+      review_model: "litellm-homelab/glm-4.6"
+      
+      # LiteLLM proxy (internal service, no sensitive keys)
+      litellm_base_url: "http://litellm.zuul-system.svc.cluster.local:4000/v1"
+      litellm_api_key: "sk-1234"
+      
+      # Style guide project location (Zuul provides this)
+      style_guide_project: "{{ zuul.projects['github.com/SeanMooney/openstack-ai-style-guide'].src_dir }}"
+      agents_source_dir: "{{ ansible_user_dir }}/{{ style_guide_project }}/agents"
+      agents_target_dir: "{{ opencode_config_dir }}/agent"
+      
+      # Output configuration
+      review_output_dir: "{{ ansible_user_dir }}/logs/code-review"
+      
+      # Collect OpenCode logs
+      zuul_copy_output:
+        '{{ ansible_user_dir }}/.local/share/opencode/log': 'logs'
+      extensions_to_txt:
+        conf: true
+        log: true
+        localrc: true
+        stackenv: true
+        auto: true
+- job:
+    name: openstack-ai-code-review
+    parent: openstack-ai-code-review-base
+    description: |
+      AI-assisted code review for OpenStack Python projects.
+      Uses GLM models via LiteLLM homelab proxy.
+
+

@@ -28,7 +28,6 @@ description: |
   security-auditor agent to check for input validation issues, file upload
   vulnerabilities, and injection attacks.</commentary>
   </example>
-tools: Bash, Glob, Grep, Read, WebFetch, TodoWrite, WebSearch, BashOutput, KillShell
 model: inherit
 color: red
 ---

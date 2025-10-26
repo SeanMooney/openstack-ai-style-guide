@@ -1,8 +1,7 @@
 ---
 name: doc-to-markdown
 description: Convert documentation into optimized markdown with source citations. Use when you need to transform any documentation (HTML, PDF, web pages) into clean, AI-friendly markdown format that preserves structure and maintains traceability to original sources.
-tools: Read, Write, Bash, Grep, Glob
-model: sonnet
+model: inherit
 color: blue
 ---
 

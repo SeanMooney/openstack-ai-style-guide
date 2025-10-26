@@ -44,8 +44,7 @@ description: |
 
   5. **Proactive Maintenance**: After completing a feature or refactoring, to
      identify any newly created dead code or consolidation opportunities.
-tools: Bash, Glob, Grep, Read, Edit, Write, WebFetch, TodoWrite, WebSearch, BashOutput, KillShell
-model: sonnet
+model: inherit
 color: yellow
 ---
 

@@ -4,6 +4,8 @@
     check:
       jobs:
         - openstack-ai-code-review
+        - openstack-ai-style-guide-lint
     gate:
       jobs:
         - openstack-ai-code-review
+        - openstack-ai-style-guide-lint

@@ -7,24 +7,28 @@ source_type: OpenStack Wiki Documentation
 
 # Git Commit Good Practice
 
-This document provides guidance on creating well-structured Git commits for OpenStack projects[1]. It is based on experience from code development, bug troubleshooting, and code review across projects including libvirt, QEMU, and OpenStack Nova[1].
+This document provides guidance on creating well-structured Git commits for OpenStack projects[1]. It is based on
+experience from code development, bug troubleshooting, and code review across projects including libvirt, QEMU, and
+OpenStack Nova[1].
 
 ## Executive Summary
 
-This document demonstrates the value of splitting changes into individual commits and writing good commit messages[1]. When reviewing changes in Gerrit, reviewers should examine not only code correctness but also:
+This document demonstrates the value of splitting changes into individual commits and writing good commit messages[1].
+When reviewing changes in Gerrit, reviewers should examine not only code correctness but also:
 
 - Quality of commit messages
 - Proper separation of logical changes
 - Separation of whitespace changes from functional changes
 - Separation of refactoring from functional changes[1]
 
-The fundamental principle: Software is "read mostly, write occasionally," so optimize for long-term maintainability by the community rather than convenience of a single author[1].
+The fundamental principle: Software is "read mostly, write occasionally," so optimize for long-term maintainability by
+the community rather than convenience of a single author[1].
 
 ## Structural Split of Changes
 
 ### Cardinal Rule
 
-**There should be only one "logical change" per commit**[1].
+There should be only one "logical change" per commit[1].
 
 **Reasons for this rule:**
 
@@ -35,30 +39,30 @@ The fundamental principle: Software is "read mostly, write occasionally," so opt
 
 ### Things to Avoid When Creating Commits
 
-**Mixing whitespace changes with functional code changes**
+#### Mixing Whitespace Changes with Functional Code Changes
 
 Whitespace changes obscure functional changes, making review harder[1].
 
-**Solution:** Create two commits - one for whitespace, one for functional changes[1].
+Solution: Create two commits - one for whitespace, one for functional changes[1].
 
-**Mixing two unrelated functional changes**
+#### Mixing Two Unrelated Functional Changes
 
 Makes review harder and complicates potential reverts[1].
 
-**Sending large new features in a single giant commit**
+#### Sending Large New Features in a Single Giant Commit
 
 New features often involve refactoring. Refactoring should be in separate commits from new feature implementation[1].
 
-**Guidelines for feature commits:**
+Guidelines for feature commits:
 
 - Separate commits for refactoring existing code
 - Separate commits for new internal APIs/classes
 - Separate commits for public HTTP APIs or RPC interfaces from internal implementation
 - Use `APIImpact` flag for patches affecting public HTTP APIs[1]
 
-**Basic rule:**
+Basic rule:
 
-```
+```text
 If a code change can be split into a sequence of patches/commits, then it should be split.
 Less is not more. More is more.
 ```
@@ -67,7 +71,7 @@ Less is not more. More is more.
 
 #### Example 1: Mixed Changes in Refactoring
 
-```
+```text
 commit ae878fc8b9761d099a4145617e4a48cbeb390623
 Author: [removed]
 Date:   Fri Jun 1 01:44:02 2012 +0000
@@ -82,15 +86,17 @@ Date:   Fri Jun 1 01:44:02 2012 +0000
    * makes rescue/unrescue not use hard reboot to recreate domain
 ```
 
-**Problems:**
+Problems:
 
-- At least two independent changes: (1) switch to "reset" API for "hard_reboot" and (2) adjustment to internal driver methods
-- The switch to libvirt 'reset' API was buried in refactoring, causing reviewers to miss a new libvirt version dependency
+- At least two independent changes: (1) switch to "reset" API for "hard_reboot" and (2) adjustment to internal
+  driver methods
+- The switch to libvirt 'reset' API was buried in refactoring, causing reviewers to miss a new libvirt version
+  dependency
 - Trivial revert is impossible due to entangled unrelated changes[2]
 
 #### Example 2: Feature Implementation Mixed with Refactoring
 
-```
+```text
 commit e0540dfed1c1276106105aea8d5765356961ef3d
 Author: [removed]
 Date:   Wed May 16 15:17:53 2012 +0400
@@ -101,11 +107,12 @@ Date:   Wed May 16 15:17:53 2012 +0400
   [abbreviated]
 ```
 
-**Problems:**
+Problems:
 
-This commit entangles significant code refactoring with new LVM feature code, making it hard to identify regressions in QCow2/Raw image support[2].
+This commit entangles significant code refactoring with new LVM feature code, making it hard to identify regressions
+in QCow2/Raw image support[2].
 
-**Should have been split into:**
+Should have been split into:
 
 1. Replace 'use_cow_images' config FLAG with 'libvirt_local_images_type' FLAG (with backward compatibility)
 2. Creation of internal "Image" class and subclasses for Raw & QCow2
@@ -116,7 +123,7 @@ This commit entangles significant code refactoring with new LVM feature code, ma
 
 #### Example 1: Separated API and Policy Changes
 
-```
+```text
 commit 3114a97ba188895daff4a3d337b2c73855d4632d
 Author: [removed]
 Date:   Mon Jun 11 17:16:10 2012 +0100
@@ -130,11 +137,12 @@ Date:   Tue May 1 17:09:32 2012 +0100
   Add support for configuring libvirt VM clock and timers
 ```
 
-These two changes provide support for configuring KVM guest timers. The introduction of new APIs for creating libvirt XML is clearly separated from the change to KVM guest creation policy[3].
+These two changes provide support for configuring KVM guest timers. The introduction of new APIs for creating libvirt
+XML is clearly separated from the change to KVM guest creation policy[3].
 
 #### Example 2: Incremental RPC Refactoring
 
-```
+```text
 commit 62bea64940cf629829e2945255cc34903f310115
 Author: [removed]
 Date:   Fri Jun 1 14:49:42 2012 -0400
@@ -152,55 +160,62 @@ Date:   Wed May 30 14:57:03 2012 -0400
   [many more commits]
 ```
 
-This sequence refactored the entire RPC API layer to allow pluggable messaging implementations. Splitting into many commits enabled meaningful code review and tracking of regressions at each step[3].
+This sequence refactored the entire RPC API layer to allow pluggable messaging implementations. Splitting into many
+commits enabled meaningful code review and tracking of regressions at each step[3].
 
 ## Information in Commit Messages
 
 ### Key Principles
 
-**Do not assume the reviewer understands what the original problem was**
+#### Do Not Assume the Reviewer Understands What the Original Problem Was
 
-The commit message should clearly state the original problem. The bug is historical context for how the problem was identified[4].
+The commit message should clearly state the original problem. The bug is historical context for how the problem was
+identified[4].
 
-**Do not assume the reviewer has access to external web services/sites**
+#### Do Not Assume the Reviewer Has Access to External Web Services or Sites
 
-Commit messages should be self-contained. In 6 months, when troubleshooting offline, the message must provide all necessary context without access to bug trackers or blueprint documents[4].
+Commit messages should be self-contained. In 6 months, when troubleshooting offline, the message must provide all
+necessary context without access to bug trackers or blueprint documents[4].
 
-**Do not assume the code is self-evident/self-documenting**
+#### Do Not Assume the Code is Self-Evident or Self-Documenting
 
 Always document the original problem and how it is being fixed, except for obvious typos or whitespace-only commits[4].
 
-**Describe why a change is being made**
+#### Describe Why a Change is Being Made
 
-Document the intent and motivation behind changes, not just how the code was written. Describe overall code structure for large changes, but focus on the reasoning[4].
+Document the intent and motivation behind changes, not just how the code was written. Describe overall code structure
+for large changes, but focus on the reasoning[4].
 
-**Read the commit message to see if it hints at improved code structure**
+#### Read the Commit Message to See if it Hints at Improved Code Structure
 
 If describing a commit reveals it should have been split into multiple parts, rebase and split it[4].
 
-**Ensure sufficient information to decide whether to review**
+#### Ensure Sufficient Information to Decide Whether to Review
 
-Gerrit email alerts contain minimal information. The commit message must alert potential reviewers that this patch requires their attention[4].
+Gerrit email alerts contain minimal information. The commit message must alert potential reviewers that this patch
+requires their attention[4].
 
-**The first commit line is the most important**
+#### The First Commit Line is the Most Important
 
-The first line appears in email subject lines, git annotate, gitk, merge commits, and many other space-constrained contexts. It should summarize the change and identify the affected component (e.g., "libvirt")[4].
+The first line appears in email subject lines, git annotate, gitk, merge commits, and many other space-constrained
+contexts. It should summarize the change and identify the affected component [e.g., "libvirt"](4).
 
-**Describe any limitations of the current code**
+#### Describe Any Limitations of the Current Code
 
 Mention future scope for improvements or known limitations to show the broader picture has been considered[4].
 
-**Do not assume the reviewer has knowledge of the tests executed**
+#### Do Not Assume the Reviewer Has Knowledge of the Tests Executed
 
 For changes requiring manual testing, include a 'Test Plan' section listing test cases performed[4].
 
-**Do not include patch set-specific comments**
+#### Do Not Include Patch Set-Specific Comments
 
-Comments like "Patch set 2: rebased" or "Added unit tests" should go in Gerrit comments, not commit messages. They are not relevant after merge[4].
+Comments like "Patch set 2: rebased" or "Added unit tests" should go in Gerrit comments, not commit messages. They
+are not relevant after merge[4].
 
-**Main rule:**
+Main rule:
 
-```
+```text
 The commit message must contain all the information required to fully understand & review
 the patch for correctness. Less is not more. More is more.
 ```
@@ -209,17 +224,17 @@ the patch for correctness. Less is not more. More is more.
 
 Commit messages include metadata for machine interpretation[5]:
 
-**Change-Id**
+### Change-Id
 
 - Unique hash generated by Git commit hook
 - Used by Gerrit to track patch versions
 - Do not change when rebasing[5]
 
-**Bug References**
+### Bug References
 
 For **Storyboard:**
 
-```
+```text
 Story: 1234567
 Task: 98765
 ```
@@ -229,63 +244,69 @@ Task: 98765
 
 For **Launchpad:**
 
-```
+```text
 Closes-Bug: #1234567    - use if commit fully fixes and closes the bug
 Partial-Bug: #1234567   - use if commit is only a partial fix
 Related-Bug: #1234567   - use if commit is merely related to the bug
 ```
 
-**Blueprint**
+### Blueprint
 
-```
+```text
 Implements: blueprint blueprint-name
 ```
 
 References a Launchpad blueprint for feature implementation[5].
 
-**DocImpact**
+### DocImpact
 
-```
+```text
 DocImpact
 ```
 
-Use when patch contains documentation or requires documentation updates. Include as much information as possible. Gerrit creates a bug for the openstack-manuals project[5].
+Use when patch contains documentation or requires documentation updates. Include as much information as possible.
+Gerrit creates a bug for the openstack-manuals project[5].
 
-**APIImpact**
+### APIImpact
 
-```
+```text
 APIImpact
 ```
 
-Use when patch creates, updates, or deletes a public HTTP API or changes API behavior. All associated reviews can be found in [this report](https://review.openstack.org/#/q/status:open+AND+(message:ApiImpact+OR+message:APIImpact),n,z) for API Working Group review[5].
+Use when patch creates, updates, or deletes a public HTTP API or changes API behavior. All associated reviews can be
+found in [this report](https://review.openstack.org/#/q/status:open+AND+(message:ApiImpact+OR+message:APIImpact),n,z)
+for API Working Group review[5].
 
-**SecurityImpact**
+### SecurityImpact
 
-```
+```text
 SecurityImpact
 ```
 
 Indicates change has security implications requiring OpenStack Security Group review[5].
 
-**UpgradeImpact**
+### UpgradeImpact
 
-```
+```text
 UpgradeImpact
 ```
 
-Indicates change has upgrade implications for continuous deployment or N to N+1 upgrades. Consider updating 'Upgrade Notes' in release notes[5].
+Indicates change has upgrade implications for continuous deployment or N to N+1 upgrades. Consider updating 'Upgrade
+Notes' in release notes[5].
 
-**Co-Authored-By**
+### Co-Authored-By
 
-```
+```text
 Co-Authored-By: name <name@example.com>
 ```
 
 Recognizes multiple authors. Statistics tools should observe this convention[5].
 
-**Signed-off-by (REQUIRED)**
+### Signed-off-by (REQUIRED)
 
-All authors and contributors must adhere to the [Developer Certificate of Origin](https://developercertificate.org/) and indicate this with `Signed-off-by` in commit messages[5].
+All authors and contributors must adhere to the
+[Developer Certificate of Origin](https://developercertificate.org/) and indicate this with `Signed-off-by` in commit
+messages[5].
 
 **Creating signed commits:**
 
@@ -312,7 +333,7 @@ On subsequent patches, preserve all prior `Signed-off-by` lines[5].
 
 **Example commit message:**
 
-```
+```text
 Switch libvirt get_cpu_info method over to use config APIs
 
 The get_cpu_info method in the libvirt driver currently uses
@@ -332,7 +353,7 @@ Change-Id: I4946a16d27f712ae2adf8441ce78e6c0bb0bb657
 
 #### Example 1: Missing Import Details
 
-```
+```text
 commit 468e64d019f51d364afb30b0eed2ad09483e0b98
 Author: [removed]
 Date:   Mon Jun 18 16:07:37 2012 -0400
@@ -343,11 +364,11 @@ Date:   Mon Jun 18 16:07:37 2012 -0400
   Signed-off-by: Stacky McStackFace <stacky@openstack.org>
 ```
 
-**Problem:** Does not mention what imports were missing or why they were needed[7].
+Problem: Does not mention what imports were missing or why they were needed[7].
 
-**Better version:**
+Better version:
 
-```
+```text
 Add missing import of 'exception' in compute/utils.py
 
 nova/compute/utils.py makes a reference to exception.NotFound,
@@ -356,7 +377,7 @@ however exception has not been imported.
 
 #### Example 2: Missing Format Details
 
-```
+```text
 commit 2020fba6731634319a0d541168fbf45138825357
 Author: [removed]
 Date:   Fri Jun 15 11:12:45 2012 -0600
@@ -370,11 +391,11 @@ Date:   Fri Jun 15 11:12:45 2012 -0600
  Change-Id: I5e574f8e60d091ef8862ad814e2c8ab993daa366
 ```
 
-**Problem:** Does not mention current (broken) format, new fixed format, or what earlier change caused the regression[7].
+Problem: Does not mention current (broken) format, new fixed format, or what earlier change caused the regression[7].
 
-**Better version:**
+Better version:
 
-```
+```text
 Present correct ec2id format for volumes and snaps
 
 During the volume uuid migration, done by changeset XXXXXXX,
@@ -390,7 +411,7 @@ Signed-off-by: Stacky McStackFace <stacky@openstack.org>
 
 #### Example 3: Missing Context and Behavior
 
-```
+```text
 commit f28731c1941e57b776b519783b0337e52e1484ab
 Author: [removed]
 Date:   Wed Jun 13 10:11:04 2012 -0400
@@ -403,11 +424,12 @@ Date:   Wed Jun 13 10:11:04 2012 -0400
   Change-Id: I91c0b7c41804b2b25026cbe672b9210c305dc29b
 ```
 
-**Problem:** Only documents what was done, not why. Missing information about what changeset introduced the requirement and what happens when the check fails[7].
+Problem: Only documents what was done, not why. Missing information about what changeset introduced the requirement
+and what happens when the check fails[7].
 
-**Better version:**
+Better version:
 
-```
+```text
 Add libvirt version check, min 0.9.7
 
 The commit XXXXXXXX introduced use of the 'reset' API
@@ -426,7 +448,7 @@ Change-Id: I91c0b7c41804b2b25026cbe672b9210c305dc29b
 
 #### Example 1: Complete Timer Policy Change
 
-```
+```text
 commit 3114a97ba188895daff4a3d337b2c73855d4632d
 Author: [removed]
 Date:   Mon Jun 11 17:16:10 2012 +0100
@@ -467,7 +489,7 @@ Date:   Mon Jun 11 17:16:10 2012 +0100
   Change-Id: Iafb0e2192b5f3c05b6395ffdfa14f86a98ce3d1f
 ```
 
-**Notable aspects:**
+Notable aspects:
 
 - Describes original problem (bad KVM defaults)
 - Describes functional change (new PIT/RTC policies)
@@ -477,7 +499,7 @@ Date:   Mon Jun 11 17:16:10 2012 +0100
 
 #### Example 2: CPU Architecture Filter
 
-```
+```text
 commit 31336b35b4604f70150d0073d77dbf63b9bf7598
 Author: [removed]
 Date:   Wed Jun 6 22:45:25 2012 -0400
@@ -509,16 +531,16 @@ Date:   Wed Jun 6 22:45:25 2012 -0400
   Change-Id: I17bd103f00c25d6006a421252c9c8dcfd2d2c49b
 ```
 
-**Notable aspects:**
+Notable aspects:
 
 - Describes problem scenario (mixed arch deployments)
 - Describes intent of fix (scheduler filter on arch)
 - Describes rough architecture (how libvirt returns arch)
-- Notes limitations (work needed on Xen)[8]
+- Notes limitations [work needed on Xen](8)
 
 #### Example 3: Parallel Collection Tool with Test Plan
 
-```
+```text
 commit 71f0e301132a7576f238fc1e51ae0ebc399dce43
 Author: [removed]
 Date:   Wed Jul 21 08:47:13 2021 -0400
@@ -569,12 +591,12 @@ Date:   Wed Jul 21 08:47:13 2021 -0400
   Change-Id: I91814d14341cdc438a6d5af999b6c12d39c7d97c
 ```
 
-**Notable aspects:**
+Notable aspects:
 
 - Describes original limitation (sequential collection)
 - Describes functional change (parallel option)
 - Describes intent (decrease time)
-- Describes tests executed (comprehensive Test Plan)[8]
+- Describes tests executed [comprehensive Test Plan](8)
 
 ## References
 

@@ -21,11 +21,12 @@
       OpenCode command: opencode run --print-logs --log-level "WARN"
       --agent "{{ agent_name }}" --model "{{ model_name }}" "{{ agent_prompt }}"
 
-- name: "Run {{ agent_name }} with OpenCode (with retry on transient errors)"
+- name: "Run {{ agent_name }} with OpenCode (retry if output file not created)"
   shell:
     cmd: >-
       opencode run --print-logs --log-level "WARN" --agent "{{ agent_name }}"
-      --model "{{ model_name }}" "{{ agent_prompt }}"
+      --model "{{ model_name }}" "{{ agent_prompt }}" &&
+      test -f "{{ output_file }}"
     chdir: "{{ working_dir | default(omit) }}"
   register: command_result
   environment:
@@ -33,22 +34,7 @@
   failed_when: false
   retries: 3
   delay: 10
-  until: >-
-    command_result.rc == 0 or
-    not (
-      'APIConnectionError' in (command_result.stderr | default('')) or
-      'ConnectionError' in (command_result.stderr | default('')) or
-      'AI_InvalidResponseDataError' in (command_result.stderr | default('')) or
-      'Timeout' in (command_result.stderr | default('')) or
-      'timed out' in (command_result.stderr | default('')) or
-      '429' in (command_result.stderr | default('')) or
-      'Rate limit' in (command_result.stderr | default('')) or
-      '502' in (command_result.stderr | default('')) or
-      '503' in (command_result.stderr | default('')) or
-      '504' in (command_result.stderr | default('')) or
-      'Bad Gateway' in (command_result.stderr | default('')) or
-      'Service Unavailable' in (command_result.stderr | default(''))
-    )
+  until: command_result.rc == 0
 
 - name: "Display retry summary for {{ command_name }}"
   debug:

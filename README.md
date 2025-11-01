@@ -1,14 +1,17 @@
 # OpenStack AI Style Guide
 
-A comprehensive style guide and ruleset specifically designed for AI code generation tools working with OpenStack Python projects.
+A comprehensive style guide and ruleset designed for AI code generation tools working with
+OpenStack Python projects.
 
 ## 🚀 Quick Start for AI Tools
 
 ### Primary Files
+
 - **[`quick-rules.md`](docs/quick-rules.md)** (710 tokens) - Essential rules for immediate use
 - **[`comprehensive-guide.md`](docs/comprehensive-guide.md)** (4700 tokens) - Detailed explanations and examples
 
 ### Integration Commands
+
 ```bash
 # Claude Code
 claude-code --context-file docs/quick-rules.md
@@ -26,7 +29,7 @@ cat docs/quick-rules.md | xclip -selection clipboard  # Linux
 
 ## 📁 Repository Structure
 
-```
+```text
 openstack-ai-style-guide/
 ├── docs/                          # Style guide documentation
 │   ├── quick-rules.md            # Concise reference (710 tokens)
@@ -56,13 +59,15 @@ openstack-ai-style-guide/
 
 ## 🎯 When to Use Which Guide
 
-### Use `quick-rules.md` for:
+### Use `quick-rules.md` for
+
 - ✅ Real-time code generation
-- ✅ Quick validation checks  
+- ✅ Quick validation checks
 - ✅ Context-constrained AI tools
 - ✅ Fast reference lookups
 
-### Use `comprehensive-guide.md` for:
+### Use `comprehensive-guide.md` for
+
 - 📚 Learning OpenStack patterns
 - 🐛 Complex debugging scenarios
 - 📝 Policy and compliance questions
@@ -71,31 +76,38 @@ openstack-ai-style-guide/
 ## 🛠 AI Tool Configuration
 
 ### Claude Code
+
 ```bash
 # Include in system prompt or use context file
 claude-code --context-file docs/quick-rules.md --model claude-3-sonnet
 ```
 
 ### GitHub Copilot
+
 Add to your `.github/copilot-instructions.md`:
+
 ```markdown
 Follow the OpenStack style guide at docs/quick-rules.md for all Python code generation.
 ```
 
 ### Cursor
+
 Add to `.cursorrules`:
-```
+
+```text
 @docs/quick-rules.md
 
 Always follow OpenStack Python style guidelines for code generation.
 ```
 
 ### Custom AI Tools
+
 Include the quick rules as system context:
+
 ```python
 with open('docs/quick-rules.md', 'r') as f:
     style_guide = f.read()
-    
+
 # Pass style_guide as system context to your AI model
 ```
 
@@ -121,6 +133,7 @@ Before submitting AI-generated OpenStack code:
 | Full | All docs + examples | ~7100+ | Learning/training |
 
 **Token Constraints:**
+
 - `quick-rules.md`: Target < 1000 tokens for standalone copying to other repos
 - `comprehensive-guide.md`: Target < 5000 tokens for comprehensive reference
 - Both files designed to be self-contained and readable without external dependencies
@@ -128,6 +141,7 @@ Before submitting AI-generated OpenStack code:
 ## 🤝 Contributing
 
 See [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines on:
+
 - Adding new rules and patterns
 - Contributing examples
 - AI-generated content attribution

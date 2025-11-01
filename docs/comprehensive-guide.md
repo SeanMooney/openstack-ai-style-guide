@@ -1,19 +1,22 @@
 # OpenStack Python Comprehensive Style Guide for AI Code Generation
 
-> **Comprehensive Guide**: Detailed explanations and examples for AI tools generating OpenStack-compliant Python code.  
-> **For quick reference**: See the [OpenStack Python Quick Rules for AI](quick-version)  
-> **For working templates**: See [docs/templates/](templates/) for ready-to-use code patterns  
+> **Comprehensive Guide**: Detailed explanations and examples for AI tools generating OpenStack-compliant Python code.
+> **For quick reference**: See the [OpenStack Python Quick Rules for AI](quick-version)
+> **For working templates**: See [docs/templates/](templates/) for ready-to-use code patterns
 > **For validation workflows**: See [docs/checklists/](checklists/) for pre-submit and review procedures
 
 ## Overview for AI Assistants
-This guide provides specific instructions for AI coding assistants (Claude Code, aider, etc.) 
+
+This guide provides specific instructions for AI coding assistants (Claude Code, aider, etc.)
 to generate Python code that meets OpenStack contribution standards. Follow these rules precisely
 to ensure code passes OpenStack's strict linting and review processes.
 
 ## 1. Critical Code Generation Rules
 
 ### ALWAYS Include Apache License Header
+
 Every Python file MUST start with:
+
 ```python
 # Licensed under the Apache License, Version 2.0 (the "License"); you may
 # not use this file except in compliance with the License. You may obtain
@@ -29,10 +32,12 @@ Every Python file MUST start with:
 ```
 
 ### Line Length & Formatting
+
 - **Maximum 79 characters per line** (strictly enforced)
 - Use 4 spaces for indentation (never tabs)
 - UNIX line endings (`\n`) only
 - Break long lines using parentheses, not backslashes:
+
 ```python
 # Correct:
 result = some_function(
@@ -47,6 +52,7 @@ result = some_function(argument_one, argument_two, \
 ```
 
 ## 2. Import Organization (Critical for AI)
+
 Always organize imports in exactly this order with blank lines between groups:
 
 ```python
@@ -73,6 +79,7 @@ from nova import utils
 ## 3. Function & Method Definitions
 
 ### Docstring Format (H404/H405 Compliance)
+
 ```python
 def fetch_resource(resource_id, timeout=30):
     """Fetch a resource from the database.
@@ -85,6 +92,7 @@ def fetch_resource(resource_id, timeout=30):
 ```
 
 ### Argument Handling
+
 ```python
 # Correct: Use None for mutable defaults
 def process_items(items=None):
@@ -99,6 +107,7 @@ def process_items(items=[]):  # NEVER do this
 ## 4. Exception Handling (Strictly Enforced)
 
 ### Never Use Bare Except (H201)
+
 ```python
 # Correct:
 try:
@@ -114,6 +123,7 @@ except:  # H201 violation - will fail CI
 ```
 
 ### Specific Exception Patterns
+
 ```python
 # Handle specific exceptions
 try:
@@ -132,6 +142,7 @@ except BaseException:
 ## 5. Testing Code Generation
 
 ### Test Structure with oslotest
+
 OpenStack projects use oslotest for consistent test patterns:
 
 ```python
@@ -163,6 +174,7 @@ class TestResourceManager(base.BaseTestCase):
 ```
 
 ### Mock Usage (H210 - Recommended)
+
 ```python
 # Always use autospec=True (recommended practice)
 @mock.patch('nova.utils.execute', autospec=True)
@@ -186,6 +198,7 @@ with mock.patch.object(self.manager, '_save_to_database', autospec=True) as mock
 ```
 
 ### Advanced Assertion Patterns
+
 ```python
 # Correct assertions (H203, H214, H212 compliant):
 self.assertIsNone(result)                    # Not assertEqual(None, result)
@@ -205,15 +218,16 @@ self.assertIn('item2', [r.id for r in results])
 ```
 
 ### Database Testing Patterns
+
 ```python
 def test_database_transaction_rollback(self):
     """Test transaction rollback on error."""
     with mock.patch.object(self.manager.session, 'begin') as mock_begin:
         mock_begin.side_effect = db_exception.DBError("Connection failed")
-        
-        self.assertRaises(DatabaseError, self.manager.create_resource, 
+
+        self.assertRaises(DatabaseError, self.manager.create_resource,
                          {'name': 'test'})
-        
+
         # Verify transaction was attempted
         mock_begin.assert_called_once()
 
@@ -222,18 +236,19 @@ def test_pagination_logic(self):
     # Test limit boundary
     instances, has_more = self.manager.list_instances(limit=10)
     self.assertLessEqual(len(instances), 10)
-    
+
     # Test marker functionality
     with mock.patch.object(self.manager, 'session') as mock_session:
         mock_session.query.return_value.filter_by.return_value.filter\
             .return_value.limit.return_value.all.return_value = []
-        
+
         self.manager.list_instances(marker='last-id')
         mock_session.query.return_value.filter_by.return_value.filter\
             .assert_called_with(Instance.id > 'last-id')
 ```
 
 ### Import unittest.mock (H216)
+
 ```python
 # Correct:
 from unittest import mock
@@ -245,6 +260,7 @@ from mock import patch  # H216 violation
 ## 6. Logging & String Formatting
 
 ### Logging with Delayed Interpolation
+
 ```python
 # Correct (H702/H904 compliant):
 LOG.info('Processing %d items', len(items))
@@ -256,6 +272,7 @@ LOG.info('Processing {} items'.format(len(items)))
 ```
 
 ### String Formatting Preferences
+
 ```python
 # Preferred for regular strings:
 message = f'User {username} has {count} items'
@@ -272,6 +289,7 @@ query = ("SELECT * FROM users "
 ## 7. Data Structure Formatting
 
 ### Dictionary Formatting
+
 ```python
 # One key-value pair per line for readability:
 config = {
@@ -285,18 +303,20 @@ single_item = ('value',)  # Note the comma
 ```
 
 ### List Comprehensions (Keep Simple)
+
 ```python
 # Acceptable:
 results = [item.id for item in items if item.active]
 
 # Too complex - use regular loop instead:
-# results = [process(item) for sublist in nested_list 
+# results = [process(item) for sublist in nested_list
 #           for item in sublist if complex_condition(item)]
 ```
 
 ## 8. Exception Design Patterns
 
 ### Custom Exception Classes
+
 OpenStack projects use structured exception classes with message formatting:
 
 ```python
@@ -314,17 +334,19 @@ class InvalidConfigurationError(ModuleError):
 ```
 
 **Key Pattern Rules:**
+
 - Inherit from appropriate OpenStack exception base class
 - Use `msg_fmt` for consistent message formatting
 - Support parameter substitution with `%(param)s` syntax
 - Create specific exception classes for different error types
 
 ### Exception Usage Patterns
+
 ```python
 def get_resource(self, resource_id):
     if not resource_id:
         raise ValueError("resource_id cannot be empty")
-    
+
     try:
         resource = self._fetch_from_database(resource_id)
         if not resource:
@@ -341,6 +363,7 @@ def get_resource(self, resource_id):
 ## 9. OpenStack-Specific Patterns
 
 ### Configuration Options
+
 ```python
 from oslo_config import cfg
 
@@ -359,6 +382,7 @@ CONF.register_opts(api_opts, group='api')
 ```
 
 ### Context Managers for Resources
+
 ```python
 # Always use context managers:
 with open('/etc/nova/nova.conf') as config_file:
@@ -371,6 +395,7 @@ with session.begin():
 ```
 
 ### Database Session Patterns
+
 OpenStack uses oslo.db with proper transaction management:
 
 ```python
@@ -407,6 +432,7 @@ def update_instance(self, instance_id, updates):
 ```
 
 ### Database Query Patterns
+
 ```python
 # Efficient querying with proper error handling
 def get_active_instances(self, limit=None):
@@ -441,6 +467,7 @@ def list_instances(self, marker=None, limit=None):
 ```
 
 ### API Service Method Patterns
+
 OpenStack API controllers require specific error handling and response patterns:
 
 ```python
@@ -452,7 +479,7 @@ LOG = log.getLogger(__name__)
 def api_method(self, request, resource_id):
     """Standard API method with proper error handling."""
     context = request.environ['context']
-    
+
     try:
         resource = self.manager.get_resource(context, resource_id)
         return {'resource': resource}
@@ -469,12 +496,12 @@ def api_method(self, request, resource_id):
 def create_resource(self, request, resource_data):
     """Create resource with validation and proper error handling."""
     context = request.environ['context']
-    
+
     try:
         # Validate input
         if not resource_data.get('name'):
             raise InvalidParameterError(param='name', value='missing')
-        
+
         resource = self.manager.create_resource(context, resource_data)
         return {'resource': resource}, 201  # Created status
     except ResourceAlreadyExistsError as e:
@@ -486,6 +513,7 @@ def create_resource(self, request, resource_data):
 ```
 
 **Key API Pattern Rules:**
+
 - Extract context from `request.environ['context']`
 - Catch specific exceptions and return appropriate HTTP status codes
 - Use `webob.exc` for HTTP exceptions with proper explanations
@@ -496,6 +524,7 @@ def create_resource(self, request, resource_data):
 ## 9. Naming Conventions
 
 ### Variable and Function Names
+
 ```python
 # Correct:
 user_count = 10
@@ -508,6 +537,7 @@ def GetActiveUsers():  # PascalCase for functions not allowed
 ```
 
 ### Class Names
+
 ```python
 # Correct:
 class DatabaseManager:
@@ -522,6 +552,7 @@ class InvalidConfigurationError(Exception):
 ```
 
 ### Constants
+
 ```python
 # Module-level constants:
 DEFAULT_TIMEOUT = 30
@@ -532,12 +563,15 @@ API_VERSION = '2.1'
 ## 10. OpenInfra Foundation AI Policy and DCO Compliance
 
 ### Commit Message Requirements (MANDATORY)
-All AI-generated contributions MUST include proper commit message labeling per OpenInfra Foundation AI Policy AND Developer Certificate of Origin (DCO) sign-off:
+
+All AI-generated contributions MUST include proper commit message labeling per OpenInfra
+Foundation AI Policy AND Developer Certificate of Origin (DCO) sign-off:
 
 #### OpenStack Commit Message Structure
+
 Follow this exact format for all commits:
 
-```
+```text
 Subject line: imperative, < 50 chars, no period
 
 Body paragraph explaining the WHY and WHAT of the change.
@@ -555,6 +589,7 @@ Change-Id: I1234567890abcdef1234567890abcdef12345678
 ```
 
 #### Subject Line Rules (First Line - CRITICAL)
+
 - **Imperative mood**: "Add user auth" not "Added user auth" or "Adding user auth"
 - **Maximum 50 characters** (strictly enforced)
 - **No period** at the end
@@ -562,6 +597,7 @@ Change-Id: I1234567890abcdef1234567890abcdef12345678
 - **Be specific**: "Fix memory leak in compute manager" not "Fix bug"
 
 #### Body Content Requirements
+
 - **Explain WHY first**: What problem does this solve?
 - **Explain WHAT**: What changes were made?
 - **Explain HOW**: Overall approach (for complex changes)
@@ -570,7 +606,8 @@ Change-Id: I1234567890abcdef1234567890abcdef12345678
 - **Wrap at 72 characters**
 
 #### For Generative AI (Claude Code, ChatGPT, etc.)
-```
+
+```text
 Add user authentication module
 
 This module implements OAuth2 authentication for the API service
@@ -593,7 +630,8 @@ Change-Id: I1234567890abcdef1234567890abcdef12345678
 ```
 
 #### For Predictive AI (Copilot, Tabnine, etc.)
-```
+
+```text
 Fix memory leak in compute manager
 
 The compute manager was not properly releasing resources when
@@ -617,8 +655,10 @@ Change-Id: I1234567890abcdef1234567890abcdef12345678
 ```
 
 #### External References and Flags
+
 Place all metadata at the end in this order:
-```
+
+```text
 # AI labeling (always first in metadata section)
 Generated-By: tool-name
 # or
@@ -646,10 +686,12 @@ Change-Id: I1234567890abcdef1234567890abcdef12345678
 ```
 
 #### DCO Sign-off Requirements (REQUIRED)
+
 - **Every commit** must include `Signed-off-by: Your Name <your.email@example.com>`
 - **Use your real name** (no pseudonyms or anonymous contributions)
 - **Email must match** your Git configuration and Gerrit account
 - **Always use the -s flag** when committing:
+
 ```bash
 git config --global user.name "Your Real Name"
 git config --global user.email "your.email@example.com"
@@ -659,20 +701,25 @@ git commit -s  # The -s flag adds Signed-off-by automatically
 ### AI Policy: Generated-By vs Assisted-By
 
 #### When to Use "Generated-By:"
+
 Use **"Generated-By:"** for **generative AI** tools that produce substantial code artifacts:
+
 - AI generated complete functions, classes, or modules
 - AI created the initial implementation that you then modified
 - Substantial portions of the code came from AI prompts
 - Examples: Claude Code, ChatGPT, GitHub Copilot (when accepting large completions)
 
 #### When to Use "Assisted-By:"
+
 Use **"Assisted-By:"** for **predictive AI** tools that provide suggestions or minor edits:
+
 - AI provided autocomplete suggestions you accepted
 - AI helped with minor refactoring or renaming
 - AI made small targeted changes based on prompts
 - Examples: GitHub Copilot (autocomplete), Tabnine, code formatting tools
 
 #### Key Principles (ALL AI Usage)
+
 - **Human must be in the loop** - Always review and understand AI-generated code
 - **Treat as untrusted source** - Apply the same scrutiny as code from unknown contributors
 - **Ensure open source compatibility** - Configure tools to respect licensing
@@ -682,6 +729,7 @@ Use **"Assisted-By:"** for **predictive AI** tools that provide suggestions or m
 ## 11. AI-Specific Generation Guidelines
 
 ### When Generating New Files
+
 1. Start with Apache license header
 2. Add module docstring
 3. Place module-level constants after docstring, before imports
@@ -689,13 +737,16 @@ Use **"Assisted-By:"** for **predictive AI** tools that provide suggestions or m
 5. Define classes and functions with proper docstrings
 
 ### When Modifying Existing Files
+
 1. Preserve existing license headers
 2. Maintain import organization
 3. Follow existing code style in the file
 4. Add appropriate docstrings to new functions
 
 ### AI-Specific Commit Message Guidelines
+
 When using AI tools, ALWAYS include:
+
 1. **Context provided**: Brief description of what guidance was given to the AI
 2. **AI contributions**: Which parts used AI assistance (structure, logic, patterns, etc.)
 3. **Manual modifications**: What you changed, added, or customized manually
@@ -704,7 +755,9 @@ When using AI tools, ALWAYS include:
 
 ## 12. Common Anti-Patterns to Avoid
 
-For complete examples of anti-patterns to avoid, see [docs/examples/bad/anti_patterns.py](examples/bad/anti_patterns.py) which demonstrates all common violations with explanations.
+For complete examples of anti-patterns to avoid, see
+[docs/examples/bad/anti_patterns.py](examples/bad/anti_patterns.py) which demonstrates
+all common violations with explanations.
 
 ### Critical Violations (Will Fail CI)
 
@@ -806,7 +859,8 @@ self.assertTrue('key' in dictionary)  # Less specific
 ```
 
 #### Common Commit Message Anti-Patterns to Avoid
-```
+
+```text
 # Too vague - doesn't explain what or why
 Fix bug
 
@@ -830,6 +884,7 @@ Switch to new libvirt reset API
 ## 13. Comprehensive Checklists
 
 ### Legal Compliance Checklist (ALL REQUIRED)
+
 - [ ] AI tool configured for open source compatibility
 - [ ] Generated code reviewed for copyright issues
 - [ ] No proprietary claims by AI vendor on output
@@ -845,22 +900,28 @@ Switch to new libvirt reset API
 ## 4. Context-Aware Best Practices
 
 ### When Editing Existing Code
+
 When modifying existing OpenStack code files, follow these guidelines:
 
 #### Maintain Consistency Over Perfection
+
 - **Preserve existing patterns** even if they don't follow current recommendations
 - **Don't force refactors** just to align with best practices unless there's a compelling reason
 - **Match local conventions** used throughout the specific file or module
 
 #### Exceptions to Recommendations
+
 You may deviate from recommended practices when:
+
 1. **Consistency would be broken** - Existing code uses a different pattern consistently
 2. **Risk of introducing bugs** - Changing patterns could destabilize working code
 3. **Limited scope** - You're only fixing a specific bug, not refactoring
 4. **Downstream dependencies** - Other code depends on current implementation
 
 #### When to Apply Recommendations
+
 For new code or substantial refactors:
+
 1. **New files** - Follow all recommended practices
 2. **New methods/classes** - Use recommended patterns even in existing files
 3. **Test additions** - Apply best practices to new test code
@@ -868,7 +929,9 @@ For new code or substantial refactors:
 5. **Performance improvements** - Modernize patterns for better performance
 
 ### Error Prevention Checklist
+
 Before generating code, verify:
+
 - [ ] Line length ≤ 79 characters
 - [ ] No bare `except:` statements
 - [ ] `autospec=True` in all `@mock.patch` decorators (for new code)
@@ -885,6 +948,7 @@ Before generating code, verify:
 ## 14. Validation Workflows and Commands
 
 ### Pre-Commit Validation
+
 After generating code, run these validation commands:
 
 ```bash
@@ -913,6 +977,7 @@ git log -1 --pretty=%B | grep "Signed-off-by:"
 ```
 
 ### Git Hook Setup for Change-Id
+
 Install Gerrit Change-Id hook:
 
 ```bash
@@ -925,6 +990,7 @@ git log -1 --pretty=%B | grep "Change-Id:"
 ```
 
 ### Full Validation Pipeline
+
 ```bash
 # Complete validation before pushing
 python -m py_compile $(find . -name "*.py") && \
@@ -938,6 +1004,7 @@ echo "✓ Ready to push!"
 ### CI Failure Troubleshooting
 
 **Common pep8 failures:**
+
 ```bash
 # Fix locally
 tox -e pep8
@@ -947,6 +1014,7 @@ git review
 ```
 
 **Unit test failures:**
+
 ```bash
 # Run specific failing test
 tox -e py3 -- path/to/test_file.py:TestClass.test_method
@@ -956,6 +1024,7 @@ git review
 ```
 
 **Missing DCO sign-off:**
+
 ```bash
 # Amend commit with sign-off
 git commit --amend -s
@@ -963,6 +1032,7 @@ git review
 ```
 
 **Missing Change-Id:**
+
 ```bash
 # Install hook and amend
 scp -p -P 29418 username@review.opendev.org:hooks/commit-msg .git/hooks/
@@ -974,6 +1044,7 @@ git review
 ## 15. IDE Integration Notes
 
 For AI assistants working with IDEs:
+
 - Set line length markers at 79 characters
 - Configure to show whitespace and line endings
 - Enable PEP 8 checking plugins
@@ -983,4 +1054,7 @@ For AI assistants working with IDEs:
 
 ---
 
-**AI Assistant Note**: This guide prioritizes the most common OpenStack CI failures AND compliance with OpenInfra Foundation AI Policy. When in doubt, err on the side of being more explicit and verbose rather than concise, as OpenStack values clarity and maintainability over brevity. Always include proper AI attribution in commit messages.
+**AI Assistant Note**: This guide prioritizes the most common OpenStack CI failures AND
+compliance with OpenInfra Foundation AI Policy. When in doubt, err on the side of being
+more explicit and verbose rather than concise, as OpenStack values clarity and
+maintainability over brevity. Always include proper AI attribution in commit messages.

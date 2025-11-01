@@ -4,7 +4,7 @@ Examples of properly formatted commit messages for AI-generated contributions.
 
 ## Example 1: Generative AI (Substantial Code Generation)
 
-```
+```texttext
 Add resource cleanup to compute manager
 
 The compute manager was not properly releasing resources when
@@ -36,11 +36,11 @@ Generated-By: claude-code
 Signed-off-by: Jane Doe <jane.doe@example.com>
 Closes-Bug: #2001234
 Change-Id: I1234567890abcdef1234567890abcdef12345678
-```
+```text
 
 ## Example 2: Predictive AI (Minor Assistance)
 
-```
+```texttext
 Fix race condition in network port allocation
 
 There was a race condition in the network port allocation code
@@ -63,11 +63,11 @@ Assisted-By: github-copilot
 Signed-off-by: John Smith <john.smith@example.com>
 Closes-Bug: #2001235
 Change-Id: I2345678901bcdef2345678901bcdef234567890
-```
+```text
 
 ## Example 3: Feature Implementation with AI
 
-```
+```texttext
 Add support for multi-queue virtio network devices
 
 Adds support for configuring multi-queue virtio network devices
@@ -100,11 +100,11 @@ Signed-off-by: Alice Johnson <alice.j@example.com>
 Implements: blueprint multi-queue-virtio
 DocImpact: Adds new flavor extra spec
 Change-Id: I3456789012cdef3456789012cdef345678901234
-```
+```text
 
 ## Example 4: Bug Fix with Testing
 
-```
+```text
 Fix instance UUID collision in DB migration
 
 Fixed a bug in the data migration script where instances could
@@ -130,11 +130,11 @@ Signed-off-by: Bob Martinez <bob.martinez@example.com>
 Closes-Bug: #2001236
 UpgradeImpact: Requires offline migration
 Change-Id: I4567890123def4567890123def456789012345678
-```
+```text
 
 ## Example 5: Refactoring with AI
 
-```
+```text
 Refactor network port update to reduce complexity
 
 The network port update method had grown to over 200 lines with
@@ -167,11 +167,11 @@ Generated-By: claude-code
 Signed-off-by: Carol Zhang <carol.zhang@example.com>
 Related-Bug: #2001237
 Change-Id: I5678901234ef5678901234ef567890123456789012
-```
+```text
 
 ## Example 6: Documentation Update
 
-```
+```text
 Update API guide for flavor extra specs
 
 Updated the API guide to include comprehensive documentation for
@@ -199,7 +199,7 @@ Assisted-By: chatgpt
 Signed-off-by: David Lee <david.lee@example.com>
 DocImpact: Major documentation update
 Change-Id: I6789012345f6789012345f678901234567890123
-```
+```text
 
 ---
 

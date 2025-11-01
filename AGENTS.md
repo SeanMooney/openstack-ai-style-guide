@@ -1,10 +1,13 @@
 # CLAUDE.md
 
-This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+This file provides guidance to Claude Code (claude.ai/code) when working with code in this
+repository.
 
 ## Repository Overview
 
-This is the **OpenStack AI Style Guide** repository containing comprehensive coding standards and guidelines specifically designed for AI code generation tools. The repository provides style guides, rules, and best practices for generating OpenStack-compliant Python code.
+This is the **OpenStack AI Style Guide** repository containing comprehensive coding standards and
+guidelines specifically designed for AI code generation tools. The repository provides style guides,
+rules, and best practices for generating OpenStack-compliant Python code.
 
 ## Key Files and Purpose
 
@@ -23,20 +26,29 @@ When working with OpenStack Python code generation:
 ## Content Structure
 
 The style guides cover:
+
 - **Critical code generation rules** (Apache license headers, line length, formatting)
+
 - **Import organization** (specific ordering requirements for OpenStack)
+
 - **Function/method definitions** (docstring formats, argument handling)
+
 - **Exception handling** (strict rules about bare except statements)
+
 - **Testing patterns** (mock usage with autospec requirements)
 - **Logging standards** (delayed interpolation requirements)
 - **OpenStack-specific patterns** (configuration, context managers)
+
 - **OpenInfra Foundation AI Policy compliance** (commit message requirements, DCO sign-off)
+
 - **Comprehensive checklists** for error prevention
 
 ## Key Compliance Requirements
 
 This repository emphasizes compliance with:
+
 - **OpenStack CI/CD pipeline requirements** (strict linting rules)
+
 - **OpenInfra Foundation AI Policy** (mandatory AI attribution in commits)
 - **Developer Certificate of Origin (DCO)** (REQUIRED sign-off for ALL commits)
 - **Apache 2.0 licensing** (required headers in all Python files)
@@ -44,6 +56,7 @@ This repository emphasizes compliance with:
 ## File Editing Guidelines
 
 When modifying the style guide files:
+
 - Maintain the token count targets mentioned in README.md
 - **Keep `quick-rules.md` below 1000 tokens** for standalone copying to other repositories
 - **Keep `comprehensive-guide.md` below 5000 tokens** for comprehensive reference

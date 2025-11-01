@@ -27,14 +27,14 @@
   set_fact:
     review_prompt: >-
       Perform a comprehensive code review of the OpenStack change using the following context files:
-      
+
       Read @{{ review_output_dir }}/zuul-context.md for Zuul execution context.
       Read @{{ review_output_dir }}/commit-summary.md for commit metadata and change summary.
       Read @{{ style_guide_path }} for essential OpenStack coding standards and rules.
       Read @{{ comprehensive_guide_path }} for detailed explanations and complex scenarios.
-      
+
       The project under review is located at: {{ project_src_dir }}
-      
+
       Follow the code-review-agent instructions to analyze the code for:
       - Style compliance (PEP 8, Hacking rules)
       - Code quality and maintainability
@@ -43,10 +43,10 @@
       - Security considerations
       - Performance implications
       - Documentation completeness
-      
+
       Generate a structured review report with severity-categorized findings
       (Critical Issues, Warnings, Suggestions, Positive Observations).
-      
+
       Write the comprehensive review report to {{ review_output_dir }}/review-report.md
       Do not output the report in {{ project_src_dir }}.
       Prefer using absolute paths when creating files to ensure they are created

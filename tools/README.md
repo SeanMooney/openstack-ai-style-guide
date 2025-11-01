@@ -5,9 +5,11 @@ This directory contains validation and utility tools for maintaining the OpenSta
 ## Tools Overview
 
 ### `validate_style.py`
+
 Python style validator for OpenStack compliance.
 
 **Usage:**
+
 ```bash
 # Validate single file
 python tools/validate_style.py examples/good/basic_service.py
@@ -23,6 +25,7 @@ python tools/validate_style.py --quiet examples/good/*.py
 ```
 
 **Checks performed:**
+
 - Apache 2.0 license header presence
 - Line length (79 character limit)
 - Import organization
@@ -32,9 +35,11 @@ python tools/validate_style.py --quiet examples/good/*.py
 - Mutable default arguments (H232)
 
 ### `count_tokens.py`
+
 Token counting utility for AI context management.
 
 **Usage:**
+
 ```bash
 # Count tokens in style guide files
 python tools/count_tokens.py docs/quick-rules.md docs/comprehensive-guide.md
@@ -50,6 +55,7 @@ python tools/count_tokens.py --format simple docs/*.md
 ```
 
 **Token targets:**
+
 - `quick-rules.md`: ~800 tokens
 - `comprehensive-guide.md`: ~2500 tokens
 - Combined: ~3300 tokens
@@ -57,7 +63,9 @@ python tools/count_tokens.py --format simple docs/*.md
 ## Integration Examples
 
 ### Pre-commit Hook
+
 Add to `.pre-commit-config.yaml`:
+
 ```yaml
 repos:
   - repo: local
@@ -70,6 +78,7 @@ repos:
 ```
 
 ### CI/CD Pipeline
+
 ```bash
 # In your CI script
 python tools/validate_style.py --warnings-as-errors examples/good/*.py
@@ -78,6 +87,7 @@ python tools/count_tokens.py --target 2500 docs/comprehensive-guide.md
 ```
 
 ### AI Tool Integration
+
 ```bash
 # Before generating code
 python tools/validate_style.py generated_code.py
@@ -92,6 +102,7 @@ fi
 ## Development
 
 ### Adding New Validators
+
 To add new validation rules to `validate_style.py`:
 
 1. Add the check method to `OpenStackStyleValidator` class
@@ -100,6 +111,7 @@ To add new validation rules to `validate_style.py`:
 4. Use `self.warnings.append()` for suggestions
 
 Example:
+
 ```python
 def _check_new_pattern(self, content):
     """Check for new pattern violations."""
@@ -108,6 +120,7 @@ def _check_new_pattern(self, content):
 ```
 
 ### Testing Tools
+
 ```bash
 # Test validator with good examples (should pass)
 python tools/validate_style.py examples/good/*.py
@@ -128,6 +141,7 @@ python tools/count_tokens.py docs/*.md examples/*.py
 ## Dependencies
 
 Both tools use only Python standard library modules:
+
 - `ast` - For Python AST parsing
 - `re` - For pattern matching
 - `pathlib` - For file handling

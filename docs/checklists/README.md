@@ -5,9 +5,12 @@ Quick reference checklists for validating AI-generated OpenStack code at various
 ## Available Checklists
 
 ### 1. `pre-submit.md` - Before Committing and Pushing Code
-Complete workflow checklist covering local validation, commit preparation, and pre-push verification to ensure your code meets all OpenStack requirements and will pass CI/CD checks.
+
+Complete workflow checklist covering local validation, commit preparation, and pre-push verification
+to ensure your code meets all OpenStack requirements and will pass CI/CD checks.
 
 ### 2. `code-review.md` - Reviewing AI-Generated Code
+
 Use this when reviewing code that was generated or assisted by AI tools.
 
 ## Quick Access
@@ -28,6 +31,7 @@ markdown-pdf docs/checklists/pre-submit.md
 ### Git Hooks
 
 Add to `.git/hooks/pre-commit`:
+
 ```bash
 #!/bin/bash
 echo "=== OpenStack Pre-Submission Checklist ==="
@@ -43,6 +47,7 @@ fi
 ### Pre-commit Framework
 
 Add to `.pre-commit-config.yaml`:
+
 ```yaml
 - repo: local
   hooks:
@@ -57,6 +62,7 @@ Add to `.pre-commit-config.yaml`:
 ### IDE Integration
 
 **VS Code** - Add to tasks.json:
+
 ```json
 {
   "label": "Show Pre-Submission Checklist",
@@ -72,6 +78,7 @@ Add to `.pre-commit-config.yaml`:
 ### Terminal Aliases
 
 Add to `.bashrc` or `.zshrc`:
+
 ```bash
 alias os-pre-submit='cat docs/checklists/pre-submit.md'
 alias os-review='cat docs/checklists/code-review.md'

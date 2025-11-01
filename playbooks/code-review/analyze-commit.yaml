@@ -17,7 +17,7 @@
   set_fact:
     commit_prompt: >-
       Analyze current git commit in repository at {{ project_src_dir }}.
-      Extract commit metadata, generate an ASCII file tree relitive to
+      Extract commit metadata, generate an ASCII file tree relative to
       {{ project_src_dir }}, identify bug/feature markers
       following OpenStack conventions, and summarize what changed and why.
       Follow commit-summarizer agent instructions.

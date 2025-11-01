@@ -1,0 +1,140 @@
+# Pre-commit hooks for OpenStack AI Style Guide
+# Modern linting stack with ruff (replaces autopep8 + hacking) and bandit
+#
+# To use this configuration:
+# 1. pip install pre-commit
+# 2. pre-commit install
+# 3. (optional) pre-commit run --all-files
+#
+# Hooks will run automatically on 'git commit'
+
+default_language_version:
+  python: python3
+
+repos:
+  # Standard pre-commit hooks
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v5.0.0
+    hooks:
+      - id: trailing-whitespace
+        exclude: ^.*\.svg$
+      - id: mixed-line-ending
+        args: ['--fix=lf']  # Enforce UNIX line endings (H903)
+        exclude: ^.*\.svg$
+      - id: end-of-file-fixer
+        exclude: ^.*\.svg$
+      - id: check-yaml
+      - id: check-json
+      - id: debug-statements
+      - id: check-merge-conflict
+      - id: check-case-conflict
+      - id: detect-private-key
+
+  # Ruff - Modern Python linter and formatter (replaces autopep8 + hacking)
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.8.4
+    hooks:
+      # Run the linter
+      - id: ruff
+        args: [--fix]
+
+  # Markdownlint - Markdown linting
+  - repo: https://github.com/DavidAnson/markdownlint-cli2
+    rev: v0.18.1
+    hooks:
+      - id: markdownlint-cli2
+        args: [--fix]
+        exclude: ^references/MarkdownLintRules\.md$
+
+  # License header check (local hook)
+  - repo: local
+    hooks:
+      - id: check-apache-license
+        name: Check Apache License Header
+        entry: >-
+          bash -c '
+          for file in "$@"; do
+            grep -q "Apache License" "$file" || {
+              echo "Missing Apache license in $file"
+              exit 1
+            }
+          done
+          ' --
+        language: system
+        files: \.py$
+        exclude: '^(tests/|docs/examples/bad/|.*/__pycache__/)'
+
+  # DCO sign-off check with email validation (local hook)
+  - repo: local
+    hooks:
+      - id: check-dco-signoff
+        name: Check DCO Sign-off
+        entry: >-
+          bash -c '
+          commit_msg=$(git log -1 --pretty=%B)
+
+          # Check for Signed-off-by presence
+          echo "$commit_msg" | grep -q "^Signed-off-by:" || {
+            echo "ERROR: Commit must include DCO sign-off. Use: git commit -s"
+            exit 1
+          }
+
+          # Validate email consistency
+          git_email=$(git config user.email)
+          signoff_email=$(echo "$commit_msg" | grep "^Signed-off-by:" | sed "s/.*<\(.*\)>/\1/")
+
+          if [ -z "$signoff_email" ]; then
+            echo "ERROR: Could not parse email from Signed-off-by line"
+            exit 1
+          fi
+
+          if [ "$git_email" != "$signoff_email" ]; then
+            echo "ERROR: DCO email mismatch"
+            echo "  Git config email:    $git_email"
+            echo "  Signed-off-by email: $signoff_email"
+            echo ""
+            echo "To fix, either:"
+            echo "  1. Update git config: git config user.email \"$signoff_email\""
+            echo "  2. Or amend commit:   git commit --amend -s"
+            exit 1
+          fi
+          '
+        language: system
+        stages: [commit-msg]
+        always_run: true
+        pass_filenames: false
+
+
+
+# Files to exclude from all hooks
+exclude: |
+  (?x)^(
+      \.tox/|
+      \.git/|
+      \.venv/|
+      venv/|
+      .*\.egg-info/|
+      build/|
+      dist/|
+      __pycache__/|
+      \.pytest_cache/|
+      \.ruff_cache/|
+  )$
+
+# Minimum pre-commit version
+minimum_pre_commit_version: '2.20.0'
+
+# Notes for AI code generation:
+# - This config uses modern tooling (ruff) configured for OpenStack compatibility
+# - ruff replaces autopep8 (formatting) and hacking (linting)
+# - Configured for 79 character line length (see ruff.toml)
+# - bandit provides security scanning
+# - markdownlint ensures documentation quality
+# - DCO sign-off is checked on every commit
+# - All Python files must have Apache license headers
+#
+# To temporarily skip hooks (NOT RECOMMENDED):
+# git commit --no-verify
+#
+# To run hooks manually:
+# pre-commit run --all-files

@@ -81,6 +81,7 @@ You perform two primary types of analysis:
 ## Analysis Methodology
 
 ### Dead Code Detection
+
 1. **Build a complete reference graph**: Use code analysis tools to map all
    function calls, class instantiations, imports, and references
 2. **Separate production from test code**: Identify test directories and files
@@ -94,6 +95,7 @@ You perform two primary types of analysis:
    may be used by external consumers - flag these as "potentially used externally"
 
 ### Dependency Analysis
+
 1. **Map dependency usage**: For each dependency, identify all import statements
    and usage locations
 2. **Cross-reference with dead code**: If dead code is the only user of a
@@ -104,6 +106,7 @@ You perform two primary types of analysis:
    code could resolve dependency version conflicts
 
 ### Code Consolidation Analysis
+
 1. **Pattern matching**: Identify similar code structures, repeated logic, and
    duplicated algorithms
 2. **Semantic similarity**: Look beyond exact matches to find functionally
@@ -145,14 +148,17 @@ for manual review.
 Your output must be a structured, actionable report with the following sections:
 
 ### 1. Executive Summary
+
 - Total lines of potentially dead code identified
 - Number of unused dependencies
 - Number of consolidation opportunities
 - Estimated impact of recommended changes
 
 ### 2. High-Confidence Dead Code
+
 For each item:
-```
+
+```markdown
 **[Type: Function/Class/Module]** `fully.qualified.name`
 - **Location**: `path/to/file.ext:line_number`
 - **Reason**: [Specific reason why this is dead code]
@@ -163,8 +169,10 @@ For each item:
 ```
 
 ### 3. Unused Dependencies
+
 For each dependency:
-```
+
+```markdown
 **Package**: `package-name@version`
 - **Reason for Removal**: [Why this dependency is no longer needed]
 - **Dead Code Dependencies**: [List dead code that was the only user]
@@ -174,8 +182,10 @@ For each dependency:
 ```
 
 ### 4. Code Consolidation Opportunities
+
 For each opportunity:
-```
+
+```markdown
 **Pattern**: [Brief description of the duplicated pattern]
 - **Occurrences**:
   - `path/to/file1.ext:line_range`
@@ -189,8 +199,10 @@ For each opportunity:
 ```
 
 ### 5. Items Requiring Manual Review
+
 For lower-confidence findings:
-```
+
+```markdown
 **Item**: `name`
 - **Location**: `path/to/file.ext:line_number`
 - **Reason for Uncertainty**: [Why you cannot determine with high confidence]
@@ -199,18 +211,20 @@ For lower-confidence findings:
 ```
 
 ### 6. Recommendations
+
 - Prioritized list of actions
 - Suggested order of operations
 - Risk assessment for each major change
 - Backward compatibility notes
 
 ## Report Formatting Guidelines
-  - Wrap lines at 100 columns where possible
-  - Never exceed 150 columns (except URLs)
-  - Use markdown lists, tables, and headers for structure
-  - Optimize for terminal/editor viewing, not just HTML rendering
-  - Break long sentences at natural punctuation points
-  - Use blank lines generously for visual separation
+
+- Wrap lines at 100 columns where possible
+- Never exceed 150 columns (except URLs)
+- Use markdown lists, tables, and headers for structure
+- Optimize for terminal/editor viewing, not just HTML rendering
+- Break long sentences at natural punctuation points
+- Use blank lines generously for visual separation
 
 ## Operational Guidelines
 
@@ -239,18 +253,23 @@ For lower-confidence findings:
 After completing your maintainability audit, you MUST write the report to the specified output file:
 
 ### 1. Use the Write Tool
+
 Write your complete markdown report using the Write tool with the absolute path provided:
+
 - **Output path**: `{{ output_file }}` (this is an absolute path)
 - **Do NOT use**: Bash redirection (`>`), echo commands, or other shell methods
 - **Content**: The complete structured audit report in markdown format
 
 ### 2. Use Absolute Paths
+
 The output file path is already absolute. Use it exactly as provided without modification:
+
 - ✓ Correct: Write directly to `{{ output_file }}`
 - ✗ Wrong: Modifying the path or making it relative
 - ✗ Wrong: Writing to the codebase directory being audited
 
 ### 3. Verify File Creation
+
 After writing the file, verify it was created successfully:
 
 ```bash
@@ -259,17 +278,21 @@ ls -lh {{ output_file }}
 ```
 
 ### 4. Confirm Completion
+
 End your execution by stating: "✓ Maintainability audit report written to {{ output_file }}"
 
 ### 5. Error Handling
+
 If file creation fails:
+
 1. Check current working directory: `pwd`
 2. Verify parent directory exists: `ls -ld $(dirname {{ output_file }})`
 3. Create parent directory if needed: `mkdir -p $(dirname {{ output_file }})`
 4. Retry write operation using Write tool with absolute path
 5. If still failing, report the specific error message
 
-**CRITICAL**: The playbook validation will fail if this file is not created at the exact expected location. File creation is a REQUIRED step for successful completion.
+**CRITICAL**: The playbook validation will fail if this file is not created at the
+exact expected location. File creation is a REQUIRED step for successful completion.
 
 ## Edge Cases and Special Considerations
 
@@ -291,6 +314,7 @@ If file creation fails:
 ## Quality Assurance
 
 Before finalizing your report:
+
 1. Re-verify all HIGH confidence findings
 2. Ensure all file paths and line numbers are accurate
 3. Confirm that recommended changes are backward compatible

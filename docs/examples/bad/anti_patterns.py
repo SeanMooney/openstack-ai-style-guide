@@ -54,20 +54,20 @@ class BadResourceManager:
         """Examples of incorrect string formatting."""
         # WRONG: H702 - f-string in logging
         LOG.info(f'User {user_id} has {count} items')
-        
+
         # WRONG: H702 - .format() in logging
         LOG.error('Failed to process user {}'.format(user_id))
-        
+
         # WRONG: H501 - using locals() in string formatting
         message = "User %(user_id)s processed" % locals()
-        
+
         return message
 
     def bad_line_length_example(self, very_long_parameter_name, another_long_parameter, third_parameter, fourth_parameter):
         """This line is too long and will fail H501 check."""
         # WRONG: Line exceeds 79 characters
         very_long_variable_name_that_exceeds_limit = very_long_parameter_name + another_long_parameter + third_parameter
-        
+
         return very_long_variable_name_that_exceeds_limit
 
     def incorrect_context_usage(self, filename):
@@ -76,7 +76,7 @@ class BadResourceManager:
         file_handle = open(filename, 'r')
         data = file_handle.read()
         file_handle.close()  # Easy to forget, creates resource leaks
-        
+
         return data
 
     def bad_variable_naming(self):
@@ -84,10 +84,10 @@ class BadResourceManager:
         # WRONG: camelCase variables (should be snake_case)
         userName = 'test_user'
         itemCount = 42
-        
+
         # WRONG: Single letter variables in non-trivial contexts
         x = self._get_data()
-        
+
         return userName, itemCount, x
 
     # WRONG: Method name should be snake_case
@@ -119,13 +119,13 @@ class TestBadPatterns:
 
     def test_bad_assertions(self):
         result = None
-        
+
         # WRONG: H203 - should use assertIsNone
         self.assertEqual(None, result)
-        
+
         # WRONG: H214 - should use assertIn
         self.assertTrue('key' in {'key': 'value'})
-        
+
         # WRONG: Assertion argument order
         self.assertEqual(result, None)  # Should be (expected, actual)
 

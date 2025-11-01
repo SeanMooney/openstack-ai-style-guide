@@ -5,7 +5,9 @@ This directory contains templates for generating OpenStack-compliant code with p
 ## Available Templates
 
 ### 1. `python_module.py.template`
+
 Complete Python module template with:
+
 - Apache 2.0 license header
 - Proper import organization
 - Module-level docstring
@@ -14,13 +16,16 @@ Complete Python module template with:
 - Logging with delayed interpolation
 
 **Usage:**
+
 ```bash
 cp templates/python_module.py.template myproject/new_module.py
 # Edit placeholders: MODULE_NAME, DESCRIPTION, etc.
 ```
 
 ### 2. `python_test.py.template`
+
 Test file template with:
+
 - Apache 2.0 license header
 - Proper test class structure
 - Mock usage with `autospec=True`
@@ -28,13 +33,16 @@ Test file template with:
 - Exception testing patterns
 
 **Usage:**
+
 ```bash
 cp templates/python_test.py.template myproject/tests/test_new_module.py
 # Edit placeholders: MODULE_NAME, test methods, etc.
 ```
 
 ### 3. `commit_message.txt`
+
 Commit message template with:
+
 - Proper subject line format
 - Body structure (WHY, WHAT, HOW)
 - AI attribution (Generated-By/Assisted-By)
@@ -42,19 +50,23 @@ Commit message template with:
 - External references
 
 **Usage:**
+
 ```bash
 git commit -s -F templates/commit_message.txt
 # Edit the template file first with your specific changes
 ```
 
 ### 4. `pre-commit-config.yaml`
+
 Pre-commit hook configuration for:
+
 - Python linting (flake8, hacking)
 - Import sorting
 - License header verification
 - Line length checks
 
 **Usage:**
+
 ```bash
 cp templates/pre-commit-config.yaml .pre-commit-config.yaml
 pip install pre-commit
@@ -64,18 +76,22 @@ pre-commit install
 ## Using Templates with AI Tools
 
 ### Claude Code
+
 ```bash
 # Include template as context
 cat templates/python_module.py.template | claude-code "Create a new service module for managing instances"
 ```
 
 ### GitHub Copilot
+
 Add to your `.github/copilot-instructions.md`:
+
 ```markdown
 When creating new Python files, use the template from templates/python_module.py.template
 ```
 
 ### General Pattern
+
 1. Copy the template to your target location
 2. Use AI tool to fill in the implementation
 3. Ensure all placeholders are replaced

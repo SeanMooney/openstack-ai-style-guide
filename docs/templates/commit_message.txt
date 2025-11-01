@@ -116,7 +116,7 @@ Choose the appropriate tag:
 - **Assisted-By: tool-name** - Use when AI provided minor assistance
   (autocomplete, simple suggestions, formatting) or when they impleent
   very narrowly scoped explict code changes that have been guide by a
-  human. 
+  human.
 
 ALWAYS include:
  - the tool used

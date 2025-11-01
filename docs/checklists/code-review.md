@@ -5,7 +5,7 @@ Use this checklist when reviewing code that was generated or assisted by AI tool
 ## Initial Assessment
 
 - [ ] **Commit message includes AI attribution** (Generated-By or Assisted-By)
-- [ ] **DCO sign-off present** (Signed-off-by: Real Name <email>)
+- [ ] **DCO sign-off present** (Signed-off-by: Real Name &lt;email&gt;)
 - [ ] **Commit message explains AI usage**: What was generated, what was manual
 - [ ] **Contributor appears to understand** the code (explanation demonstrates knowledge)
 - [ ] **AI tool disclosure is appropriate** (Generated-By for substantial, Assisted-By for minor)
@@ -102,7 +102,7 @@ If contributor cannot explain, **request clarification or changes**.
 - [ ] **oslo.config**: Configuration via CONF, not environment variables
 - [ ] **oslo.log**: Logging via oslo_log.log, not standard logging
 - [ ] **Exception handling**: Custom exceptions inherit from proper base
-- [ ] **i18n**: Translatable strings use _() or _LE()/_LI()/_LW()
+- [ ] **i18n**: Translatable strings use _() or_LE()/_LI()/_LW()
 - [ ] **No mutable defaults**: `items=None` pattern, not `items=[]` (H232)
 
 ## Review Comments
@@ -143,7 +143,7 @@ Only approve if **ALL** of these are true:
 
 If minor issues remain:
 
-```
+```text
 This looks good overall. Before merging, please address:
 
 1. Add autospec=True to mock.patch on line 42 (H210)

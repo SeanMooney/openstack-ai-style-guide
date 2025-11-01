@@ -10,7 +10,9 @@ This directory contains code examples demonstrating correct and incorrect patter
 ## Good Examples
 
 ### `good/basic_service.py`
+
 Demonstrates:
+
 - Proper Apache 2.0 license header
 - Correct import organization
 - OpenStack-style docstrings
@@ -20,7 +22,9 @@ Demonstrates:
 - Naming conventions
 
 ### `good/test_example.py`
+
 Demonstrates:
+
 - Proper test class structure
 - Mock usage with `autospec=True`
 - Correct assertion methods
@@ -30,7 +34,9 @@ Demonstrates:
 ## Bad Examples (Anti-patterns)
 
 ### `bad/anti_patterns.py`
+
 Shows common violations:
+
 - H201: Bare except clauses
 - H210: Missing autospec in mocks
 - H216: Wrong mock imports
@@ -42,6 +48,7 @@ Shows common violations:
 ## Using These Examples
 
 ### For AI Tools
+
 Include relevant examples in your AI tool context:
 
 ```bash
@@ -53,11 +60,13 @@ diff generated_code.py docs/examples/good/basic_service.py
 ```
 
 ### For Learning
+
 1. Study the good examples to understand proper patterns
 2. Review bad examples to recognize anti-patterns
 3. Use both for training AI models on OpenStack standards
 
 ### For Testing
+
 ```bash
 # Validate good examples pass style checks
 python -m py_compile docs/examples/good/*.py

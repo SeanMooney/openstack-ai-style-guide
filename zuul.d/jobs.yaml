@@ -59,5 +59,21 @@
     description: |
       AI-assisted code review for OpenStack Python projects.
       Uses GLM models via LiteLLM homelab proxy.
-
-
+- job:
+    name: openstack-ai-style-guide-lint
+    parent: tox-linters
+    description: |
+      Run linting checks for OpenStack AI Style Guide using tox.
+      Uses the linters environment which runs pre-commit with --show-diff-on-failure.
+      Requires Python 3.13 for Debian opencode node compatibility.
+      See docs/zuul-configuration.md for information on customizing this job.
+    timeout: 900
+    nodeset: debian-opencode-single-node-pod
+    vars:
+      tox_envlist: linters
+      # Python version is pinned to 3.13 for compatibility with the debian-opencode
+      # nodeset used in this Zuul CI environment. The debian-opencode nodes are
+      # pre-configured with Python 3.13 and OpenCode tools. If you need to use
+      # a different Python version, you may need to use a different nodeset or
+      # configure the job variables. See docs/zuul-configuration.md for details.
+      python_version: "3.13"

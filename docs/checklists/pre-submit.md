@@ -184,6 +184,7 @@ tox -e ALL
 ### Change-Id Hook
 
 - [ ] **Change-Id hook installed**:
+
 ```bash
 # If not installed, install it:
 scp -p -P 29418 username@review.opendev.org:hooks/commit-msg .git/hooks/
@@ -191,6 +192,7 @@ chmod +x .git/hooks/commit-msg
 ```
 
 - [ ] **Change-Id present** in latest commit:
+
 ```bash
 git log -1 --pretty=%B | grep "Change-Id:"
 ```
@@ -360,5 +362,6 @@ Before running `git review`:
 **Remember**: DCO sign-off is REQUIRED. Always use `git commit -s`!
 
 Monitor your submission at:
+
 - Zuul CI: https://zuul.opendev.org
 - Gerrit review: https://review.opendev.org

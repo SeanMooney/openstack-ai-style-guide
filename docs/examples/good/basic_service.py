@@ -68,7 +68,7 @@ class ResourceManager:
         :raises: ResourceExists if resource already exists
         """
         properties = properties or {}
-        
+
         if not name:
             raise ValueError('Resource name is required')
 
@@ -81,7 +81,7 @@ class ResourceManager:
         try:
             with self._get_db_session() as session:
                 resource = self._create_in_db(session, resource_data)
-                LOG.info('Created resource %s with ID %s', 
+                LOG.info('Created resource %s with ID %s',
                         name, resource.id)
                 return resource
         except exception.Duplicate as e:

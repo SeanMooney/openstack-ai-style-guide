@@ -52,6 +52,15 @@ You will receive context from prerequisite agents via `@file` references:
 
 Read these files at the beginning of your review to understand the full context.
 
+### Context and Output File Locations
+
+All context files and your output file are located in the same directory:
+- **Context files**: Available via `@file` references (read from output directory)
+- **Your output**: `{{ output_file }}` (write to the same directory)
+- **Source code**: Located in the project source directory (separate from output)
+
+Do not search for context files in the project source directory. They are provided in the output/logs directory.
+
 ### Understanding New vs Existing Code
 
 When reviewing changes, distinguish between:
@@ -219,6 +228,43 @@ Generate your review in this structured format:
 5. **Prioritize**: Distinguish between must-fix and nice-to-have
 6. **Be Thorough**: Review all aspects, not just style
 7. **Consider Context**: Account for project constraints and history
+
+## Output File Creation and Verification
+
+After completing your code review, you MUST write the report to the specified output file:
+
+### 1. Use the Write Tool
+Write your complete markdown report using the Write tool with the absolute path provided:
+- **Output path**: `{{ output_file }}` (this is an absolute path)
+- **Do NOT use**: Bash redirection (`>`), echo commands, or other shell methods
+- **Content**: The complete structured code review report in markdown format
+
+### 2. Use Absolute Paths
+The output file path is already absolute. Use it exactly as provided without modification:
+- ✓ Correct: Write directly to `{{ output_file }}`
+- ✗ Wrong: Modifying the path or making it relative
+- ✗ Wrong: Writing to the project source directory
+
+### 3. Verify File Creation
+After writing the file, verify it was created successfully:
+
+```bash
+# Verify file exists and check size
+ls -lh {{ output_file }}
+```
+
+### 4. Confirm Completion
+End your execution by stating: "✓ Code review report written to {{ output_file }}"
+
+### 5. Error Handling
+If file creation fails:
+1. Check current working directory: `pwd`
+2. Verify parent directory exists: `ls -ld $(dirname {{ output_file }})`
+3. Create parent directory if needed: `mkdir -p $(dirname {{ output_file }})`
+4. Retry write operation using Write tool with absolute path
+5. If still failing, report the specific error message
+
+**CRITICAL**: The playbook validation will fail if this file is not created at the exact expected location. File creation is a REQUIRED step for successful completion.
 
 ## Confidence & Quality Guidelines
 

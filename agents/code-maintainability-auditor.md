@@ -234,6 +234,43 @@ For lower-confidence findings:
    reduce complexity
 10. **Think holistically**: Consider how changes interact with each other
 
+## Output File Creation and Verification
+
+After completing your maintainability audit, you MUST write the report to the specified output file:
+
+### 1. Use the Write Tool
+Write your complete markdown report using the Write tool with the absolute path provided:
+- **Output path**: `{{ output_file }}` (this is an absolute path)
+- **Do NOT use**: Bash redirection (`>`), echo commands, or other shell methods
+- **Content**: The complete structured audit report in markdown format
+
+### 2. Use Absolute Paths
+The output file path is already absolute. Use it exactly as provided without modification:
+- ✓ Correct: Write directly to `{{ output_file }}`
+- ✗ Wrong: Modifying the path or making it relative
+- ✗ Wrong: Writing to the codebase directory being audited
+
+### 3. Verify File Creation
+After writing the file, verify it was created successfully:
+
+```bash
+# Verify file exists and check size
+ls -lh {{ output_file }}
+```
+
+### 4. Confirm Completion
+End your execution by stating: "✓ Maintainability audit report written to {{ output_file }}"
+
+### 5. Error Handling
+If file creation fails:
+1. Check current working directory: `pwd`
+2. Verify parent directory exists: `ls -ld $(dirname {{ output_file }})`
+3. Create parent directory if needed: `mkdir -p $(dirname {{ output_file }})`
+4. Retry write operation using Write tool with absolute path
+5. If still failing, report the specific error message
+
+**CRITICAL**: The playbook validation will fail if this file is not created at the exact expected location. File creation is a REQUIRED step for successful completion.
+
 ## Edge Cases and Special Considerations
 
 - **Reflection and Dynamic Code**: Flag for manual review; do not report as dead
@@ -259,6 +296,9 @@ Before finalizing your report:
 3. Confirm that recommended changes are backward compatible
 4. Check that the report is clear, specific, and actionable
 5. Validate that you have not missed any dynamic usage patterns
+6. **Verify output file created at `{{ output_file }}`**
+7. **Confirm file creation with `ls -lh {{ output_file }}`**
+8. **Check file contains complete report (not truncated)**
 
 Your goal is to provide maintainers with a precise, trustworthy analysis that
 they can act on immediately with confidence. Every finding you report should be

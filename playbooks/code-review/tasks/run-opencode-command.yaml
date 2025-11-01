@@ -1,0 +1,39 @@
+---
+# Reusable task for executing OpenCode commands
+#
+# This task file consolidates the complete OpenCode execution pattern:
+# command creation, display, execution, and result validation. It eliminates
+# the need for set_fact statements by accepting variables directly.
+#
+# Required variables:
+#   - agent_name: Agent to use (e.g., "zuul-context-extractor")
+#   - model_name: Model to use (e.g., "{{ context_model }}")
+#   - agent_prompt: Prompt to pass to the agent
+#   - output_file: Expected output file path
+#   - command_name: Human-readable name (e.g., "context extraction")
+#
+# Optional variables:
+#   - working_dir: Working directory for command execution (defaults to current)
+
+- name: "Display OpenCode {{ command_name }} command"
+  debug:
+    msg: >-
+      OpenCode command: opencode run --print-logs --log-level "WARN"
+      --agent "{{ agent_name }}" --model "{{ model_name }}" "{{ agent_prompt }}"
+
+- name: "Run {{ agent_name }} with OpenCode"
+  shell:
+    cmd: >-
+      opencode run --print-logs --log-level "WARN" --agent "{{ agent_name }}"
+      --model "{{ model_name }}" "{{ agent_prompt }}"
+    chdir: "{{ working_dir | default(omit) }}"
+  register: command_result
+  environment:
+    OPENCODE_CONFIG: "{{ opencode_config_dir }}/opencode.json"
+  failed_when: false
+
+- name: "Check {{ command_name }} result"
+  include_tasks: check-opencode-result.yaml
+  vars:
+    # command_result already set from shell command above
+    # command_name, agent_name, model_name, output_file passed through from parent

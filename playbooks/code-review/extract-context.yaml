@@ -33,32 +33,11 @@
       Generate a structured context summary following the zuul-context-extractor agent instructions.
       Write the output to {{ review_output_dir }}/zuul-context.md
 
-- name: Create ocr command
-  set_fact:
-    ocr_cmd: >-
-      opencode run --print-logs --log-level "WARN" --agent "zuul-context-extractor" 
-      --model "{{ context_model }}" "{{ context_prompt }}"
-
-- name: print ocr command
-  debug:
-    msg: "ocr command is: {{ ocr_cmd }}"
-
-- name: Run zuul-context-extractor with OpenCode
-  shell: "{{ ocr_cmd }}"
-  register: context_extraction
-  environment:
-    OPENCODE_CONFIG: "{{ opencode_config_dir }}/opencode.json"
-
-- name: Display context extraction result
-  debug:
-    msg: "Context extraction completed. Output at {{ review_output_dir }}/zuul-context.md"
-
-- name: Verify context extraction output
-  stat:
-    path: "{{ review_output_dir }}/zuul-context.md"
-  register: context_file
-
-- name: Fail if context extraction failed
-  fail:
-    msg: "Context extraction did not produce expected output file"
-  when: not context_file.stat.exists
+- name: Execute context extraction
+  include_tasks: tasks/run-opencode-command.yaml
+  vars:
+    agent_name: "zuul-context-extractor"
+    model_name: "{{ context_model }}"
+    agent_prompt: "{{ context_prompt }}"
+    output_file: "{{ review_output_dir }}/zuul-context.md"
+    command_name: "context extraction"

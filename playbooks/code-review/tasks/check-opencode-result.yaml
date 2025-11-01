@@ -1,0 +1,58 @@
+---
+# Reusable task for checking OpenCode command results
+#
+# This task file consolidates the error handling pattern used across
+# all OpenCode command executions (context extraction, commit analysis,
+# and code review). It displays output on success, provides detailed
+# diagnostics on failure, and validates that output files were created.
+#
+# Required variables:
+#   - command_result: registered result from shell command
+#   - command_name: human-readable name (e.g., "context extraction")
+#   - agent_name: agent used (e.g., "zuul-context-extractor")
+#   - output_file: expected output file path
+#   - model_name: model used for this command
+
+- name: "Display {{ command_name }} output on success"
+  debug:
+    var: command_result.stdout
+  when: command_result.rc == 0
+
+- name: "Check if {{ command_name }} command succeeded"
+  fail:
+    msg: |
+      OpenCode {{ command_name }} command failed with return code {{ command_result.rc }}.
+
+      STDOUT:
+      {{ command_result.stdout | default('(empty)') }}
+
+      STDERR:
+      {{ command_result.stderr | default('(empty)') }}
+
+      This likely indicates an issue with:
+      - OpenCode installation or configuration
+      - The {{ agent_name }} agent definition
+      - LiteLLM proxy connectivity
+      - Model availability ({{ model_name }})
+  when: command_result.rc != 0
+
+- name: "Verify {{ command_name }} output exists"
+  stat:
+    path: "{{ output_file }}"
+  register: output_file_stat
+
+- name: "Validate {{ command_name }} output"
+  fail:
+    msg: |
+      {{ command_name | capitalize }} command succeeded but did not produce expected output file.
+      Expected: {{ output_file }}
+
+      This may indicate:
+      - Agent did not complete successfully
+      - Output was written to wrong location
+      - File permission issues
+  when: not output_file_stat.stat.exists
+
+- name: "Display {{ command_name }} success"
+  debug:
+    msg: "✓ {{ command_name | capitalize }} completed successfully. Output at {{ output_file }}"

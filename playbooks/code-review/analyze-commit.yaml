@@ -30,35 +30,12 @@
       If the structured commit summary was output to a diffent location move it
       to {{ review_output_dir }}/commit-summary.md
 
-- name: Create ocr command
-  set_fact:
-    ocr_cmd: >-
-      opencode run --print-logs --log-level "WARN" --agent "commit-summary" 
-      --model "{{ context_model }}" "{{ commit_prompt }}"
-
-- name: print ocr command
-  debug:
-    msg: "ocr command is: {{ ocr_cmd }}"
-
-
-- name: Run commit-summarizer with OpenCode
-  shell:
-    cmd: "{{ ocr_cmd }}"
-    chdir: "{{ project_src_dir }}"
-  register: commit_analysis
-  environment:
-    OPENCODE_CONFIG: "{{ opencode_config_dir }}/opencode.json"
-
-- name: Display commit analysis result
-  debug:
-    msg: "Commit analysis completed. Output at {{ review_output_dir }}/commit-summary.md"
-
-- name: Verify commit analysis output
-  stat:
-    path: "{{ review_output_dir }}/commit-summary.md"
-  register: commit_file
-
-- name: Fail if commit analysis failed
-  fail:
-    msg: "Commit analysis did not produce expected output file"
-  when: not commit_file.stat.exists
+- name: Execute commit analysis
+  include_tasks: tasks/run-opencode-command.yaml
+  vars:
+    agent_name: "commit-summary"
+    model_name: "{{ context_model }}"
+    agent_prompt: "{{ commit_prompt }}"
+    output_file: "{{ review_output_dir }}/commit-summary.md"
+    command_name: "commit analysis"
+    working_dir: "{{ project_src_dir }}"

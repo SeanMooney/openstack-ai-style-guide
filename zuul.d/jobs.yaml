@@ -5,10 +5,20 @@
       Base job for AI-assisted code review of OpenStack projects.
       Uses OpenCode with LiteLLM proxy for secure model access.
       OpenCode is pre-installed in the ci-node-opencode image.
+
+      Model selection can be overridden via job variables:
+      - context_model: Model for context extraction (default: litellm-homelab/glm-4.5-air)
+      - review_model: Model for code review (default: litellm-homelab/glm-4.6)
+
+      Timeout Configuration:
+      The timeout is set to 900 seconds (15 minutes), which is approximately
+      double the average runtime. This timeout should generally not be changed
+      without first reviewing the average run-to-run execution time to ensure
+      the multiplier remains appropriate.
     abstract: true
     run: playbooks/code-review/run.yaml
     post-run: playbooks/code-review/post.yaml
-    timeout: 600
+    timeout: 900
     nodeset: debian-opencode-single-node-pod
     required-projects:
       - name: github.com/SeanMooney/openstack-ai-style-guide
@@ -17,26 +27,26 @@
       # OpenCode is pre-installed
       opencode_binary: "opencode"
       opencode_config_dir: "{{ ansible_user_dir }}/.config/opencode"
-      
-      # Model selection
+
+      # Model selection (can be overridden by child jobs)
       context_model: "litellm-homelab/glm-4.5-air"
       review_model: "litellm-homelab/glm-4.6"
-      
-      # LiteLLM proxy (internal service, no sensitive keys)
+
+      # LiteLLM proxy configuration (internal homelab service)
       litellm_base_url: "http://litellm.zuul-system.svc.cluster.local:4000/v1"
-      litellm_api_key: "sk-1234"
-      
+      litellm_api_key: "sk-1234"  # Internal homelab key, not sensitive
+
       # Style guide project location (Zuul provides this)
       style_guide_project: "{{ zuul.projects['github.com/SeanMooney/openstack-ai-style-guide'].src_dir }}"
       agents_source_dir: "{{ ansible_user_dir }}/{{ style_guide_project }}/agents"
       agents_target_dir: "{{ opencode_config_dir }}/agent"
-      
+
       # Output configuration
       review_output_dir: "{{ ansible_user_dir }}/logs/code-review"
-      
+
       # Collect OpenCode logs
-      zuul_copy_output:
-        '{{ ansible_user_dir }}/.local/share/opencode/log': 'logs'
+      # zuul_copy_output:
+      #   '{{ ansible_user_dir }}/.local/share/opencode/log': 'logs'
       extensions_to_txt:
         conf: true
         log: true

@@ -57,38 +57,15 @@
       to {{ review_output_dir }}/review-report.md
 
 
-- name: Create ocr command
-  set_fact:
-    ocr_cmd: >-
-      opencode run --print-logs --log-level "WARN" --agent "code-review-agent" 
-      --model "{{ review_model }}" "{{ review_prompt }}"
-
-- name: print ocr command
-  debug:
-    msg: "ocr command is: {{ ocr_cmd }}"
-
-
-- name: Run code-review-agent with OpenCode
-  shell:
-    cmd: "{{ ocr_cmd }}"
-    chdir: "{{ project_src_dir }}"
-  register: code_review
-  environment:
-    OPENCODE_CONFIG: "{{ opencode_config_dir }}/opencode.json"
-
-- name: Display review completion
-  debug:
-    msg: "Code review completed. Report at {{ review_output_dir }}/review-report.md"
-
-- name: Verify review report output
-  stat:
-    path: "{{ review_output_dir }}/review-report.md"
-  register: review_file
-
-- name: Fail if review failed to generate report
-  fail:
-    msg: "Code review did not produce expected report file"
-  when: not review_file.stat.exists
+- name: Execute code review
+  include_tasks: tasks/run-opencode-command.yaml
+  vars:
+    agent_name: "code-review-agent"
+    model_name: "{{ review_model }}"
+    agent_prompt: "{{ review_prompt }}"
+    output_file: "{{ review_output_dir }}/review-report.md"
+    command_name: "code review"
+    working_dir: "{{ project_src_dir }}"
 
 - name: Analyze review report for issues
   shell: |

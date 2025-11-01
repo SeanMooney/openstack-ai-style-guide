@@ -52,6 +52,23 @@
         dest: "{{ opencode_config_dir }}/opencode.json"
         mode: '0644'
 
+    - name: Verify agents source directory exists
+      stat:
+        path: "{{ agents_source_dir }}"
+      register: agents_source_stat
+      failed_when: not agents_source_stat.stat.exists or not agents_source_stat.stat.isdir
+
+    - name: List source agents before copying
+      find:
+        paths: "{{ agents_source_dir }}"
+        patterns: "*.md"
+      register: source_agents
+      failed_when: source_agents.matched == 0
+
+    - name: Display source agents to copy
+      debug:
+        msg: "Copying {{ source_agents.matched }} agent(s) from {{ agents_source_dir }}"
+
     - name: Copy agents from style guide repo
       synchronize:
         src: "{{ agents_source_dir }}/"
@@ -61,16 +78,28 @@
           - "--exclude=*.pyc"
           - "--exclude=__pycache__"
       delegate_to: "{{ inventory_hostname }}"
+      register: agent_copy
 
-    - name: Verify agents copied
+    - name: Verify agents copied successfully
       find:
         paths: "{{ agents_target_dir }}"
         patterns: "*.md"
       register: agent_files
 
-    - name: Display available agents
+    - name: Validate agent deployment
+      assert:
+        that:
+          - agent_files.matched > 0
+          - agent_files.matched == source_agents.matched
+        fail_msg: >
+          Agent deployment failed! Expected {{ source_agents.matched }} agents,
+          but found {{ agent_files.matched }} in {{ agents_target_dir }}.
+        success_msg: >
+          Successfully deployed {{ agent_files.matched }} agent(s).
+
+    - name: Display deployed agents
       debug:
-        msg: "Found {{ agent_files.matched }} agent files: {{ agent_files.files | map(attribute='path') | list }}"
+        msg: "Deployed agents: {{ agent_files.files | map(attribute='path') | map('basename') | list }}"
 
     - name: Ensure output directories exist
       file:

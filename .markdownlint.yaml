@@ -1,0 +1,50 @@
+# Markdownlint configuration for OpenStack AI Style Guide
+# See: https://github.com/DavidAnson/markdownlint/blob/main/doc/Rules.md
+
+# Default state for all rules
+default: true
+
+# MD003/heading-style - Heading style
+MD003:
+  style: "atx"  # Use # style headings
+
+# MD007/ul-indent - Unordered list indentation
+MD007:
+  indent: 2
+
+# MD013/line-length - Line length
+MD013:
+  line_length: 120  # Allow longer lines for documentation (more than code's 79)
+  code_blocks: false  # Don't check code blocks
+  tables: false  # Don't check tables
+
+# MD024/no-duplicate-heading - Multiple headings with same content
+MD024:
+  siblings_only: true  # Allow same heading in different sections
+
+# MD033/no-inline-html - Inline HTML
+MD033:
+  allowed_elements:
+    - br  # Allow line breaks
+    - details  # Allow collapsible sections
+    - summary
+    - sub  # Allow subscript
+    - sup  # Allow superscript
+
+# MD034/no-bare-urls - Bare URLs
+MD034: false  # Allow bare URLs in documentation
+
+# MD041/first-line-heading - First line in file should be top-level heading
+MD041: false  # Not all files start with heading (e.g., agent configs with frontmatter)
+
+# MD046/code-block-style - Code block style
+MD046:
+  style: "fenced"  # Use ``` style code blocks
+
+# MD049/emphasis-style - Emphasis style
+MD049:
+  style: "asterisk"  # Use * for italic
+
+# MD050/strong-style - Strong style
+MD050:
+  style: "asterisk"  # Use ** for bold

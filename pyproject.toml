@@ -1,0 +1,20 @@
+# Project configuration for OpenStack AI Style Guide
+
+[tool.bandit]
+# Bandit security linting configuration
+exclude_dirs = [
+    "tests",
+    "docs/examples/bad",
+    ".tox",
+    ".venv",
+    "venv",
+]
+
+# Skip specific tests
+skips = [
+    "B101",  # assert_used - common in test files
+]
+
+# Configure severity level
+severity = "medium"
+confidence = "medium"

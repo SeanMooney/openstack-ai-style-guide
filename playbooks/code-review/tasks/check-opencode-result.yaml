@@ -18,10 +18,43 @@
     var: command_result.stdout
   when: command_result.rc == 0
 
+- name: "Detect if {{ command_name }} failed due to transient error"
+  set_fact:
+    is_transient_error: >-
+      {{
+        'APIConnectionError' in (command_result.stderr | default('')) or
+        'ConnectionError' in (command_result.stderr | default('')) or
+        'AI_InvalidResponseDataError' in (command_result.stderr | default('')) or
+        'Timeout' in (command_result.stderr | default('')) or
+        'timed out' in (command_result.stderr | default('')) or
+        '429' in (command_result.stderr | default('')) or
+        'Rate limit' in (command_result.stderr | default('')) or
+        '502' in (command_result.stderr | default('')) or
+        '503' in (command_result.stderr | default('')) or
+        '504' in (command_result.stderr | default('')) or
+        'Bad Gateway' in (command_result.stderr | default('')) or
+        'Service Unavailable' in (command_result.stderr | default(''))
+      }}
+  when: command_result.rc != 0
+
 - name: "Check if {{ command_name }} command succeeded"
   fail:
     msg: |
-      OpenCode {{ command_name }} command failed with return code {{ command_result.rc }}.
+      OpenCode {{ command_name }} command failed with return code {{ command_result.rc }}
+      after {{ command_result.attempts | default(1) }} attempt(s).
+
+      {% if is_transient_error | default(false) %}
+      ⚠️  TRANSIENT ERROR DETECTED (retries exhausted):
+      This appears to be a temporary API/network issue. Consider:
+      - Checking LiteLLM proxy status and logs
+      - Verifying network connectivity to LiteLLM service
+      - Re-running the job if the issue persists
+      - Increasing retry delay if rate limiting is occurring
+
+      {% else %}
+      ❌ PERMANENT ERROR DETECTED:
+      This appears to be a configuration or logic error that won't be fixed by retrying.
+      {% endif %}
 
       STDOUT:
       {{ command_result.stdout | default('(empty)') }}
@@ -32,8 +65,12 @@
       This likely indicates an issue with:
       - OpenCode installation or configuration
       - The {{ agent_name }} agent definition
-      - LiteLLM proxy connectivity
+      - LiteLLM proxy connectivity or configuration
       - Model availability ({{ model_name }})
+      {% if not (is_transient_error | default(false)) %}
+      - Authentication (check API key if seeing 401 errors)
+      - Agent output path configuration (check working directory)
+      {% endif %}
   when: command_result.rc != 0
 
 - name: "Verify {{ command_name }} output exists"

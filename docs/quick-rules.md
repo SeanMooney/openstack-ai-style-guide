@@ -1,10 +1,11 @@
 # OpenStack Python Quick Rules for AI Code Generation
 
-> **Quick Reference**: Essential rules for AI tools generating OpenStack-compliant Python code.  
+> **Quick Reference**: Essential rules for AI tools generating OpenStack-compliant Python code.
 
 ## Critical Rules (Follow ALL)
 
 ### 1. File Structure Template
+
 ```python
 # Licensed under the Apache License, Version 2.0 (the "License"); you may
 # not use this file except in compliance with the License...
@@ -23,6 +24,7 @@ from nova import utils  # local project
 ```
 
 ### 2. Code Standards
+
 - **79 chars max per line** (strict)
 - **4 spaces indentation** (no tabs)
 - **No bare except:** - always specify exceptions
@@ -30,6 +32,7 @@ from nova import utils  # local project
 - **Delayed logging**: `LOG.info('Value: %s', val)` not f-strings
 
 ### 3. Required Patterns
+
 ```python
 # Exception handling
 try:
@@ -75,7 +78,7 @@ def create_resource(context, resource_data):
 def api_method(self, request, resource_id):
     """Standard API method with proper error handling."""
     context = request.environ['context']
-    
+
     try:
         resource = self.manager.get_resource(context, resource_id)
         return {'resource': resource}
@@ -100,14 +103,15 @@ with open('/path/file') as f:
 # Docstrings
 def method(param):
     """Brief description.
-    
+
     :param param: Description
     :returns: Description
     """
 ```
 
 ### 4. Commit Message Format (ALL REQUIRED)
-```
+
+```text
 Subject: imperative, <50 chars, no period
 
 Body explaining WHY and WHAT. Wrap at 72 chars.
@@ -120,6 +124,7 @@ Change-Id: Ihash...
 ```
 
 ### 5. AI Policy Compliance
+
 - **Generative AI** (substantial code): Use `Generated-By: tool-name`
 - **Predictive AI** (suggestions/autocomplete): Use `Assisted-By: tool-name`
 - **Human in loop**: Always review and understand AI-generated code
@@ -128,6 +133,7 @@ Change-Id: Ihash...
 - **DCO sign-off**: git commit -s (certifies you reviewed all content)
 
 ## Forbidden Patterns
+
 ```python
 # NEVER use these:
 except:                    # H201 - specify exceptions
@@ -156,6 +162,7 @@ def api_method_no_error_handling(self, request):
 ```
 
 ## Quick Checklist (ALL REQUIRED)
+
 - [ ] Apache license header
 - [ ] 79 char line limit
 - [ ] No bare except
@@ -175,6 +182,7 @@ def api_method_no_error_handling(self, request):
 - [ ] Function parameters <= 6 (use objects for more)
 
 ## Verification
+
 ```bash
 tox -e pep8                    # Style check
 git commit -s                    # Auto DCO sign-off

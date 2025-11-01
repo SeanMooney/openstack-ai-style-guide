@@ -1,0 +1,75 @@
+# Ruff configuration for OpenStack AI Style Guide
+# Configured to be compatible with OpenStack hacking rules
+# See: https://docs.astral.sh/ruff/
+
+# Line length matching OpenStack standards (H-series rules)
+line-length = 79
+
+# Target Python 3.8+ (common OpenStack minimum)
+target-version = "py38"
+
+[lint]
+# Enable rule groups similar to OpenStack hacking + additional modern checks
+select = [
+    "E",      # pycodestyle errors
+    "W",      # pycodestyle warnings
+    "F",      # pyflakes
+    "I",      # isort (import sorting)
+    "N",      # pep8-naming
+    "D",      # pydocstyle (docstrings)
+    "UP",     # pyupgrade (modern Python syntax)
+    "B",      # flake8-bugbear (likely bugs and design problems)
+    "C4",     # flake8-comprehensions
+    "S",      # flake8-bandit (security)
+    "T20",    # flake8-print (catch print statements)
+    "SIM",    # flake8-simplify
+    "RET",    # flake8-return
+    "ARG",    # flake8-unused-arguments
+    "PTH",    # flake8-use-pathlib
+]
+
+# Ignore specific rules that conflict with OpenStack style or are too strict
+ignore = [
+    "D203",   # one-blank-line-before-class (conflicts with D211)
+    "D213",   # multi-line-summary-second-line (conflicts with D212)
+    "E501",   # line-too-long (handled by formatter with line-length = 79)
+    "S101",   # assert-used (asserts are common in tests)
+    "D100",   # Missing docstring in public module (not always needed)
+    "D104",   # Missing docstring in public package (not always needed)
+]
+
+# Ignore rules for specific paths
+[lint.per-file-ignores]
+"docs/examples/bad/*.py" = ["ALL"]  # Bad examples are intentionally non-compliant
+"docs/examples/good/*.py" = ["ALL"]  # Good examples may contain demonstration patterns
+"tools/*.py" = ["T20"]  # Allow print statements in CLI tools
+
+[lint.isort]
+# OpenStack import ordering style
+force-single-line = false
+lines-after-imports = 2
+known-first-party = []
+section-order = ["future", "standard-library", "third-party", "first-party", "local-folder"]
+
+[lint.pydocstyle]
+# Use Google-style docstrings (common in OpenStack)
+convention = "google"
+
+[lint.flake8-quotes]
+# OpenStack prefers single quotes for strings
+inline-quotes = "single"
+multiline-quotes = "single"
+docstring-quotes = "double"
+
+[format]
+# Formatting options compatible with OpenStack style
+quote-style = "single"
+indent-style = "space"
+line-ending = "lf"
+
+# Notes:
+# - This configuration replaces both autopep8 and hacking
+# - Line length is set to 79 characters (OpenStack standard)
+# - Import ordering follows OpenStack conventions
+# - Security checks (S-series) are enabled
+# - Docstring style follows Google conventions (common in OpenStack)

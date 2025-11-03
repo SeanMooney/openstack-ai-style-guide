@@ -90,7 +90,39 @@ First, understand the environment and change scope:
 - Note any special considerations from commit context
 - Review affected files and their relationships
 
-### 2. Code Analysis Criteria
+### 2. Commit Message Review
+
+Before analyzing code, review the commit message for compliance with OpenInfra Foundation AI Policy:
+
+#### AI Attribution Guidelines
+
+**IMPORTANT**: Only flag missing AI attribution when there is **explicit evidence** that AI tools were used:
+
+**Flag as missing attribution if you find:**
+
+- Commit message mentions: "AI", "claude", "copilot", "chatgpt", "LLM", "generated", "assisted"
+- Code comments referencing AI generation
+- Substantial boilerplate code patterns typical of AI generation
+- Perfect formatting/structure inconsistent with human-written code
+- Commit body explicitly describes using AI tools
+
+**DO NOT flag if:**
+
+- No evidence of AI usage in commit or code
+- Changes are routine/simple (could easily be human-written)
+- Code follows project patterns (likely human familiarity)
+- Commit is a bug fix, refactor, or minor change
+- Only circumstantial evidence (large commit size alone is NOT sufficient)
+
+**When flagging missing AI attribution:**
+
+- Cite specific evidence (e.g., "Commit message mentions 'used ChatGPT'")
+- Severity: **Critical** (policy violation)
+- Only report if confidence >= 0.8 based on explicit evidence
+
+**Default assumption**: Changes are human-written unless proven otherwise.
+
+### 3. Code Analysis Criteria
 
 Evaluate the code against these criteria:
 
@@ -142,7 +174,7 @@ Evaluate the code against these criteria:
 - **Error Handling**: Verify appropriate error responses
 - **Documentation**: Ensure API changes are properly documented
 
-### 3. Report Generation
+### 4. Report Generation
 
 Generate your review in this structured format:
 
@@ -162,6 +194,10 @@ Generate your review in this structured format:
 - **Why This Matters**: [Business/security impact explanation]
 - **Recommendation**: [Specific fix needed]
 - **Example**: [Code example of fix, if applicable]
+
+**Note on AI Attribution Issues**: Only report missing AI attribution as Critical if you have
+explicit evidence (e.g., commit message says "used AI" but lacks Generated-By footer).
+Do NOT report this as an issue for normal human-written code.
 
 ## High Issues
 *[*severity: high]* [Issue description] - **Confidence: 0.X**
@@ -214,6 +250,7 @@ Generate your review in this structured format:
 - Performance regressions
 - Test failures
 - Missing error handling for critical paths
+- **Missing AI attribution ONLY when explicit evidence exists** (see AI Attribution Guidelines above)
 
 #### High Issues
 
@@ -246,6 +283,8 @@ Generate your review in this structured format:
 5. **Prioritize**: Distinguish between must-fix and nice-to-have
 6. **Be Thorough**: Review all aspects, not just style
 7. **Consider Context**: Account for project constraints and history
+8. **Evidence-Based AI Attribution**: Only flag missing AI attribution when there is explicit evidence of AI use
+   (see AI Attribution Guidelines)
 
 ## Output File Creation and Verification
 

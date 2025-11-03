@@ -130,11 +130,3 @@
 
     - name: Collect and format results
       include_tasks: collect-results.yaml
-
-  post_tasks:
-    - name: Ensure review outputs are collected
-      synchronize:
-        src: "{{ review_output_dir }}/"
-        dest: "{{ ansible_user_dir }}/logs/"
-        mode: pull
-      ignore_errors: true

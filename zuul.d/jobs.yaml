@@ -18,7 +18,7 @@
     abstract: true
     run: playbooks/code-review/run.yaml
     post-run: playbooks/code-review/post.yaml
-    timeout: 900
+    timeout: 1800
     nodeset: debian-opencode-single-node-pod
     required-projects:
       - name: github.com/SeanMooney/openstack-ai-style-guide
@@ -34,7 +34,14 @@
 
       # LiteLLM proxy configuration (internal homelab service)
       litellm_base_url: "http://litellm.zuul-system.svc.cluster.local:4000/v1"
-      litellm_api_key: "sk-1234"  # Internal homelab key, not sensitive
+      # NOTE: Hardcoded API key for internal homelab CI environment only.
+      # This is acceptable because:
+      #   - LiteLLM service is internal-only (not exposed externally)
+      #   - Key has no upstream API access or billing implications
+      #   - CI environment is isolated and trusted
+      # IMPORTANT: Production deployments MUST use Zuul encrypted secrets.
+      # Do NOT copy this pattern to environments with external access or real API keys.
+      litellm_api_key: "sk-1234"
 
       # Style guide project location (Zuul provides this)
       style_guide_project: "{{ zuul.projects['github.com/SeanMooney/openstack-ai-style-guide'].src_dir }}"
@@ -77,3 +84,56 @@
       # a different Python version, you may need to use a different nodeset or
       # configure the job variables. See docs/zuul-configuration.md for details.
       python_version: "3.13"
+
+- job:
+    name: teim-code-review-base
+    description: |
+      Base job for AI-assisted code review using Claude Code via LiteLLM.
+      Reuses the same agent markdown files and overall flow as the OpenCode job.
+    abstract: true
+    run: playbooks/claude-review/run.yaml
+    post-run: playbooks/claude-review/post.yaml
+    timeout: 1800
+    nodeset: debian-claude-code-single-node-pod
+    required-projects:
+      - name: github.com/SeanMooney/openstack-ai-style-guide
+        override-checkout: master
+    vars:
+      claude_binary: "claude"
+      claude_config_dir: "{{ ansible_user_dir }}/.claude"
+      claude_agents_dir: "{{ ansible_user_dir }}/.claude/agents"
+
+      # Model selection (can be overridden by child jobs)
+      context_model: "glm-4.5-air"
+      review_model: "glm-4.6"
+
+      # Anthropic-compatible endpoint served by LiteLLM
+      anthropic_api_url: "http://litellm.zuul-system.svc.cluster.local:4000"
+      # NOTE: Hardcoded API key for internal homelab CI environment only.
+      # This is acceptable because:
+      #   - LiteLLM service is internal-only (not exposed externally)
+      #   - Key has no upstream API access or billing implications
+      #   - CI environment is isolated and trusted
+      # IMPORTANT: Production deployments MUST use Zuul encrypted secrets.
+      # Do NOT copy this pattern to environments with external access or real API keys.
+      anthropic_auth_token: "sk-1234"
+
+      # Style guide project location (Zuul provides this)
+      style_guide_project: "{{ zuul.projects['github.com/SeanMooney/openstack-ai-style-guide'].src_dir }}"
+      agents_source_dir: "{{ ansible_user_dir }}/{{ style_guide_project }}/agents"
+      agents_target_dir: "{{ claude_agents_dir }}"
+
+      # Output configuration
+      review_output_dir: "{{ ansible_user_dir }}/logs/code-review"
+      extensions_to_txt:
+        conf: true
+        log: true
+        localrc: true
+        stackenv: true
+        auto: true
+
+- job:
+    name: teim-code-review
+    parent: teim-code-review-base
+    description: |
+      AI-assisted code review using Claude Code with GLM models via LiteLLM.

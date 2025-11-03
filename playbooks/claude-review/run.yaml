@@ -1,0 +1,128 @@
+---
+- hosts: all
+  name: TEIM Claude Code Review
+  tasks:
+    - name: Verify Claude CLI installation
+      command: "{{ claude_binary }} --version"
+      register: claude_version
+
+    - name: Display Claude CLI version
+      debug:
+        msg: "Using Claude CLI: {{ claude_version.stdout }}"
+
+    - name: Validate Claude config directory path
+      stat:
+        path: "{{ claude_config_dir }}"
+      register: claude_config_stat
+
+    - name: Fail if Claude config path exists as a file
+      fail:
+        msg: "Claude config directory path {{ claude_config_dir }} exists as a file, not a directory"
+      when: claude_config_stat.stat.exists and not claude_config_stat.stat.isdir
+
+    - name: Validate parent directory for Claude config is writable
+      stat:
+        path: "{{ claude_config_dir | dirname }}"
+      register: claude_config_parent
+      failed_when: not claude_config_parent.stat.exists or not claude_config_parent.stat.writeable
+
+    - name: Ensure Claude config directory exists
+      file:
+        path: "{{ claude_config_dir }}"
+        state: directory
+        mode: '0755'
+
+    - name: Validate agents directory path
+      stat:
+        path: "{{ agents_target_dir }}"
+      register: agents_target_stat
+
+    - name: Fail if agents path exists as a file
+      fail:
+        msg: "Agents directory path {{ agents_target_dir }} exists as a file, not a directory"
+      when: agents_target_stat.stat.exists and not agents_target_stat.stat.isdir
+
+    - name: Ensure agents directory exists
+      file:
+        path: "{{ agents_target_dir }}"
+        state: directory
+        mode: '0755'
+
+    - name: Verify agents source directory exists
+      stat:
+        path: "{{ agents_source_dir }}"
+      register: agents_source_stat
+      failed_when: not agents_source_stat.stat.exists or not agents_source_stat.stat.isdir
+
+    - name: Copy agents from style guide repo
+      synchronize:
+        src: "{{ agents_source_dir }}/"
+        dest: "{{ agents_target_dir }}/"
+        recursive: yes
+        rsync_opts:
+          - "--exclude=*.pyc"
+          - "--exclude=__pycache__"
+      delegate_to: "{{ inventory_hostname }}"
+      register: sync_result
+
+    - name: Verify agents were copied successfully
+      stat:
+        path: "{{ agents_target_dir }}"
+      register: agents_copied
+      failed_when: not agents_copied.stat.exists or not agents_copied.stat.isdir
+
+    - name: Verify required agent files exist
+      stat:
+        path: "{{ agents_target_dir }}/{{ item }}"
+      register: required_agents
+      failed_when: not required_agents.stat.exists
+      loop:
+        - zuul-context-extractor.md
+        - commit-summary.md
+        - code-review-agent.md
+
+    - name: Display agent copy summary
+      debug:
+        msg: "Successfully copied agents to {{ agents_target_dir }}"
+
+    - name: copy claude settings
+      copy:
+        content: |
+          {
+            "env": {
+              "ANTHROPIC_DEFAULT_HAIKU_MODEL": "glm-4.5-air",
+              "ANTHROPIC_DEFAULT_SONNET_MODEL": "glm-4.6",
+              "ANTHROPIC_DEFAULT_OPUS_MODEL": "glm-4.6"
+            }
+          }
+        dest: "{{ claude_config_dir }}/settings.json"
+
+    - name: Ensure output directories exist
+      file:
+        path: "{{ review_output_dir }}"
+        state: directory
+        mode: '0755'
+
+    - name: Display job context
+      debug:
+        msg: |
+          Job: {{ zuul.job }}
+          Project: {{ zuul.project.name }}
+          Change: {{ zuul.change }} PS{{ zuul.patchset }}
+          Branch: {{ zuul.branch }}
+          Workspace: {{ ansible_user_dir }}
+          Context Model: {{ context_model }}
+          Review Model: {{ review_model }}
+          Agents Dir: {{ agents_target_dir }}
+
+    - name: Extract Zuul execution context
+      include_tasks: extract-context.yaml
+
+    - name: Analyze commit
+      include_tasks: analyze-commit.yaml
+
+    - name: Perform code review
+      include_tasks: perform-review.yaml
+
+    - name: Collect and format results
+      include_tasks: collect-results.yaml

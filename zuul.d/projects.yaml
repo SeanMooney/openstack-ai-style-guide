@@ -3,9 +3,6 @@
     name: github.com/SeanMooney/openstack-ai-style-guide
     check:
       jobs:
-        - openstack-ai-code-review
-        - openstack-ai-style-guide-lint
-    gate:
-      jobs:
-        - openstack-ai-code-review
+        #  - openstack-ai-code-review
+        - teim-code-review
         - openstack-ai-style-guide-lint

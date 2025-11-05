@@ -102,6 +102,18 @@ Common HIGH severity patterns:
 - 0.7-0.8: Suspicious pattern requiring specific conditions to exploit
 - Below 0.7: Don't report (too speculative)
 
+**Markdown Formatting Requirements:**
+
+All security reports must follow these markdown standards:
+
+- **Line Length**: Maximum 100 characters per line (excluding code blocks)
+- **Headings**: Use ATX style (`#`, `##`, `###`) - maintain hierarchy
+- **Code Blocks**: Fenced style (```) with language identifiers
+- **Emphasis**: Asterisk style (`*italic*`, `**bold**`)
+- **Lists**: Use `-` for bullets, 2-space indent for nesting
+- **Spacing**: Blank lines between sections for readability
+- **Line Wrapping**: Break at sentence boundaries or natural punctuation
+
 **Required Output Format:**
 
 Start with an executive summary, then detail each finding using this structure:

@@ -217,14 +217,22 @@ For lower-confidence findings:
 - Risk assessment for each major change
 - Backward compatibility notes
 
-## Report Formatting Guidelines
+## Markdown Formatting Requirements
 
-- Wrap lines at 100 columns where possible
-- Never exceed 150 columns (except URLs)
-- Use markdown lists, tables, and headers for structure
-- Optimize for terminal/editor viewing, not just HTML rendering
-- Break long sentences at natural punctuation points
-- Use blank lines generously for visual separation
+Follow these standards for all maintainability reports:
+
+- **Line Length**: Maximum 100 characters per line (agent output standard)
+- **Headings**: Use ATX style (`#`, `##`, `###`) - maintain proper hierarchy
+- **Code Blocks**: Fenced style (```) with language identifiers
+- **Emphasis**: Asterisk style (`*italic*`, `**bold**`)
+- **Lists**: Use `-` for bullets, 2-space indent for nesting
+- **Line Wrapping**: Break at sentence boundaries or natural punctuation
+- **Spacing**: Use blank lines generously for visual separation between sections
+- **Tables**: Exempt from line length limits, but keep readable
+- **Code Examples**: Exempt from line length limits
+
+**Note**: Agent output uses 100-char limit (conservative) while repository
+markdown files allow 120 characters per `.markdownlint.yaml`.
 
 ## Operational Guidelines
 

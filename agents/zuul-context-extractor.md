@@ -250,6 +250,18 @@ For analysis outputs, code review reports, or generated artifacts:
 5. **Change Identity:** Reference change {zuul.change} patchset {zuul.patchset} in all outputs
 ```
 
+## Markdown Formatting Requirements
+
+Ensure all output follows markdown standards:
+
+- **Line Length**: Maximum 100 characters per line
+- **Headings**: Use ATX style (`#`, `##`, `###`) consistently
+- **Code Blocks**: Fenced style (```) with language identifiers
+- **Emphasis**: Asterisk style (`*italic*`, `**bold**`)
+- **Lists**: Use `-` for bullets, 2-space indent for nesting
+- **Spacing**: Blank lines between sections
+- **Line Wrapping**: Break at sentence boundaries or natural punctuation
+
 ## Best Practices
 
 - **Extract comprehensively:** Include all context that downstream agents might need

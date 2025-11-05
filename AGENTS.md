@@ -65,3 +65,69 @@ When modifying the style guide files:
 - Ensure consistency between the quick rules and comprehensive guide
 - Update both files when adding new requirements or patterns
 - Both files should be self-contained and readable without external dependencies
+
+## Markdown Formatting Guidelines
+
+This repository enforces markdown formatting standards via `.markdownlint.yaml`
+configuration and pre-commit hooks. All markdown files and agent-generated
+markdown output must comply with these standards.
+
+### Repository Markdown Standards
+
+**For Repository Files** (docs/, README.md, AGENTS.md, etc.):
+
+- **Line Length**: Maximum 120 characters per line
+- **Exceptions**: Code blocks, tables, and URLs exempt from line length limits
+- **Validated By**: `.markdownlint.yaml` configuration + pre-commit hooks
+
+**For Agent-Generated Output** (agents/ definitions):
+
+- **Line Length**: Maximum 100 characters per line (more conservative)
+- **Rationale**: Ensures agent output is always compliant, with margin for
+  safety
+
+### Markdown Formatting Rules
+
+All markdown content (repository files and agent output) must follow:
+
+- **Heading Style**: ATX only (`#`, `##`, `###`) - never Setext style
+- **Heading Hierarchy**: Don't skip levels (e.g., `##` can't follow `####`)
+- **Code Blocks**: Fenced style (```) with language identifiers - never
+  indented
+- **Emphasis**: Asterisk style (`*italic*`, `**bold**`) - never underscores
+- **Strong**: Double asterisk (`**bold**`) - never double underscores
+- **Lists**: Use `-` for unordered (not `*` or `+`), `1.` for ordered
+- **List Nesting**: 2-space indentation for nested items
+- **Spacing**: Blank lines between sections, before/after headings,
+  before/after code blocks
+- **Line Wrapping**: Break at sentence boundaries or natural punctuation
+- **Duplicate Headings**: Allowed only in different sections (`siblings_only`)
+- **HTML Elements**: Only use allowed: `<br>`, `<details>`, `<summary>`,
+  `<sub>`, `<sup>`
+
+### Validation Commands
+
+```bash
+# Check all markdown files
+npx markdownlint-cli2 "**/*.md"
+
+# Check and auto-fix markdown files
+npx markdownlint-cli2 --fix "**/*.md"
+
+# Pre-commit hook (runs automatically on git commit)
+pre-commit run markdownlint-cli2 --all-files
+```
+
+### Agent-Specific Requirements
+
+All agents in `agents/` directory that generate markdown output have inline
+markdown formatting sections specifying the 100-character line limit and
+complete formatting requirements. When updating agents:
+
+- Include "Markdown Formatting Requirements" or "Markdown Formatting
+  Standards" section
+- Specify 100-character line length for agent output
+- Reference the key formatting rules (ATX headings, fenced code blocks,
+  asterisk emphasis)
+- Note that agent output (100 chars) is more conservative than repository
+  files (120 chars)

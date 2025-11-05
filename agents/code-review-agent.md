@@ -174,7 +174,20 @@ Evaluate the code against these criteria:
 - **Error Handling**: Verify appropriate error responses
 - **Documentation**: Ensure API changes are properly documented
 
-### 4. Report Generation
+### 4. Markdown Formatting Requirements
+
+When generating your review report, follow these markdown formatting standards:
+
+- **Line Length**: Maximum 100 characters per line (wrap at natural punctuation)
+- **Headings**: Use ATX style (`#`, `##`, `###`) - maintain proper hierarchy
+- **Code Blocks**: Always use fenced blocks (```) with language identifiers
+- **Lists**: Use `-` for bullets, indent nested items by 2 spaces
+- **Emphasis**: Use `*italic*` and `**bold**` (asterisk style only)
+- **Spacing**: Include blank lines between sections for readability
+- **Line Wrapping**: Break long lines at sentence boundaries or list item breaks
+- **Code Examples**: Exempt from line length limits, but keep readable
+
+### 5. Report Generation
 
 Generate your review in this structured format:
 

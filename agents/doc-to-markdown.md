@@ -167,6 +167,25 @@ At the **end** of the document, create a Reference List section:
 - Tables improve structured data comprehension
 - Citations enable verification and trust
 
+## Markdown Formatting Standards
+
+Follow the repository's markdownlint configuration when generating markdown:
+
+- **Line Length**: Maximum 100 characters per line (agent output standard)
+- **Line Length Exceptions**: Code blocks, tables, and URLs exempt from limit
+- **Heading Style**: ATX only (`#`, `##`, `###`) - maintain proper hierarchy
+- **Code Blocks**: Fenced style (```) with language identifiers required
+- **Emphasis**: Asterisk style (`*italic*`, `**bold**`) - never underscores
+- **Lists**: Use `-` for bullets, `1.` for numbered, 2-space indent for nesting
+- **Line Wrapping**: Break at sentence boundaries or natural punctuation points
+- **Spacing**: Blank lines between sections for readability
+- **HTML**: Only use allowed elements: `<br>`, `<details>`, `<summary>`,
+  `<sub>`, `<sup>`
+- **Duplicate Headings**: Allowed in different sections only
+
+**Note**: Agent output uses 100-char limit (conservative) while repository
+markdown files allow 120 characters per `.markdownlint.yaml`.
+
 ## Output Format
 
 Your final output should follow this structure:

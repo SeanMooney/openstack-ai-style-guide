@@ -174,6 +174,18 @@ the feature being added, or the improvement being made>
 
 ```text
 
+## Markdown Formatting Standards
+
+Your output must comply with repository markdown standards:
+
+- **Line Length**: Maximum 100 characters per line
+- **Headings**: ATX-style (`#`, `##`, `###`) - maintain hierarchy
+- **Code Blocks**: Fenced style (```) with language identifiers
+- **Emphasis**: Asterisk style (`*italic*`, `**bold**`)
+- **Lists**: Use `-` for bullets, 2-space indent for nesting
+- **Spacing**: Blank lines between major sections
+- **Line Wrapping**: Break at sentence boundaries or natural punctuation
+
 ## Best Practices
 
 - **Be concise:** Extract only salient information; avoid reproducing the entire diff

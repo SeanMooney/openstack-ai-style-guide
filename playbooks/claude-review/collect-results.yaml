@@ -17,7 +17,8 @@
       ## Generated Reports
       1. [Zuul Context](zuul-context.md) - Execution environment details
       2. [Commit Summary](commit-summary.md) - Change metadata and overview
-      3. [Review Report](review-report.md) - Comprehensive code review
+      3. [Review Report](review-report.md) - Comprehensive code review (Markdown)
+      4. [Review Report (HTML)](review-report.html) - Comprehensive code review (HTML)
 
       ## Quick Summary
       - **Issues Found**: {{ issue_count | default(0) }}
@@ -28,10 +29,41 @@
     dest: "{{ review_output_dir }}/index.md"
     mode: '0644'
 
+- name: Create virtual environment for HTML generation
+  command: python3 -m venv {{ ansible_user_dir }}/.venv-html-gen
+  args:
+    creates: "{{ ansible_user_dir }}/.venv-html-gen"
+
+- name: Install mistune in virtual environment
+  command: >
+    {{ ansible_user_dir }}/.venv-html-gen/bin/pip install mistune
+  args:
+    creates: "{{ ansible_user_dir }}/.venv-html-gen/lib/python*/site-packages/mistune"
+
+- name: Copy HTML generator script
+  copy:
+    src: files/generate_html_report.py
+    dest: "{{ ansible_user_dir }}/generate_html_report.py"
+    mode: '0755'
+
+- name: Generate HTML report from markdown
+  command: >
+    {{ ansible_user_dir }}/.venv-html-gen/bin/python3
+    {{ ansible_user_dir }}/generate_html_report.py
+    {{ review_output_dir }}/review-report.md
+    {{ review_output_dir }}/review-report.html
+  register: html_generation
+  ignore_errors: yes
+
+- name: Display HTML generation result
+  debug:
+    msg: "{{ html_generation.stdout if html_generation.rc == 0 else 'HTML generation failed: ' + html_generation.stderr }}"
+  when: html_generation is defined
+
 - name: List all generated files
   find:
     paths: "{{ review_output_dir }}"
-    patterns: "*.md"
+    patterns: "*.md,*.html"
   register: review_files
 
 - name: Display generated files

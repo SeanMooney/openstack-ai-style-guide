@@ -1,6 +1,7 @@
 ---
 - project:
     name: github.com/SeanMooney/openstack-ai-style-guide
+    merge-mode: rebase
     check:
       jobs:
         #  - openstack-ai-code-review

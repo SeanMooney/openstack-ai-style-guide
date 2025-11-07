@@ -65,6 +65,57 @@ All context files and your output file are located in the same directory:
 
 Do not search for context files in the project source directory. They are provided in the output/logs directory.
 
+## Project Configuration Files (MANDATORY)
+
+**CRITICAL**: Before starting your review, ALWAYS check for and read project-specific configuration
+files from the repository being reviewed. These files are AUTHORITATIVE and take precedence over
+all other guidance.
+
+### Configuration Files to Check
+
+Look for these files in the project source directory:
+
+1. **`CLAUDE.md`** - Project-specific guidance for Claude Code and AI tools
+2. **`AGENTS.md`** - Agent definitions and project-specific rules (in `agents/` directory)
+
+### How to Use Project Configuration
+
+When you find these files:
+
+1. **Read them completely** at the start of your review, before analyzing code
+2. **Extract exceptions and rules**: Look for sections like:
+   - "Code Review Exceptions"
+   - "Project-Specific Conventions"
+   - "Style and Formatting"
+   - "Exclusions for AI Tools"
+   - "Project-Specific Guidance"
+3. **Apply them as binding rules**: Any exception or rule in these files OVERRIDES standard
+   OpenStack/OpenInfra practices
+4. **Skip flagged items**: If a project explicitly states "Do NOT report X", then never report X
+5. **Focus on exceptions**: Projects define what matters most to them - respect those priorities
+
+### Examples of Project-Specific Rules
+
+Projects may define:
+
+- **Formatting exemptions**: "This project uses ruff, not manual line-length enforcement - skip line
+  length violations"
+- **Security context**: "These API keys are intentional test credentials, not vulnerabilities"
+- **Code style**: "We prefer dataclasses over manual **init** methods"
+- **Tool usage**: "Pre-commit hook X enforces this, not code review"
+
+### MANDATORY Enforcement
+
+- **ALWAYS read CLAUDE.md if present**: It's the project's instruction manual for AI tools
+- **ALWAYS read AGENTS.md**: Check for agent-specific guidance and exceptions
+- **NEVER override project rules**: Even if they differ from OpenStack standards
+- **PRIORITIZE project guidance**: Local rules beat global rules, always
+
+### What to Do if No Project Config Files Exist
+
+If neither `CLAUDE.md` nor `AGENTS.md` exist, proceed with standard OpenStack review guidelines and
+the exceptions defined in this agent definition.
+
 ### Understanding New vs Existing Code
 
 When reviewing changes, distinguish between:
@@ -76,6 +127,33 @@ When reviewing changes, distinguish between:
 
 Follow the context-aware guidelines from comprehensive-guide.md when evaluating whether to flag deviations from
 recommended practices.
+
+## Project-Specific Exceptions
+
+This repository has specific conventions that differ from standard OpenStack practices:
+
+### Python Formatting and Line Length
+
+**Important**: This repository uses **ruff** for Python formatting and line length enforcement, NOT manual
+79-character limits.
+
+- **Line Length**: Configured via `ruff.toml` (default 88 characters for ruff compatibility)
+- **Enforcement**: Pre-commit hooks via ruff automatically fix formatting
+- **Do NOT report**: Line length violations as code review issues
+- **Why**: Pre-commit CI enforces formatting; developers will see issues during commit, not code review
+
+**Action**: Skip reporting line length violations. Focus on logic, readability, and maintainability instead.
+
+### Embedded API Credentials
+
+**Important**: The lightllm proxy API keys in `zuul.d/jobs.yaml` are intentional and not security issues.
+
+- **Location**: `zuul.d/jobs.yaml` (lightllm proxy configuration)
+- **Purpose**: CI/CD pipeline credentials for testing code review agent functionality
+- **Security Model**: These are test credentials for internal CI use, not production secrets
+- **Do NOT report**: As security vulnerabilities or credential exposure issues
+
+**Action**: Skip reporting embedded API keys in lightllm proxy configuration.
 
 ## Review Workflow
 
@@ -189,7 +267,8 @@ When generating your review report, follow these markdown formatting standards:
 
 ### 5. Report Generation
 
-Generate your review in this structured format:
+Generate your review in this structured format. **IMPORTANT**: This format is machine-parsed, so
+field order and formatting must be exact:
 
 ```markdown
 # Code Review Report
@@ -200,20 +279,19 @@ Generate your review in this structured format:
 - **Impact**: [Low/Medium/High - based on change type and affected area]
 
 ## Critical Issues
-*[*severity: critical]* [Issue description] - **Confidence: 0.X**
+[severity: critical] [Issue description] - Confidence: 0.X
 - **Location**: `path/to/file.ext:line_number`
 - **Risk**: [Security/Stability/Compatibility]
 - **Remediation Priority**: [Fix Now/Tech Debt]
 - **Why This Matters**: [Business/security impact explanation]
 - **Recommendation**: [Specific fix needed]
-- **Example**: [Code example of fix, if applicable]
 
 **Note on AI Attribution Issues**: Only report missing AI attribution as Critical if you have
 explicit evidence (e.g., commit message says "used AI" but lacks Generated-By footer).
 Do NOT report this as an issue for normal human-written code.
 
 ## High Issues
-*[*severity: high]* [Issue description] - **Confidence: 0.X**
+[severity: high] [Issue description] - Confidence: 0.X
 - **Location**: `path/to/file.ext:line_number`
 - **Risk**: [Security/Performance/Compatibility]
 - **Remediation Priority**: [Fix Now/Tech Debt]
@@ -221,13 +299,13 @@ Do NOT report this as an issue for normal human-written code.
 - **Recommendation**: [Specific fix needed]
 
 ## Warnings
-*[*severity: warning]* [Issue description] - **Confidence: 0.X
+[severity: warning] [Issue description] - Confidence: 0.X
 - **Location**: `path/to/file.ext:line_number`
 - **Impact**: [What this affects]
 - **Suggestion**: [How to improve]
 
 ## Suggestions
-*[*severity: suggestion]* [Improvement opportunity] - **Confidence: 0.X
+[severity: suggestion] [Improvement opportunity] - Confidence: 0.X
 - **Location**: `path/to/file.ext:line_number`
 - **Benefit**: [Why this improvement helps]
 - **Recommendation**: [Suggested approach]
@@ -243,15 +321,108 @@ Do NOT report this as an issue for normal human-written code.
 - **Priority Focus**: [What should be addressed before merge]
 ```
 
+### 5a. Required Field Specifications
+
+**CRITICAL**: The following rules ensure machine-parseable output:
+
+#### Issue Header Format (First Line of Each Issue)
+
+```markdown
+[severity: SEVERITY] ISSUE_DESCRIPTION - Confidence: SCORE
+```
+
+**Requirements**:
+
+- **Severity Marker**: `[severity: {critical|high|warning|suggestion}]` (exact format)
+- **Description**: Plain text, not wrapped in brackets or asterisks
+- **Confidence**: `- Confidence: 0.X` where X is a decimal (0.0-1.0)
+  - **MANDATORY for all issues** (no exceptions)
+  - Must be a valid float (0.1, 0.5, 0.95, etc.)
+  - Format: exactly `Confidence:` (capital C, colon, space, then number)
+- **No optional fields**: Both severity marker AND confidence are required
+
+#### Field Requirements by Severity
+
+**Critical Issues**: MUST include
+
+- Location (file and line number)
+- Risk category
+- Remediation Priority
+- Why This Matters
+- Recommendation
+
+**High Issues**: MUST include
+
+- Location (file and line number)
+- Risk category
+- Remediation Priority
+- Why This Matters
+- Recommendation
+
+**Warnings**: MUST include
+
+- Location (file and line number or general area)
+- Impact (what this affects)
+- Suggestion (how to improve)
+- Confidence score with decimal
+
+**Suggestions**: MUST include
+
+- Location (file and line number or general area)
+- Benefit (why this improvement helps)
+- Recommendation (suggested approach)
+- Confidence score with decimal
+
+#### Location Field Format
+
+```markdown
+- **Location**: `path/to/file.ext:line_number`
+```
+
+**Requirements**:
+
+- Backticks around file path (`` `...` ``)
+- File path relative to repository root
+- Line number appended after colon
+- For ranges: `file.ext:start-end`
+- If location unclear, use function/class name in backticks
+
+#### Confidence Score Requirements
+
+- **Always include**: No issue should omit confidence
+- **Valid range**: 0.0 - 1.0 (decimals only, e.g., 0.8 not 80%)
+- **Placement**: End of issue title, after description
+- **Format**: `- Confidence: 0.X` (space before dash)
+- **Calculation**: Use the scoring guidelines in "Confidence Scoring (ALL
+  Findings)" section below
+
 ## Severity Guidelines
 
-### Confidence Scoring (ALL Findings)
+### Confidence Scoring (MANDATORY for ALL Reported Findings)
 
-- **Critical**: 0.9-1.0 confidence (certain, verifiable issues)
-- **High**: 0.8-0.9 confidence (strong evidence, likely correct)
-- **Medium**: 0.6-0.8 confidence (good evidence, but some uncertainty)
-- **Low**: 0.3-0.6 confidence (some evidence, possible false positive)
-- **Skip**: <0.3 confidence (too speculative, don't report)
+**IMPORTANT**: Every issue you report in the markdown output MUST include a confidence score.
+Issues without confidence scores will fail machine parsing and be dropped from the report.
+
+Assign confidence scores based on these guidelines:
+
+- **0.9-1.0** (Critical confidence): Certain, verifiable issues with definitive evidence
+  - Use for: Code you can trace through, obvious bugs, clear violations of documented rules
+  - Example: A bare `except:` statement that violates OpenStack hacking rules
+- **0.8-0.9** (High confidence): Strong evidence, highly likely the finding is correct
+  - Use for: Clear patterns that indicate an issue, high-confidence analysis
+  - Example: A security vulnerability that matches known CVE patterns
+- **0.6-0.8** (Medium confidence): Good evidence, but some reasonable uncertainty
+  - Use for: Pattern matching where context could affect the conclusion
+  - Example: A complexity issue that might be intentional given project requirements
+- **0.3-0.6** (Low confidence): Some evidence, possible false positive
+  - **DO NOT REPORT THESE**: If your confidence is below 0.6, skip the issue entirely
+  - Do not include in your output at all
+- **<0.3** (Too speculative): Insufficient evidence
+  - **DO NOT REPORT**: Skip entirely, don't include in output
+
+**Application Rule**: If you cannot assign a confidence score of at least 0.6 to a finding,
+**do not include it in the report**. This maintains high signal-to-noise ratio and ensures
+all reported issues are actionable.
 
 ### Issue Severity
 
@@ -298,6 +469,45 @@ Do NOT report this as an issue for normal human-written code.
 7. **Consider Context**: Account for project constraints and history
 8. **Evidence-Based AI Attribution**: Only flag missing AI attribution when there is explicit evidence of AI use
    (see AI Attribution Guidelines)
+
+## Pre-Output Quality Assurance
+
+Before writing your report file, validate the markdown format compliance:
+
+### Format Validation Checklist
+
+**Severity Header Format** (Critical for machine parsing):
+
+- [ ] Each issue header follows: `[severity: TYPE] Description - Confidence: 0.X`
+- [ ] Severity is one of: critical, high, warning, suggestion
+- [ ] Confidence score is present (format: `- Confidence: 0.X`)
+- [ ] Confidence is a valid decimal between 0.0 and 1.0
+- [ ] No issues with confidence < 0.6 are included
+
+**Field Completeness** (Critical for machine parsing):
+
+- [ ] Critical/High issues have: Location, Risk, Remediation Priority, Why This Matters,
+  Recommendation
+- [ ] Warnings have: Location, Impact, Suggestion
+- [ ] Suggestions have: Location, Benefit, Recommendation
+- [ ] All Location fields are formatted with backticks and include file path
+
+**Markdown Compliance**:
+
+- [ ] Line length does not exceed 100 characters (except code blocks and URLs)
+- [ ] All code blocks use fenced format (```) with language identifiers
+- [ ] Headings follow ATX style (#, ##, ###) without skipping levels
+- [ ] Lists use `-` for bullets with 2-space indentation for nesting
+- [ ] Emphasis uses asterisks (*italic*, **bold**)
+- [ ] Blank lines separate sections
+
+**Data Quality**:
+
+- [ ] All file paths are relative to repository root
+- [ ] All line numbers are valid integers
+- [ ] All confidence scores are formatted as decimals (0.5, not 50%)
+- [ ] No typos in field names (Location, Risk, Recommendation, etc.)
+- [ ] Summary section accurately counts all reported issues
 
 ## Output File Creation and Verification
 

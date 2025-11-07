@@ -63,12 +63,21 @@
 - name: List all generated files
   find:
     paths: "{{ review_output_dir }}"
-    patterns: "*.md,*.html"
+    patterns: "*.md,*.html,*.json"
   register: review_files
 
 - name: Display generated files
   debug:
     msg: "Generated {{ review_files.matched }} review files in {{ review_output_dir }}"
+
+- name: Check for zuul return data file
+  stat:
+    path: "{{ review_output_dir }}/zuul-return-data.json"
+  register: zuul_return_file
+
+- name: Load and display zuul return data
+  include_tasks: tasks/display-zuul-return.yaml
+  when: zuul_return_file.stat.exists
 
 - name: Create timestamped archive
   archive:

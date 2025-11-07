@@ -54,8 +54,19 @@ repos:
         entry: >-
           bash -c '
           for file in "$@"; do
-            grep -q "Apache License" "$file" || {
-              echo "Missing Apache license in $file"
+            # Skip shebang line if present (check if line 1 starts with #!)
+            # For files without shebang, check from line 1. For files with shebang, check from line 2
+            if head -n 1 "$file" | grep -q "^#!/"; then
+              content=$(tail -n +2 "$file")
+            else
+              content=$(cat "$file")
+            fi
+
+            echo "$content" | grep -q "Apache License\|SPDX-License-Identifier: Apache-2.0" || {
+              echo "Missing Apache license header in $file"
+              echo "  Add either:"
+              echo "    - Full header: Licensed under the Apache License, Version 2.0"
+              echo "    - Or SPDX identifier: SPDX-License-Identifier: Apache-2.0"
               exit 1
             }
           done

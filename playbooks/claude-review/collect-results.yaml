@@ -17,8 +17,8 @@
       ## Generated Reports
       1. [Zuul Context](zuul-context.md) - Execution environment details
       2. [Commit Summary](commit-summary.md) - Change metadata and overview
-      3. [Review Report](review-report.md) - Comprehensive code review (Markdown)
-      4. [Review Report (HTML)](review-report.html) - Comprehensive code review (HTML)
+      3. [Review Report (JSON)](review-report.json) - Structured code review data
+      4. [Review Report (HTML)](review-report.html) - Human-readable code review report
 
       ## Quick Summary
       - **Issues Found**: {{ issue_count | default(0) }}
@@ -40,18 +40,19 @@
   args:
     creates: "{{ ansible_user_dir }}/.venv-html-gen/lib/python*/site-packages/mistune"
 
-- name: Copy HTML generator script
+- name: Copy HTML renderer script
   copy:
-    src: files/generate_html_report.py
-    dest: "{{ ansible_user_dir }}/generate_html_report.py"
+    src: files/render_html_from_json.py
+    dest: "{{ ansible_user_dir }}/render_html_from_json.py"
     mode: '0755'
 
-- name: Generate HTML report from markdown
+- name: Generate HTML report from JSON
   command: >
     {{ ansible_user_dir }}/.venv-html-gen/bin/python3
-    {{ ansible_user_dir }}/generate_html_report.py
-    {{ review_output_dir }}/review-report.md
+    {{ ansible_user_dir }}/render_html_from_json.py
+    {{ review_output_dir }}/review-report.json
     {{ review_output_dir }}/review-report.html
+    -v
   register: html_generation
   ignore_errors: yes
 

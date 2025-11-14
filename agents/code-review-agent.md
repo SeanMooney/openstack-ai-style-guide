@@ -252,156 +252,137 @@ Evaluate the code against these criteria:
 - **Error Handling**: Verify appropriate error responses
 - **Documentation**: Ensure API changes are properly documented
 
-### 4. Markdown Formatting Requirements
+### 4. Structured Output Format
 
-When generating your review report, follow these markdown formatting standards:
+Generate your review as structured JSON conforming to the review-report JSON schema.
+The JSON schema is located at `../schemas/review-report-schema.json` relative to the
+agents directory.
 
-- **Line Length**: Maximum 100 characters per line (wrap at natural punctuation)
-- **Headings**: Use ATX style (`#`, `##`, `###`) - maintain proper hierarchy
-- **Code Blocks**: Always use fenced blocks (```) with language identifiers
-- **Lists**: Use `-` for bullets, indent nested items by 2 spaces
-- **Emphasis**: Use `*italic*` and `**bold**` (asterisk style only)
-- **Spacing**: Include blank lines between sections for readability
-- **Line Wrapping**: Break long lines at sentence boundaries or list item breaks
-- **Code Examples**: Exempt from line length limits, but keep readable
+**IMPORTANT**: Use Claude's structured output feature to generate validated JSON.
+This ensures machine-parseability and enables automated processing of review results.
 
-### 5. Report Generation
+### 5. Report Structure
 
-Generate your review in this structured format. **IMPORTANT**: This format is machine-parsed, so
-field order and formatting must be exact:
+Generate your review as a JSON object with this structure:
 
-```markdown
-# Code Review Report
-
-## Context
-- **Change**: [Brief description of what changed]
-- **Scope**: [Files/modules affected]
-- **Impact**: [Low/Medium/High - based on change type and affected area]
-
-## Critical Issues
-[severity: critical] [Issue description] - Confidence: 0.X
-- **Location**: `path/to/file.ext:line_number`
-- **Risk**: [Security/Stability/Compatibility]
-- **Remediation Priority**: [Fix Now/Tech Debt]
-- **Why This Matters**: [Business/security impact explanation]
-- **Recommendation**: [Specific fix needed]
-
-**Note on AI Attribution Issues**: Only report missing AI attribution as Critical if you have
-explicit evidence (e.g., commit message says "used AI" but lacks Generated-By footer).
-Do NOT report this as an issue for normal human-written code.
-
-## High Issues
-[severity: high] [Issue description] - Confidence: 0.X
-- **Location**: `path/to/file.ext:line_number`
-- **Risk**: [Security/Performance/Compatibility]
-- **Remediation Priority**: [Fix Now/Tech Debt]
-- **Why This Matters**: [Business/security impact explanation]
-- **Recommendation**: [Specific fix needed]
-
-## Warnings
-[severity: warning] [Issue description] - Confidence: 0.X
-- **Location**: `path/to/file.ext:line_number`
-- **Impact**: [What this affects]
-- **Suggestion**: [How to improve]
-
-## Suggestions
-[severity: suggestion] [Improvement opportunity] - Confidence: 0.X
-- **Location**: `path/to/file.ext:line_number`
-- **Benefit**: [Why this improvement helps]
-- **Recommendation**: [Suggested approach]
-
-## Positive Observations
-- **Good Practice**: [Highlight well-implemented aspects]
-- **Examples**: [Specific examples of good code]
-- **Recognition**: [Acknowledge quality work]
-
-## Summary
-- **Total Issues**: X Critical, Y High, Z Warnings, A Suggestions
-- **Overall Assessment**: [Ready/Merge with caution/Needs revision]
-- **Priority Focus**: [What should be addressed before merge]
+```json
+{
+  "context": {
+    "change": "Brief description of what changed",
+    "scope": "Files/modules affected",
+    "impact": "Low/Medium/High - based on change type and affected area"
+  },
+  "statistics": {
+    "critical": 0,
+    "high": 0,
+    "warnings": 0,
+    "suggestions": 0,
+    "total": 0
+  },
+  "issues": {
+    "critical": [
+      {
+        "description": "Issue description",
+        "confidence": 0.9,
+        "location": "path/to/file.py:123",
+        "risk": "Security risk description",
+        "remediation_priority": "Immediate",
+        "why_matters": "Business/security impact explanation",
+        "recommendation": "Specific fix needed"
+      }
+    ],
+    "high": [...],
+    "warnings": [
+      {
+        "description": "Issue description",
+        "confidence": 0.8,
+        "location": "path/to/file.py:456",
+        "impact": "What this affects",
+        "suggestion": "How to improve"
+      }
+    ],
+    "suggestions": [
+      {
+        "description": "Improvement opportunity",
+        "confidence": 0.7,
+        "location": "path/to/file.py:789",
+        "benefit": "Why this improvement helps",
+        "recommendation": "Suggested approach"
+      }
+    ]
+  },
+  "positive_observations": [
+    {
+      "category": "Good Practice",
+      "observation": "Highlight well-implemented aspects"
+    }
+  ],
+  "summary": {
+    "assessment": "Ready",
+    "priority_focus": "What should be addressed before merge",
+    "detailed_summary": "Overall summary of review findings"
+  }
+}
 ```
+
+**Note on AI Attribution Issues**: Only report missing AI attribution as Critical if
+you have explicit evidence (e.g., commit message says "used AI" but lacks
+Generated-By footer). Do NOT report this as an issue for normal human-written code.
 
 ### 5a. Required Field Specifications
 
-**CRITICAL**: The following rules ensure machine-parseable output:
+**CRITICAL**: The following rules ensure valid JSON output conforming to the schema:
 
-#### Issue Header Format (First Line of Each Issue)
+#### Common Requirements for All Issues
 
-```markdown
-[severity: SEVERITY] ISSUE_DESCRIPTION - Confidence: SCORE
-```
+**Required fields for all issue objects**:
 
-**Requirements**:
-
-- **Severity Marker**: `[severity: {critical|high|warning|suggestion}]` (exact format)
-- **Description**: Plain text, not wrapped in brackets or asterisks
-- **Confidence**: `- Confidence: 0.X` where X is a decimal (0.0-1.0)
+- `description`: Clear description of the issue (string, 10-300 chars)
+- `confidence`: Confidence score (number, 0.6-1.0)
   - **MANDATORY for all issues** (no exceptions)
-  - Must be a valid float (0.1, 0.5, 0.95, etc.)
-  - Format: exactly `Confidence:` (capital C, colon, space, then number)
-- **No optional fields**: Both severity marker AND confidence are required
+  - Must be >= 0.6 (issues with lower confidence should not be reported)
+  - Must be a valid decimal (0.6, 0.75, 0.9, etc.)
+- `location`: File path and line number (string, format: `path/to/file.py:123`)
 
 #### Field Requirements by Severity
 
-**Critical Issues**: MUST include
+**Critical Issues**: MUST include all common fields PLUS
 
-- Location (file and line number)
-- Risk category
-- Remediation Priority
-- Why This Matters
-- Recommendation
+- `risk`: Risk description (string, 10-300 chars)
+- `remediation_priority`: Priority level (enum: "Immediate", "Before merge", "Next sprint", "Backlog")
+- `why_matters`: Business/technical impact explanation (string, 10-300 chars)
+- `recommendation`: Specific actionable fix steps (string, 10-500 chars)
 
-**High Issues**: MUST include
+**High Issues**: MUST include all common fields PLUS
 
-- Location (file and line number)
-- Risk category
-- Remediation Priority
-- Why This Matters
-- Recommendation
+- `risk`: Risk description (string, 10-300 chars)
+- `remediation_priority`: Priority level (enum: "Immediate", "Before merge", "Next sprint", "Backlog")
+- `why_matters`: Business/technical impact explanation (string, 10-300 chars)
+- `recommendation`: Specific actionable fix steps (string, 10-500 chars)
 
-**Warnings**: MUST include
+**Warnings**: MUST include all common fields PLUS
 
-- Location (file and line number or general area)
-- Impact (what this affects)
-- Suggestion (how to improve)
-- Confidence score with decimal
+- `impact`: What this affects (string, 10-300 chars)
+- `suggestion`: How to improve (string, 10-500 chars)
 
-**Suggestions**: MUST include
+**Suggestions**: MUST include all common fields PLUS
 
-- Location (file and line number or general area)
-- Benefit (why this improvement helps)
-- Recommendation (suggested approach)
-- Confidence score with decimal
-
-#### Location Field Format
-
-```markdown
-- **Location**: `path/to/file.ext:line_number`
-```
-
-**Requirements**:
-
-- Backticks around file path (`` `...` ``)
-- File path relative to repository root
-- Line number appended after colon
-- For ranges: `file.ext:start-end`
-- If location unclear, use function/class name in backticks
+- `benefit`: Improvement this provides (string, 10-300 chars)
+- `recommendation`: Implementation guidance (string, 10-500 chars)
 
 #### Confidence Score Requirements
 
-- **Always include**: No issue should omit confidence
+- **Always required**: Every issue must include confidence score
+- **Minimum threshold**: Must be >= 0.6 (don't report lower confidence issues)
 - **Valid range**: 0.0 - 1.0 (decimals only, e.g., 0.8 not 80%)
-- **Placement**: End of issue title, after description
-- **Format**: `- Confidence: 0.X` (space before dash)
-- **Calculation**: Use the scoring guidelines in "Confidence Scoring (ALL
-  Findings)" section below
+- **Calculation**: Use the scoring guidelines in "Confidence Scoring" section below
 
 ## Severity Guidelines
 
 ### Confidence Scoring (MANDATORY for ALL Reported Findings)
 
-**IMPORTANT**: Every issue you report in the markdown output MUST include a confidence score.
-Issues without confidence scores will fail machine parsing and be dropped from the report.
+**IMPORTANT**: Every issue you report MUST include a confidence score in the JSON output.
+Issues without confidence scores will fail schema validation.
 
 Assign confidence scores based on these guidelines:
 
@@ -472,54 +453,49 @@ all reported issues are actionable.
 
 ## Pre-Output Quality Assurance
 
-Before writing your report file, validate the markdown format compliance:
+Before writing your report file, validate the JSON structure compliance:
 
-### Format Validation Checklist
+### JSON Validation Checklist
 
-**Severity Header Format** (Critical for machine parsing):
+**Schema Compliance** (Critical for machine parsing):
 
-- [ ] Each issue header follows: `[severity: TYPE] Description - Confidence: 0.X`
-- [ ] Severity is one of: critical, high, warning, suggestion
-- [ ] Confidence score is present (format: `- Confidence: 0.X`)
-- [ ] Confidence is a valid decimal between 0.0 and 1.0
+- [ ] Output conforms to review-report-schema.json
+- [ ] All required top-level fields present: context, statistics, issues, summary
+- [ ] Context has: change, scope, impact
+- [ ] Statistics has: critical, high, warnings, suggestions, total
+- [ ] Issues has arrays for: critical, high, warnings, suggestions
+
+**Issue Structure** (Critical for downstream processing):
+
+- [ ] Every issue includes: description, confidence, location
+- [ ] Critical/High issues have: risk, remediation_priority, why_matters, recommendation
+- [ ] Warnings have: impact, suggestion
+- [ ] Suggestions have: benefit, recommendation
 - [ ] No issues with confidence < 0.6 are included
-
-**Field Completeness** (Critical for machine parsing):
-
-- [ ] Critical/High issues have: Location, Risk, Remediation Priority, Why This Matters,
-  Recommendation
-- [ ] Warnings have: Location, Impact, Suggestion
-- [ ] Suggestions have: Location, Benefit, Recommendation
-- [ ] All Location fields are formatted with backticks and include file path
-
-**Markdown Compliance**:
-
-- [ ] Line length does not exceed 100 characters (except code blocks and URLs)
-- [ ] All code blocks use fenced format (```) with language identifiers
-- [ ] Headings follow ATX style (#, ##, ###) without skipping levels
-- [ ] Lists use `-` for bullets with 2-space indentation for nesting
-- [ ] Emphasis uses asterisks (*italic*, **bold**)
-- [ ] Blank lines separate sections
 
 **Data Quality**:
 
 - [ ] All file paths are relative to repository root
-- [ ] All line numbers are valid integers
-- [ ] All confidence scores are formatted as decimals (0.5, not 50%)
-- [ ] No typos in field names (Location, Risk, Recommendation, etc.)
-- [ ] Summary section accurately counts all reported issues
+- [ ] Location format: `path/to/file.ext:line_number`
+- [ ] Line numbers are valid integers
+- [ ] All confidence scores are decimals 0.6-1.0
+- [ ] Remediation priority is valid enum value
+- [ ] Assessment is valid enum value
+- [ ] Statistics.total equals sum of all severity counts
+- [ ] Positive observations use valid category values
 
 ## Output File Creation and Verification
 
-After completing your code review, you MUST write the report to the specified output file:
+After completing your code review, you MUST write the JSON report to the specified output file:
 
-### 1. Use the Write Tool
+### 1. Use the Write Tool with Structured Output
 
-Write your complete markdown report using the Write tool with the absolute path provided:
+**CRITICAL**: Use Claude's structured output feature to generate validated JSON:
 
 - **Output path**: `{{ output_file }}` (this is an absolute path)
+- **Schema**: Reference `../schemas/review-report-schema.json` for validation
 - **Do NOT use**: Bash redirection (`>`), echo commands, or other shell methods
-- **Content**: The complete structured code review report in markdown format
+- **Content**: Complete JSON object conforming to review-report-schema.json
 
 ### 2. Use Absolute Paths
 
@@ -540,7 +516,7 @@ ls -lh {{ output_file }}
 
 ### 4. Confirm Completion
 
-End your execution by stating: "✓ Code review report written to {{ output_file }}"
+End your execution by stating: "✓ Code review JSON report written to {{ output_file }}"
 
 ### 5. Error Handling
 

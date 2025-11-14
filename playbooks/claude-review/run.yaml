@@ -2,6 +2,12 @@
 - hosts: all
   name: TEIM Claude Code Review
   tasks:
+    - name: Install jq for JSON parsing
+      package:
+        name: jq
+        state: present
+      become: true
+
     - name: Verify Claude CLI installation
       command: "{{ claude_binary }} --version"
       register: claude_version

@@ -1,0 +1,79 @@
+---
+# Ansible-lint configuration for OpenStack AI Style Guide
+#
+# This configuration enables ansible-lint with exclusions for violations that
+# will be progressively fixed in future PRs according to refactor.md.
+#
+# Phase 1 (Current): Enable linting with exclusions
+# Phase 3 (PR #3): Remove role-name from skip_list after renaming roles
+# Phase 4 (PRs #4-8): Remove var-naming from skip_list as roles are prefixed
+
+# Exclude specific paths from all linting
+exclude_paths:
+  - .git/
+  - .venv/
+  - venv/
+  # Exclude files using Zuul-specific modules (zuul_return) that ansible-lint doesn't recognize
+  - roles/ai-zuul-integration/tasks/main.yaml
+
+# Use production profile as baseline
+profile: production
+
+# Skip specific rules that will be progressively fixed in later PRs
+skip_list:
+  # === Refactor.md planned fixes ===
+  # Role naming: All roles use hyphens (ai-*) instead of underscores (ai_*)
+  # Will be fixed in PR #3 when roles are renamed to use underscores
+  - role-name
+
+  # Variable naming: All roles use unprefixed variables
+  # Will be fixed in PRs #4-8 when variables are prefixed per role
+  - var-naming
+
+  # === Additional existing violations (to be fixed incrementally) ===
+  # FQCN: Use fully qualified collection names for builtin modules
+  # 64 violations - use ansible.builtin.* instead of bare module names
+  - fqcn
+  - fqcn[action-core]
+  - fqcn[action]
+
+  # Meta tags: Tags in meta/main.yaml contain hyphens (code-review, ci-cd)
+  # 6 violations - tags must be lowercase letters and digits only
+  - meta-no-tags
+
+  # Name formatting: Jinja templates should only be at the end of task names
+  # 7 violations - task names like "Run Claude for {{ command_name }}"
+  - name[template]
+
+  # YAML formatting issues
+  # 2 violations - too many blank lines, incorrect indentation
+  - yaml
+  - yaml[empty-lines]
+
+  # Idempotency: Commands should not change things if nothing needs doing
+  # 2 violations - missing changed_when for shell/command tasks
+  - no-changed-when
+
+  # Shell piping: Pipelines detected in shell commands without pipefail
+  # 1 violation - risky shell pipe without error handling
+  - risky-shell-pipe
+
+  # Key ordering: Playbook/task keys in non-standard order
+  # 2 violations - suggest reordering for consistency
+  - key-order
+  - key-order[play]
+
+  # Schema validation issues
+  # 1 violation - schema validation failures
+  - schema
+
+  # NOTE: syntax-check is unskippable - instead we exclude specific files
+  # that use Zuul-specific modules in exclude_paths above
+
+# Optional: Warn on these rules instead of failing
+warn_list: []
+
+# Mock external modules/collections that ansible-lint cannot resolve
+# This allows syntax checking to pass without requiring the collections to be installed
+mock_modules:
+  - ansible.posix.synchronize

@@ -1,0 +1,12 @@
+---
+# Ansible collection requirements for OpenStack AI Style Guide
+#
+# These collections are required for:
+# - ansible-lint to recognize all modules used in playbooks/roles
+# - Runtime execution of the AI code review workflow
+#
+# Install with: ansible-galaxy collection install -r requirements.yml
+
+collections:
+  - name: ansible.posix
+    version: ">=1.5.0"

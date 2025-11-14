@@ -46,6 +46,14 @@ repos:
         args: [--fix]
         exclude: ^references/MarkdownLintRules\.md$
 
+  # Ansible-lint - Ansible best practices linting
+  - repo: https://github.com/ansible/ansible-lint
+    rev: v26.1.0
+    hooks:
+      - id: ansible-lint
+        files: \.(yaml|yml)$
+        exclude: ^\.pre-commit-config\.yaml$
+
   # License header check (local hook)
   - repo: local
     hooks:
@@ -75,48 +83,6 @@ repos:
         files: \.py$
         exclude: '^(tests/|docs/examples/bad/|.*/__pycache__/)'
 
-  # DCO sign-off check with email validation (local hook)
-  - repo: local
-    hooks:
-      - id: check-dco-signoff
-        name: Check DCO Sign-off
-        entry: >-
-          bash -c '
-          commit_msg=$(git log -1 --pretty=%B)
-
-          # Check for Signed-off-by presence
-          echo "$commit_msg" | grep -q "^Signed-off-by:" || {
-            echo "ERROR: Commit must include DCO sign-off. Use: git commit -s"
-            exit 1
-          }
-
-          # Validate email consistency
-          git_email=$(git config user.email)
-          signoff_email=$(echo "$commit_msg" | grep "^Signed-off-by:" | sed "s/.*<\(.*\)>/\1/")
-
-          if [ -z "$signoff_email" ]; then
-            echo "ERROR: Could not parse email from Signed-off-by line"
-            exit 1
-          fi
-
-          if [ "$git_email" != "$signoff_email" ]; then
-            echo "ERROR: DCO email mismatch"
-            echo "  Git config email:    $git_email"
-            echo "  Signed-off-by email: $signoff_email"
-            echo ""
-            echo "To fix, either:"
-            echo "  1. Update git config: git config user.email \"$signoff_email\""
-            echo "  2. Or amend commit:   git commit --amend -s"
-            exit 1
-          fi
-          '
-        language: system
-        stages: [commit-msg]
-        always_run: true
-        pass_filenames: false
-
-
-
 # Files to exclude from all hooks
 exclude: |
   (?x)^(
@@ -141,7 +107,7 @@ minimum_pre_commit_version: '2.20.0'
 # - Configured for 79 character line length (see ruff.toml)
 # - bandit provides security scanning
 # - markdownlint ensures documentation quality
-# - DCO sign-off is checked on every commit
+# - ansible-lint validates Ansible playbooks and roles
 # - All Python files must have Apache license headers
 #
 # To temporarily skip hooks (NOT RECOMMENDED):

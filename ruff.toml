@@ -43,8 +43,7 @@ ignore = [
 "docs/examples/bad/*.py" = ["ALL"]  # Bad examples are intentionally non-compliant
 "docs/examples/good/*.py" = ["ALL"]  # Good examples may contain demonstration patterns
 "tools/*.py" = ["T20"]  # Allow print statements in CLI tools
-"playbooks/claude-review/files/*.py" = ["T20"]  # Allow print in playbook scripts (CLI tools)
-"playbooks/roles/*/files/*.py" = ["T20"]  # Allow print in role scripts (CLI tools)
+"roles/*/files/*.py" = ["T20"]  # Allow print in role scripts (CLI tools)
 
 [lint.isort]
 # OpenStack import ordering style

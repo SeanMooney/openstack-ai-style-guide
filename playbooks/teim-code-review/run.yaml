@@ -1,0 +1,44 @@
+---
+# AI-Assisted Code Review Playbook (Role-Based)
+#
+# This playbook performs comprehensive AI-assisted code review using modular
+# Ansible roles. The role dependency chain automatically executes all required
+# steps in order:
+#
+# ai-zuul-integration → ai-html-generation → ai-code-review →
+# ai-context-extraction → ai-review-setup
+#
+# Required variables (set in job definition):
+#   - claude_binary: Path to Claude CLI executable
+#   - claude_config_dir: Claude CLI configuration directory
+#   - haiku_model, sonnet_model, opus_model: Model names
+#   - context_model: Model for context extraction (fast)
+#   - review_model: Model for code review (most capable)
+#   - style_guide_project: Path to style guide repository
+#   - anthropic_auth_token: API authentication token
+#   - anthropic_api_url: API base URL
+
+- hosts: all
+  name: AI-Assisted Code Review
+  roles:
+    - role: ai-zuul-integration
+      # This role pulls in all dependencies:
+      # ai-zuul-integration → ai-html-generation → ai-code-review →
+      # ai-context-extraction → ai-review-setup
+
+  post_tasks:
+    - name: Display job summary
+      debug:
+        msg: |
+          ================================================================================
+          AI Code Review Complete
+          ================================================================================
+          Review Report (JSON): {{ review_output_dir }}/review-report.json
+          HTML Report: {{ review_output_dir }}/review-report.html
+          Zuul Comments: {{ review_output_dir }}/zuul-comments.json
+
+          Issue Statistics:
+          {{ issue_statistics.stdout | default('Not available') }}
+
+          Status: {{ 'NEEDS ATTENTION' if has_critical_issues | default(false) else ('HAS SUGGESTIONS' if has_issues | default(false) else 'CLEAN') }}
+          ================================================================================

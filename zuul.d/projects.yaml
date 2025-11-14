@@ -4,6 +4,5 @@
     merge-mode: rebase
     check:
       jobs:
-        #  - openstack-ai-code-review
         - teim-code-review
         - openstack-ai-style-guide-lint

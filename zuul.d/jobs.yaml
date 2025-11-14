@@ -1,72 +1,5 @@
 ---
 - job:
-    name: openstack-ai-code-review-base
-    description: |
-      Base job for AI-assisted code review of OpenStack projects.
-      Uses OpenCode with LiteLLM proxy for secure model access.
-      OpenCode is pre-installed in the ci-node-opencode image.
-
-      Model selection can be overridden via job variables:
-      - context_model: Model for context extraction (default: litellm-homelab/glm-4.5-air)
-      - review_model: Model for code review (default: litellm-homelab/glm-4.6)
-
-      Timeout Configuration:
-      The timeout is set to 900 seconds (15 minutes), which is approximately
-      double the average runtime. This timeout should generally not be changed
-      without first reviewing the average run-to-run execution time to ensure
-      the multiplier remains appropriate.
-    abstract: true
-    run: playbooks/code-review/run.yaml
-    post-run: playbooks/code-review/post.yaml
-    timeout: 1800
-    nodeset: debian-opencode-single-node-pod
-    required-projects:
-      - name: github.com/SeanMooney/openstack-ai-style-guide
-        override-checkout: master
-    vars:
-      # OpenCode is pre-installed
-      opencode_binary: "opencode"
-      opencode_config_dir: "{{ ansible_user_dir }}/.config/opencode"
-
-      # Model selection (can be overridden by child jobs)
-      context_model: "litellm-homelab/glm-4.5-air"
-      review_model: "litellm-homelab/glm-4.6"
-
-      # LiteLLM proxy configuration (internal homelab service)
-      litellm_base_url: "http://litellm.zuul-system.svc.cluster.local:4000/v1"
-      # NOTE: Hardcoded API key for internal homelab CI environment only.
-      # This is acceptable because:
-      #   - LiteLLM service is internal-only (not exposed externally)
-      #   - Key has no upstream API access or billing implications
-      #   - CI environment is isolated and trusted
-      # IMPORTANT: Production deployments MUST use Zuul encrypted secrets.
-      # Do NOT copy this pattern to environments with external access or real API keys.
-      litellm_api_key: "sk-1234"
-
-      # Style guide project location (Zuul provides this)
-      style_guide_project: "{{ zuul.projects['github.com/SeanMooney/openstack-ai-style-guide'].src_dir }}"
-      agents_source_dir: "{{ ansible_user_dir }}/{{ style_guide_project }}/agents"
-      agents_target_dir: "{{ opencode_config_dir }}/agent"
-
-      # Output configuration
-      review_output_dir: "{{ ansible_user_dir }}/logs/code-review"
-
-      # Collect OpenCode logs
-      # zuul_copy_output:
-      #   '{{ ansible_user_dir }}/.local/share/opencode/log': 'logs'
-      extensions_to_txt:
-        conf: true
-        log: true
-        localrc: true
-        stackenv: true
-        auto: true
-- job:
-    name: openstack-ai-code-review
-    parent: openstack-ai-code-review-base
-    description: |
-      AI-assisted code review for OpenStack Python projects.
-      Uses GLM models via LiteLLM homelab proxy.
-- job:
     name: openstack-ai-style-guide-lint
     parent: tox-linters
     description: |
@@ -89,21 +22,24 @@
     name: teim-code-review-base
     description: |
       Base job for AI-assisted code review using Claude Code via LiteLLM.
-      Reuses the same agent markdown files and overall flow as the OpenCode job.
+      Uses modular Ansible roles for maintainable and reusable workflow components.
     abstract: true
-    run: playbooks/claude-review/run.yaml
-    post-run: playbooks/claude-review/post.yaml
+    run: playbooks/teim-code-review/run.yaml
+    post-run: playbooks/teim-code-review/post.yaml
     timeout: 1800
     nodeset: debian-claude-code-single-node-pod
     required-projects:
       - name: github.com/SeanMooney/openstack-ai-style-guide
         override-checkout: master
     vars:
+      # Claude CLI configuration
       claude_binary: "claude"
       claude_config_dir: "{{ ansible_user_dir }}/.claude"
-      claude_agents_dir: "{{ ansible_user_dir }}/.claude/agents"
 
       # Model selection (can be overridden by child jobs)
+      haiku_model: "glm-4.5-air"
+      sonnet_model: "glm-4.6"
+      opus_model: "glm-4.6"
       context_model: "glm-4.5-air"
       review_model: "glm-4.6"
 
@@ -121,10 +57,20 @@
       # Style guide project location (Zuul provides this)
       style_guide_project: "{{ zuul.projects['github.com/SeanMooney/openstack-ai-style-guide'].src_dir }}"
       agents_source_dir: "{{ ansible_user_dir }}/{{ style_guide_project }}/agents"
-      agents_target_dir: "{{ claude_agents_dir }}"
+      agents_target_dir: "{{ claude_config_dir }}/agents"
+      style_guide_quick_rules: "{{ ansible_user_dir }}/{{ style_guide_project }}/docs/quick-rules.md"
+      style_guide_comprehensive: "{{ ansible_user_dir }}/{{ style_guide_project }}/docs/comprehensive-guide.md"
 
       # Output configuration
       review_output_dir: "{{ ansible_user_dir }}/logs/code-review"
+      context_output_file: "{{ review_output_dir }}/zuul-context.md"
+      commit_summary_file: "{{ review_output_dir }}/commit-summary.md"
+      commit_context_file: "{{ review_output_dir }}/commit-context.txt"
+      review_report_file: "{{ review_output_dir }}/review-report.json"
+      html_report_file: "{{ review_output_dir }}/review-report.html"
+      zuul_comments_file: "{{ review_output_dir }}/zuul-comments.json"
+      venv_dir: "{{ ansible_user_dir }}/.venv"
+
       extensions_to_txt:
         conf: true
         log: true

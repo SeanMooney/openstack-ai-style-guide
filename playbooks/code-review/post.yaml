@@ -1,5 +1,0 @@
-- hosts: all
-  tasks:
-    - name: Stage output from all nodes
-      include_role:
-        name: stage-output

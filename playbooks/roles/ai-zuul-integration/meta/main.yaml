@@ -1,0 +1,24 @@
+---
+galaxy_info:
+  author: Sean Mooney
+  description: Generate Zuul file comments and register artifacts from AI code review
+  company: Red Hat
+  license: Apache-2.0
+  min_ansible_version: "2.9"
+  platforms:
+    - name: Ubuntu
+      versions:
+        - jammy
+        - focal
+    - name: Debian
+      versions:
+        - bullseye
+        - bookworm
+  galaxy_tags:
+    - ai
+    - code-review
+    - zuul
+    - ci-cd
+
+dependencies:
+  - role: ai-html-generation

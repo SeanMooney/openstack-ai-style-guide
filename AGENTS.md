@@ -173,3 +173,116 @@ complete formatting requirements. When updating agents:
   asterisk emphasis)
 - Note that agent output (100 chars) is more conservative than repository
   files (120 chars)
+
+## Repository Organization Patterns
+
+This section documents the organizational patterns used in this repository
+for playbooks, roles, and related infrastructure code.
+
+### Playbook Structure
+
+Playbooks are organized in job-specific directories for clarity and
+maintainability:
+
+```text
+playbooks/
+  <job-name>/
+    run.yaml       # Main job execution playbook
+    post.yaml      # Post-run tasks playbook
+    pre.yaml       # Pre-run tasks (if needed)
+    # Additional job-specific playbooks as needed
+```
+
+**Example:**
+
+```text
+playbooks/
+  teim-code-review/
+    run.yaml
+    post.yaml
+```
+
+**Benefits of this pattern:**
+
+- **Shorter names**: Use conventional names (run.yaml, post.yaml) instead of
+  job-prefixed names (teim-code-review-run.yaml)
+- **Logical grouping**: All playbooks for a job are together in one directory
+- **Easy discovery**: Find all playbooks for a specific job quickly
+- **Scalability**: Easy to add more job-specific playbooks without cluttering
+  the playbooks/ directory
+- **Standard convention**: Follows common Zuul project patterns
+
+**When creating new jobs:**
+
+1. Create a new directory under `playbooks/` matching the job name
+2. Name playbooks using standard Zuul conventions (run.yaml, post.yaml,
+   pre.yaml)
+3. Update job definition to reference `playbooks/<job-name>/run.yaml`
+
+### Role Structure
+
+Ansible roles are stored at the repository root in a top-level `roles/`
+directory because they are shared between jobs and should be reusable:
+
+```text
+roles/
+  <role-name>/
+    tasks/
+      main.yaml
+      # Additional task files
+    defaults/
+      main.yaml
+    meta/
+      main.yaml  # Role dependencies
+    files/
+      # Scripts and files
+```
+
+**Example:**
+
+```text
+roles/
+  ai-review-setup/
+  ai-context-extraction/
+  ai-code-review/
+  ai-html-generation/
+  ai-zuul-integration/
+```
+
+**Benefits of this pattern:**
+
+- **Reusability**: Roles can be shared between multiple jobs
+- **Standard location**: Top-level `roles/` is the default Ansible role path
+- **Modularity**: Each role has a single, well-defined responsibility
+- **Composability**: Roles can depend on other roles via `meta/main.yaml`
+- **No path configuration**: Ansible automatically finds roles in the
+  top-level `roles/` directory
+
+**When creating new roles:**
+
+1. Create role directory structure under `roles/`
+2. Define role-specific variables in `defaults/main.yaml`
+3. Specify dependencies in `meta/main.yaml` if needed
+4. Keep roles generic - job-specific configuration goes in job variables
+5. Document role purpose and variables in role README or meta file
+
+### Job Definition Pattern
+
+Job definitions in `zuul.d/jobs.yaml` reference the organized structure:
+
+```yaml
+- job:
+    name: my-job-base
+    abstract: true
+    run: playbooks/my-job/run.yaml
+    post-run: playbooks/my-job/post.yaml
+    vars:
+      # Role-specific variables
+```
+
+**Key principles:**
+
+- Jobs reference playbooks using the new directory structure
+- Role variables are set in the job's `vars:` section
+- Roles themselves remain generic and reusable
+- Each job can customize role behavior through variables

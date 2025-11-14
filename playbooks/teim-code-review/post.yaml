@@ -1,0 +1,27 @@
+---
+# AI Code Review Post-Run Playbook
+#
+# This playbook runs after the main AI code review to ensure artifacts
+# are properly collected and available in Zuul.
+
+- hosts: all
+  name: AI Code Review Post-Run Tasks
+  tasks:
+    - name: Verify review artifacts were created
+      stat:
+        path: "{{ item }}"
+      register: artifact_files
+      loop:
+        - "{{ review_output_dir }}/review-report.json"
+        - "{{ review_output_dir }}/review-report.html"
+        - "{{ review_output_dir }}/zuul-comments.json"
+
+    - name: Display artifact availability
+      debug:
+        msg: |
+          Review Artifacts Status:
+          - JSON Report: {{ artifact_files.results[0].stat.exists | ternary('✓ Available', '✗ Missing') }}
+          - HTML Report: {{ artifact_files.results[1].stat.exists | ternary('✓ Available', '✗ Missing') }}
+          - Zuul Comments: {{ artifact_files.results[2].stat.exists | ternary('✓ Available', '✗ Missing') }}
+
+          Artifacts are available in {{ review_output_dir }}

@@ -1,0 +1,20 @@
+---
+galaxy_info:
+  author: Sean Mooney
+  description: Generate Zuul file comments and register artifacts from AI code review
+  license: Apache-2.0
+  min_ansible_version: "2.9"
+  platforms:
+    - name: Debian
+      versions:
+        - trixie
+  galaxy_tags:
+    - ai
+    - codereview
+    - zuul
+    - cicd
+
+# Note: Role dependencies are not supported in Zuul's Ansible runtime.
+# Role orchestration is handled by the playbook using include_role tasks.
+# This role expects ai_html_generation to have been executed first.
+dependencies: []

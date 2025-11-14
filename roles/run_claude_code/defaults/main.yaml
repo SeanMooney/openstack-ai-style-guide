@@ -1,0 +1,17 @@
+---
+# Default variables for run-claude-code role
+#
+# REQUIRED variables (must be provided by caller):
+#   - model_name: Claude model to use (e.g., "glm-4.6", "glm-4.5-air")
+#   - prompt_text: Prompt string to pass to Claude (may include @file references)
+#   - output_file: Expected output file path (absolute or relative to working_dir)
+#   - command_name: Human-readable operation name for logging
+#   - anthropic_auth_token: API authentication token
+#   - anthropic_api_url: Anthropic-compatible API base URL
+#
+# OPTIONAL variables:
+#   - working_dir: Working directory for command execution (defaults to ansible_user_dir)
+#   - claude_binary: Path to Claude CLI binary (defaults to "claude")
+
+# Claude CLI binary path
+run_claude_code_claude_binary: claude

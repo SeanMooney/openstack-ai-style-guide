@@ -1,0 +1,56 @@
+---
+# Extract Zuul execution context from inventory
+
+- name: Create temporary directory for inventory
+  ansible.builtin.file:
+    path: "{{ ansible_user_dir }}/tmp"
+    state: directory
+    mode: "0755"
+
+- name: Copy inventory from executor to remote node
+  ansible.builtin.copy:
+    src: "{{ zuul.executor.inventory_file }}"
+    dest: "{{ ansible_user_dir }}/tmp/inventory.yaml"
+    mode: "0644"
+
+- name: Verify inventory file was copied
+  ansible.builtin.stat:
+    path: "{{ ansible_user_dir }}/tmp/inventory.yaml"
+  register: ai_context_extraction_inventory_file_check
+
+- name: Fail if inventory copy failed
+  ansible.builtin.fail:
+    msg: "Could not copy Zuul inventory file from executor"
+  when: not ai_context_extraction_inventory_file_check.stat.exists
+
+- name: Set inventory path
+  ansible.builtin.set_fact:
+    ai_context_extraction_zuul_inventory_path: "{{ ansible_user_dir }}/tmp/inventory.yaml"
+
+- name: Validate API configuration
+  ansible.builtin.fail:
+    msg: "Required API variable {{ item }} is not defined"
+  when: vars[item] is not defined or vars[item] == ''
+  loop:
+    - anthropic_auth_token
+    - anthropic_api_url
+
+- name: Create context extraction prompt with subagent invocation
+  ansible.builtin.set_fact:
+    ai_context_extraction_context_prompt: >-
+      Use the @agent-zuul-context-extractor subagent.
+      Read and analyze the Zuul inventory at @{{ ai_context_extraction_zuul_inventory_path }}.
+      Write the structured context summary to {{ ai_context_extraction_context_output_file }}.
+
+- name: Execute context extraction with Claude
+  ansible.builtin.include_role:
+    name: run_claude_code
+  vars:
+    run_claude_code_claude_binary: "{{ claude_binary }}"
+    prompt_text: "{{ ai_context_extraction_context_prompt }}"
+    model_name: "{{ ai_context_extraction_context_model }}"
+    output_file: "{{ ai_context_extraction_context_output_file }}"
+    command_name: "context extraction"
+    working_dir: "{{ ansible_user_dir }}"
+    anthropic_auth_token: "{{ anthropic_auth_token }}"
+    anthropic_api_url: "{{ anthropic_api_url }}"

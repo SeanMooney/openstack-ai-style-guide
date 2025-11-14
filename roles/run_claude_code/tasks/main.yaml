@@ -1,0 +1,195 @@
+---
+# Reusable tasks for executing Claude CLI commands
+#
+# Required variables:
+#   - model_name: Model to use (e.g., "{{ context_model }}")
+#   - prompt_text: Prompt string passed to Claude (may include @file references)
+#   - output_file: Expected output file path (Claude is instructed to write here)
+#   - command_name: Human-readable name (e.g., "context extraction")
+#   - anthropic_auth_token: API authentication token
+#   - anthropic_api_url: API base URL
+# Optional variables:
+#   - working_dir: Working directory for command execution (defaults to current)
+
+- name: Validate required variables
+  ansible.builtin.fail:
+    msg: "Required variable {{ item }} is not defined"
+  when: vars[item] is not defined or vars[item] == ''
+  loop:
+    - model_name
+    - prompt_text
+    - output_file
+    - command_name
+    - anthropic_auth_token
+    - anthropic_api_url
+
+- name: Build Claude command
+  ansible.builtin.set_fact:
+    # NOTE: Tool permissions are intentionally broad for CI automation:
+    # - Bash: Required for git CLI operations (log, diff, status) and CI commands
+    # - Read/Grep/Glob: Required for code analysis and file discovery
+    # - Write: Required for generating review reports and output files
+    # - Edit: Allows Claude to suggest/apply fixes during review
+    # This is appropriate for a trusted CI environment. For untrusted contexts,
+    # restrict to read-only tools (Read, Grep, Glob) and manual review workflows.
+    run_claude_code_claude_command: >-
+      {{ run_claude_code_claude_binary }} --print "{{ prompt_text | replace('"', '\\"') }}"
+      --model "{{ model_name }}"
+      --output-format text
+      --allowedTools "Bash,Read,Write,Edit,Grep,Glob"
+      --permission-mode acceptEdits
+
+- name: Display Claude command
+  ansible.builtin.debug:
+    msg: |
+      Claude command (headless mode):
+      {{ run_claude_code_claude_command }}
+
+      Working directory: {{ working_dir | default(ansible_user_dir) }}
+      Expected output: {{ output_file }}
+
+- name: Run Claude in headless mode with retry logic
+  ansible.builtin.shell:
+    cmd: "{{ run_claude_code_claude_command }} && test -f '{{ output_file }}'"
+    chdir: "{{ working_dir | default(omit) }}"
+  register: run_claude_code_command_result
+  environment:
+    ANTHROPIC_AUTH_TOKEN: "{{ anthropic_auth_token }}"
+    ANTHROPIC_BASE_URL: "{{ anthropic_api_url }}"
+  failed_when: false
+  changed_when: run_claude_code_command_result.rc == 0
+  retries: 3
+  delay: 10
+  # Stop retrying on permanent errors (auth failures, model not found)
+  until: >
+    run_claude_code_command_result.rc == 0 or
+    (run_claude_code_command_result.stderr | default('') is search('authentication|invalid.*key|unauthorized')) or
+    (run_claude_code_command_result.stderr | default('') is search('model.*not.*found|unknown.*model|invalid.*model'))
+
+- name: Display retry summary
+  ansible.builtin.debug:
+    msg: >-
+      {{ command_name | capitalize }} completed after {{ run_claude_code_command_result.attempts | default(1) }}
+      attempt(s). Status: {{ 'SUCCESS' if run_claude_code_command_result.rc == 0 else 'FAILED' }}
+  when: run_claude_code_command_result.attempts | default(1) > 1
+
+- name: Analyze failure type
+  ansible.builtin.set_fact:
+    run_claude_code_error_type: >-
+      {%- if run_claude_code_command_result.stderr | default('') is search('authentication|invalid.*key|unauthorized') -%}
+        authentication
+      {%- elif run_claude_code_command_result.stderr | default('') is search('model.*not.*found|unknown.*model|invalid.*model') -%}
+        model_not_found
+      {%- elif run_claude_code_command_result.stderr | default('') is search('503|overloaded|rate.*limit|too.*many.*requests') -%}
+        transient
+      {%- elif run_claude_code_command_result.stderr | default('') is search('connection|timeout|network|unreachable') -%}
+        connectivity
+      {%- else -%}
+        unknown
+      {%- endif -%}
+  when: run_claude_code_command_result.rc != 0
+
+- name: Fail with specific guidance for error type
+  ansible.builtin.fail:
+    msg: |
+      Claude {{ command_name }} failed after {{ run_claude_code_command_result.attempts | default(1) }} attempt(s).
+      Return code: {{ run_claude_code_command_result.rc }}
+      Error type: {{ run_claude_code_error_type | default('unknown') }}
+
+      {% if run_claude_code_error_type == 'authentication' %}
+      ===========================================================
+      AUTHENTICATION ERROR
+      ===========================================================
+      The API rejected the authentication token.
+
+      Troubleshooting:
+      - Verify ANTHROPIC_AUTH_TOKEN is set correctly
+      - Check if token has expired or been revoked
+      - Confirm LiteLLM proxy is accepting this token
+      - Test API endpoint: curl {{ anthropic_api_url }}/health
+
+      {% elif run_claude_code_error_type == 'model_not_found' %}
+      ===========================================================
+      MODEL NOT FOUND ERROR
+      ===========================================================
+      The requested model "{{ model_name }}" is not available.
+
+      Troubleshooting:
+      - Verify model name spelling: {{ model_name }}
+      - Check LiteLLM proxy configuration for available models
+      - List available models: curl {{ anthropic_api_url }}/v1/models
+      - Review LiteLLM proxy logs: kubectl logs -n zuul-system -l app=litellm
+
+      {% elif run_claude_code_error_type == 'transient' %}
+      ===========================================================
+      TRANSIENT ERROR (retried {{ run_claude_code_command_result.attempts }} times)
+      ===========================================================
+      The service may be overloaded or rate limited.
+
+      Troubleshooting:
+      - Reduce concurrent Zuul jobs using this model
+      - Check LiteLLM proxy capacity: kubectl top pod -n zuul-system
+      - Review LiteLLM proxy logs for rate limit errors
+      - Consider increasing job timeout or retry delays
+
+      {% elif run_claude_code_error_type == 'connectivity' %}
+      ===========================================================
+      CONNECTIVITY ERROR
+      ===========================================================
+      Cannot reach API endpoint: {{ anthropic_api_url }}
+
+      Troubleshooting:
+      - Verify network connectivity from build node
+      - Check LiteLLM service status: kubectl get svc -n zuul-system litellm
+      - Test endpoint reachability: curl -v {{ anthropic_api_url }}/health
+      - Review network policies and firewall rules
+
+      {% else %}
+      ===========================================================
+      UNKNOWN ERROR
+      ===========================================================
+      The error type could not be automatically determined.
+      Review the stderr output below for clues.
+
+      {% endif %}
+
+      Command Output:
+      -----------------------------------------------------------
+      STDOUT:
+      {{ run_claude_code_command_result.stdout | default('(empty)') }}
+
+      STDERR:
+      {{ run_claude_code_command_result.stderr | default('(empty)') }}
+  when: run_claude_code_command_result.rc != 0
+
+- name: Verify output file was created
+  ansible.builtin.stat:
+    path: "{{ output_file }}"
+  register: run_claude_code_output_file_stat
+
+- name: Check if output file exists
+  ansible.builtin.fail:
+    msg: |
+      Claude {{ command_name }} failed to produce expected output file
+      after {{ run_claude_code_command_result.attempts | default(1) }} attempt(s).
+
+      Expected output file: {{ output_file }}
+
+      Possible causes:
+      - Claude CLI execution error
+      - File system or directory initialization
+      - LiteLLM proxy or model response
+      - Network connectivity
+
+      Command output:
+      STDOUT:
+      {{ run_claude_code_command_result.stdout | default('(empty)') }}
+
+      STDERR:
+      {{ run_claude_code_command_result.stderr | default('(empty)') }}
+  when: not run_claude_code_output_file_stat.stat.exists
+
+- name: Display success message
+  ansible.builtin.debug:
+    msg: "✓ {{ command_name | capitalize }} completed successfully. Output at {{ output_file }}"
+  when: run_claude_code_output_file_stat.stat.exists

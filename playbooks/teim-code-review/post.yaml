@@ -6,9 +6,15 @@
 
 - hosts: all
   name: AI Code Review Post-Run Tasks
+  roles:
+    - role: stage-output  # noqa: role-name[path] syntax-check[specific]
+      # stage-output is a Zuul built-in role not in the local roles/ directory
+      zuul_copy_output:
+        "{{ review_output_dir }}": logs/code-review
+
   tasks:
     - name: Verify review artifacts were created
-      stat:
+      ansible.builtin.stat:
         path: "{{ item }}"
       register: artifact_files
       loop:
@@ -17,7 +23,7 @@
         - "{{ review_output_dir }}/zuul-comments.json"
 
     - name: Display artifact availability
-      debug:
+      ansible.builtin.debug:
         msg: |
           Review Artifacts Status:
           - JSON Report: {{ artifact_files.results[0].stat.exists | ternary('✓ Available', '✗ Missing') }}

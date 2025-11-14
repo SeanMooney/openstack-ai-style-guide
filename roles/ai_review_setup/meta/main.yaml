@@ -1,0 +1,17 @@
+---
+galaxy_info:
+  author: Sean Mooney
+  description: Setup Claude CLI and AI agents for code review
+  license: Apache-2.0
+  min_ansible_version: "2.9"
+  platforms:
+    - name: Debian
+      versions:
+        - trixie
+  galaxy_tags:
+    - ai
+    - codereview
+    - claude
+    - openstack
+
+dependencies: []

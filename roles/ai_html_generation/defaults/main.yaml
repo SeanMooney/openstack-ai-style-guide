@@ -1,0 +1,18 @@
+---
+# Default variables for ai_html_generation role
+#
+# REQUIRED variables (must be provided by caller):
+#   - venv_dir: Virtual environment directory for Python dependencies
+#   - review_output_dir: Output directory for review artifacts
+
+# Review output directory (should be set by calling playbook/job)
+ai_html_generation_review_output_dir: "{{ ansible_user_dir }}/logs/code-review"
+
+# Virtual environment directory
+ai_html_generation_venv_dir: "{{ ansible_user_dir }}/.code-review-venv"
+
+# Input file (JSON review report) - depends on ai_html_generation_review_output_dir
+ai_html_generation_review_report_file: "{{ ai_html_generation_review_output_dir }}/review-report.json"
+
+# Output file (HTML report) - depends on ai_html_generation_review_output_dir
+ai_html_generation_html_report_file: "{{ ai_html_generation_review_output_dir }}/review-report.html"

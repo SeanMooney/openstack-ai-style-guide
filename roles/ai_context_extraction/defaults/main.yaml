@@ -1,0 +1,18 @@
+---
+# Default variables for ai_context_extraction role
+#
+# REQUIRED variables (must be provided by caller):
+#   - review_output_dir: Output directory for review artifacts (unprefixed, from job)
+#   - anthropic_auth_token: API authentication token
+#   - anthropic_api_url: API base URL
+
+# Model to use for context extraction (typically faster model)
+ai_context_extraction_context_model: "glm-4.5-air"
+
+# Review output directory (should be set by calling playbook)
+ai_context_extraction_review_output_dir: "{{ ansible_user_dir }}/logs/code-review"
+
+# Output files (depend on ai_context_extraction_review_output_dir)
+ai_context_extraction_context_output_file: "{{ ai_context_extraction_review_output_dir }}/zuul-context.md"
+ai_context_extraction_commit_summary_file: "{{ ai_context_extraction_review_output_dir }}/commit-summary.md"
+ai_context_extraction_commit_context_file: "{{ ai_context_extraction_review_output_dir }}/commit-context.txt"

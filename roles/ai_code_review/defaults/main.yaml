@@ -1,0 +1,23 @@
+---
+# Default variables for ai-code-review role
+
+# Model to use for code review (typically most capable model)
+ai_code_review_review_model: "glm-4.6"
+
+# Review output directory
+ai_code_review_review_output_dir: "{{ ansible_user_dir }}/logs/code-review"
+
+# Input files (from context extraction)
+ai_code_review_context_output_file: "{{ ai_code_review_review_output_dir }}/zuul-context.md"
+ai_code_review_commit_summary_file: "{{ ai_code_review_review_output_dir }}/commit-summary.md"
+
+# Style guide files
+ai_code_review_style_guide_project: "openstack-ai-style-guide"
+ai_code_review_style_guide_quick_rules: "{{ ansible_user_dir }}/{{ ai_code_review_style_guide_project }}/docs/quick-rules.md"
+ai_code_review_style_guide_comprehensive: "{{ ansible_user_dir }}/{{ ai_code_review_style_guide_project }}/docs/comprehensive-guide.md"
+
+# Output file
+ai_code_review_review_report_file: "{{ ai_code_review_review_output_dir }}/review-report.json"
+
+# Project source directory
+ai_code_review_project_src_dir: "{{ ansible_user_dir }}/{{ zuul.project.src_dir }}"

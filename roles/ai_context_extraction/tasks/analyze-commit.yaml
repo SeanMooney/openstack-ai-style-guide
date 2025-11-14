@@ -1,0 +1,74 @@
+---
+# Analyze git commit metadata and changes
+
+- name: Get project source directory
+  ansible.builtin.set_fact:
+    ai_context_extraction_project_src_dir: "{{ ansible_user_dir }}/{{ zuul.project.src_dir }}"
+
+- name: Verify project source directory exists
+  ansible.builtin.stat:
+    path: "{{ ai_context_extraction_project_src_dir }}"
+  register: ai_context_extraction_project_dir
+
+- name: Fail if project directory not found
+  ansible.builtin.fail:
+    msg: "Project source directory not found at {{ ai_context_extraction_project_src_dir }}"
+  when: not ai_context_extraction_project_dir.stat.exists
+
+- name: Generate git context file
+  ansible.builtin.shell:
+    cmd: |
+      set -e
+      {
+        echo "# Commit Metadata"
+        git log -1 --pretty=fuller
+        echo
+        echo "# Changed Files"
+        git diff --name-status HEAD~1..HEAD 2>/dev/null || echo "(initial commit or no previous commit)"
+        echo
+        echo "# Diff (unified)"
+        git diff -U0 --no-color HEAD~1..HEAD 2>/dev/null || echo "(no diff available)"
+      } > "{{ ai_context_extraction_commit_context_file }}"
+    chdir: "{{ ai_context_extraction_project_src_dir }}"
+  changed_when: false
+  register: ai_context_extraction_git_context_gen
+  failed_when: ai_context_extraction_git_context_gen.rc != 0
+
+- name: Validate API configuration
+  ansible.builtin.fail:
+    msg: "Required API variable {{ item }} is not defined"
+  when: vars[item] is not defined or vars[item] == ''
+  loop:
+    - anthropic_auth_token
+    - anthropic_api_url
+
+- name: Create commit analysis prompt with subagent invocation
+  ansible.builtin.set_fact:
+    ai_context_extraction_commit_prompt: >-
+      Use the @agent-commit-summary subagent to
+      Analyze the current git commit in the repository at {{ ai_context_extraction_project_src_dir }}.
+      Extract commit metadata, generate an ASCII file tree relative to
+      {{ ai_context_extraction_project_src_dir }}, identify bug/feature markers
+      following OpenStack conventions, and summarize what changed and why.
+      Follow commit-summarizer agent instructions.
+      Write a structured commit summary to {{ ai_context_extraction_commit_summary_file }}.
+      Do not output the report in {{ ai_context_extraction_project_src_dir }}.
+      Prefer using absolute paths when creating files to ensure they are created
+      at the expected location.
+      You MUST verify that the summary was created at
+      {{ ai_context_extraction_commit_summary_file }} before completing this task.
+      If the structured commit summary was output to a different location move it
+      to {{ ai_context_extraction_commit_summary_file }}
+
+- name: Execute commit analysis with Claude
+  ansible.builtin.include_role:
+    name: run_claude_code
+  vars:
+    run_claude_code_claude_binary: "{{ claude_binary }}"
+    prompt_text: "{{ ai_context_extraction_commit_prompt }}"
+    model_name: "{{ ai_context_extraction_context_model }}"
+    output_file: "{{ ai_context_extraction_commit_summary_file }}"
+    command_name: "commit analysis"
+    working_dir: "{{ ai_context_extraction_project_src_dir }}"
+    anthropic_auth_token: "{{ anthropic_auth_token }}"
+    anthropic_api_url: "{{ anthropic_api_url }}"

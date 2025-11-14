@@ -1,0 +1,21 @@
+---
+galaxy_info:
+  author: Sean Mooney
+  description: Perform AI-powered code review using Claude Code
+  license: Apache-2.0
+  min_ansible_version: "2.9"
+  platforms:
+    - name: Debian
+      versions:
+        - trixie
+  galaxy_tags:
+    - ai
+    - codereview
+    - claude
+    - openstack
+    - quality
+
+# Note: Role dependencies are not supported in Zuul's Ansible runtime.
+# Role orchestration is handled by the playbook using include_role tasks.
+# This role expects ai_context_extraction to have been executed first.
+dependencies: []

@@ -1,9 +1,0 @@
----
-# AI Context Extraction Role
-# Extracts Zuul context and analyzes git commits
-
-- name: Extract Zuul context
-  include_tasks: extract-zuul-context.yaml
-
-- name: Analyze git commit
-  include_tasks: analyze-commit.yaml

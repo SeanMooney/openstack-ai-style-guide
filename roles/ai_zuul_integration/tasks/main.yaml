@@ -1,0 +1,89 @@
+---
+# AI Zuul Integration Role
+# Generates file comments and registers artifacts with Zuul
+
+- name: Validate required variables
+  ansible.builtin.fail:
+    msg: "Required variable ai_zuul_integration_venv_dir is not defined"
+  when: ai_zuul_integration_venv_dir is not defined or ai_zuul_integration_venv_dir == ''
+
+- name: Copy Zuul integration scripts
+  ansible.builtin.copy:
+    src: "{{ item }}"
+    dest: "{{ ansible_user_dir }}/"
+    mode: '0755'
+  loop:
+    - generate_zuul_comments.py
+    - validate_zuul_schema.py
+
+- name: Check if JSON review report exists
+  ansible.builtin.stat:
+    path: "{{ ai_zuul_integration_review_report_file }}"
+  register: ai_zuul_integration_json_report
+
+- name: Check if HTML report exists
+  ansible.builtin.stat:
+    path: "{{ ai_zuul_integration_html_report_file }}"
+  register: ai_zuul_integration_html_report
+
+- name: Fail if JSON report not found
+  ansible.builtin.fail:
+    msg: "JSON review report not found at {{ ai_zuul_integration_review_report_file }}"
+  when: not ai_zuul_integration_json_report.stat.exists
+
+- name: Generate Zuul inline comments from JSON review report
+  ansible.builtin.command: >
+    {{ ai_zuul_integration_venv_dir }}/bin/python3
+    {{ ansible_user_dir }}/generate_zuul_comments.py
+    {{ ai_zuul_integration_review_report_file }}
+    -o {{ ai_zuul_integration_zuul_comments_file }}
+    --summary
+    --validate
+  register: ai_zuul_integration_comments_generation
+  failed_when: ai_zuul_integration_comments_generation.rc != 0
+  changed_when: false
+
+- name: Display comments generation summary
+  ansible.builtin.debug:
+    msg: "{{ ai_zuul_integration_comments_generation.stderr_lines[-2:] }}"
+  when: ai_zuul_integration_comments_generation.stderr_lines is defined and ai_zuul_integration_comments_generation.stderr_lines | length > 0
+
+- name: Validate Zuul comments JSON schema
+  ansible.builtin.command: >
+    {{ ai_zuul_integration_venv_dir }}/bin/python3
+    {{ ansible_user_dir }}/validate_zuul_schema.py
+    {{ ai_zuul_integration_zuul_comments_file }}
+  register: ai_zuul_integration_schema_validation
+  changed_when: false
+  when: ai_zuul_integration_comments_generation.rc == 0
+
+- name: Read generated JSON for zuul_return
+  ansible.builtin.slurp:
+    src: "{{ ai_zuul_integration_zuul_comments_file }}"
+  register: ai_zuul_integration_json_file_content
+  when: ai_zuul_integration_schema_validation.rc == 0
+
+- name: Load comments data for zuul_return
+  ansible.builtin.set_fact:
+    ai_zuul_integration_zuul_return_data: "{{ ai_zuul_integration_json_file_content.content | b64decode | from_json }}"
+  when:
+    - ai_zuul_integration_json_file_content is defined
+    - ai_zuul_integration_schema_validation.rc == 0
+
+- name: Return file comments to Zuul
+  zuul_return:
+    data: "{{ ai_zuul_integration_zuul_return_data }}"
+  when: ai_zuul_integration_zuul_return_data is defined and ai_zuul_integration_zuul_return_data.zuul.file_comments | length > 0
+
+- name: Register HTML report as Zuul artifact
+  zuul_return:
+    data:
+      zuul:
+        artifacts:
+          - name: "AI Code Review Report"
+            url: "code-review/review-report.html"
+            metadata:
+              type: "code-review"
+              format: "html"
+              tool: "claude-code"
+  when: ai_zuul_integration_html_report.stat.exists

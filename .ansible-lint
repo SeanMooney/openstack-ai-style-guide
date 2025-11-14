@@ -1,0 +1,43 @@
+---
+# Ansible-lint configuration for OpenStack AI Style Guide
+#
+# This configuration makes ansible-lint more lenient for issues that are
+# either false positives or low-priority for this project.
+
+# Exclude certain directories from linting
+exclude_paths:
+  - .tox/
+  - .github/
+  - zuul.d/
+  - .venv/
+  - venv/
+  - roles/ai_zuul_integration/tasks/main.yaml  # Uses zuul_return module
+  - playbooks/claude-review/post.yaml  # Uses zuul_return module
+
+# Skip list - rules to completely ignore
+skip_list:
+  - var-naming[read-only]  # inventory_file false positive
+
+# Warn list - rules that should warn but not fail
+warn_list:
+  - var-naming[no-role-prefix]  # Role variable naming (many false positives for role params)
+  - risky-file-permissions  # File permissions (context-dependent)
+  - risky-shell-pipe  # Shell pipes (acceptable in many cases)
+  - no-changed-when  # changed_when (acceptable for many read-only commands)
+  - name[template]  # Jinja templates in task names (acceptable pattern)
+  - name[casing]  # Task name casing (minor issue)
+  - name[play]  # Play naming (minor issue)
+  - key-order[play]  # Play key ordering (cosmetic)
+  - yaml[truthy]  # Truthy values (cosmetic)
+
+# Enable offline mode (don't download schemas)
+offline: true
+
+# Use parseable output for pre-commit
+# parseable: true
+
+# Set default profile to production (strictest ruleset)
+# profile: production
+
+# Verbosity level (0-2)
+# verbosity: 1

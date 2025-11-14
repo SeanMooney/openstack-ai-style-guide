@@ -1,0 +1,84 @@
+---
+# AI Zuul Integration Role
+# Generates file comments and registers artifacts with Zuul
+
+- name: Copy Zuul integration scripts
+  copy:
+    src: "{{ item }}"
+    dest: "{{ ansible_user_dir }}/"
+    mode: '0755'
+  loop:
+    - generate_zuul_comments.py
+    - validate_zuul_schema.py
+
+- name: Check if JSON review report exists
+  stat:
+    path: "{{ review_report_file }}"
+  register: json_report
+
+- name: Check if HTML report exists
+  stat:
+    path: "{{ html_report_file }}"
+  register: html_report
+
+- name: Fail if JSON report not found
+  fail:
+    msg: "JSON review report not found at {{ review_report_file }}"
+  when: not json_report.stat.exists
+
+- name: Generate Zuul inline comments from JSON review report
+  command: >
+    {{ venv_dir }}/bin/python3
+    {{ ansible_user_dir }}/generate_zuul_comments.py
+    {{ review_report_file }}
+    -o {{ zuul_comments_file }}
+    --summary
+    --validate
+  register: comments_generation
+  failed_when: comments_generation.rc != 0
+  changed_when: false
+
+- name: Display comments generation summary
+  debug:
+    msg: "{{ comments_generation.stderr_lines[-2:] }}"
+  when: comments_generation.stderr_lines is defined and comments_generation.stderr_lines | length > 0
+
+- name: Validate Zuul comments JSON schema
+  command: >
+    {{ venv_dir }}/bin/python3
+    {{ ansible_user_dir }}/validate_zuul_schema.py
+    {{ zuul_comments_file }}
+  register: schema_validation
+  changed_when: false
+  when: comments_generation.rc == 0
+
+- name: Read generated JSON for zuul_return
+  slurp:
+    src: "{{ zuul_comments_file }}"
+  register: json_file_content
+  when: schema_validation.rc == 0
+
+- name: Load comments data for zuul_return
+  set_fact:
+    zuul_return_data: "{{ json_file_content.content | b64decode | from_json }}"
+  when:
+    - json_file_content is defined
+    - schema_validation.rc == 0
+
+- name: Return file comments to Zuul
+  zuul_return:
+    data: "{{ zuul_return_data }}"
+  when: zuul_return_data is defined and zuul_return_data.zuul.file_comments | length > 0
+
+- name: Register HTML report as Zuul artifact
+  zuul_return:
+    data:
+      zuul:
+        artifacts:
+          - name: "AI Code Review Report"
+            url: "code-review/review-report.html"
+            metadata:
+              type: "code-review"
+              format: "html"
+              tool: "claude-code"
+  when: html_report.stat.exists

@@ -1,0 +1,78 @@
+---
+# AI Code Review Role
+# Performs comprehensive code review using AI agent
+
+- name: Verify prerequisite context files exist
+  stat:
+    path: "{{ item }}"
+  register: prereq_files
+  loop:
+    - "{{ context_output_file }}"
+    - "{{ commit_summary_file }}"
+    - "{{ style_guide_quick_rules }}"
+    - "{{ style_guide_comprehensive }}"
+
+- name: Fail if prerequisite files missing
+  fail:
+    msg: "Missing prerequisite file: {{ item.item }}"
+  when: not item.stat.exists
+  loop: "{{ prereq_files.results }}"
+
+- name: Create code review prompt with @file references and subagent invocation
+  set_fact:
+    review_prompt: >-
+      Use the @agent-code-review-agent subagent to
+      perform a comprehensive code review of the change.
+
+      Read @{{ context_output_file }} for Zuul execution context.
+      Read @{{ commit_summary_file }} for commit metadata and change summary.
+      Read @{{ style_guide_quick_rules }} for essential OpenStack coding standards and rules.
+      Read @{{ style_guide_comprehensive }} for detailed explanations and complex scenarios.
+
+      The project under review is located at: {{ project_src_dir }}
+
+      Generate a structured JSON review report conforming to the review-report schema
+      with severity-categorized findings (critical, high, warnings, suggestions) and write it to
+      {{ review_report_file }}
+
+- name: Execute code review with Claude
+  include_tasks: "../../ai-review-setup/tasks/run-claude-command.yaml"
+  vars:
+    prompt_text: "{{ review_prompt }}"
+    model_name: "{{ review_model }}"
+    output_file: "{{ review_report_file }}"
+    command_name: "code review"
+    working_dir: "{{ project_src_dir }}"
+
+- name: Extract issue statistics from JSON report
+  shell: |
+    jq -r '.statistics | "Critical: \(.critical), High: \(.high), Warnings: \(.warnings), Suggestions: \(.suggestions), Total: \(.total)"' \
+      "{{ review_report_file }}"
+  register: issue_statistics
+  changed_when: false
+
+- name: Get total issue count from JSON
+  shell: |
+    jq -r '.statistics.total' "{{ review_report_file }}"
+  register: issue_count_result
+  changed_when: false
+
+- name: Get critical + high issue count from JSON
+  shell: |
+    jq -r '(.statistics.critical + .statistics.high)' "{{ review_report_file }}"
+  register: critical_high_count
+  changed_when: false
+
+- name: Set review result facts
+  set_fact:
+    issue_count: "{{ issue_count_result.stdout | int }}"
+    critical_high_issues: "{{ critical_high_count.stdout | int }}"
+    has_issues: "{{ issue_count_result.stdout | int > 0 }}"
+    has_critical_issues: "{{ critical_high_count.stdout | int > 0 }}"
+
+- name: Display review summary
+  debug:
+    msg: |
+      Review Summary:
+      {{ issue_statistics.stdout }}
+      Status: {{ 'NEEDS ATTENTION' if has_critical_issues else ('HAS SUGGESTIONS' if has_issues else 'CLEAN') }}

@@ -1,0 +1,292 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://opendev.org/openstack/openstack-ai-style-guide/schemas/review-report-schema.json",
+  "title": "AI Code Review Report",
+  "description": "Schema for AI-generated code review reports in OpenStack projects",
+  "type": "object",
+  "required": ["context", "statistics", "issues", "summary"],
+  "properties": {
+    "context": {
+      "type": "object",
+      "description": "Contextual information about the change being reviewed",
+      "required": ["change", "scope", "impact"],
+      "properties": {
+        "change": {
+          "type": "string",
+          "description": "Brief description of what changed",
+          "minLength": 10,
+          "maxLength": 200
+        },
+        "scope": {
+          "type": "string",
+          "description": "Scope of the changes (files, modules, components affected)",
+          "minLength": 10,
+          "maxLength": 300
+        },
+        "impact": {
+          "type": "string",
+          "description": "Expected impact level and description",
+          "minLength": 10,
+          "maxLength": 300
+        }
+      },
+      "additionalProperties": false
+    },
+    "statistics": {
+      "type": "object",
+      "description": "Aggregated counts of issues by severity",
+      "required": ["critical", "high", "warnings", "suggestions", "total"],
+      "properties": {
+        "critical": {
+          "type": "integer",
+          "description": "Number of critical severity issues",
+          "minimum": 0
+        },
+        "high": {
+          "type": "integer",
+          "description": "Number of high severity issues",
+          "minimum": 0
+        },
+        "warnings": {
+          "type": "integer",
+          "description": "Number of warning level issues",
+          "minimum": 0
+        },
+        "suggestions": {
+          "type": "integer",
+          "description": "Number of suggestions for improvement",
+          "minimum": 0
+        },
+        "total": {
+          "type": "integer",
+          "description": "Total number of all issues",
+          "minimum": 0
+        }
+      },
+      "additionalProperties": false
+    },
+    "issues": {
+      "type": "object",
+      "description": "Issues organized by severity level",
+      "required": ["critical", "high", "warnings", "suggestions"],
+      "properties": {
+        "critical": {
+          "type": "array",
+          "description": "Critical severity issues requiring immediate attention",
+          "items": {
+            "$ref": "#/$defs/criticalIssue"
+          }
+        },
+        "high": {
+          "type": "array",
+          "description": "High severity issues requiring attention before merge",
+          "items": {
+            "$ref": "#/$defs/highIssue"
+          }
+        },
+        "warnings": {
+          "type": "array",
+          "description": "Warning level issues that should be addressed",
+          "items": {
+            "$ref": "#/$defs/warningIssue"
+          }
+        },
+        "suggestions": {
+          "type": "array",
+          "description": "Suggestions for improvement and best practices",
+          "items": {
+            "$ref": "#/$defs/suggestionIssue"
+          }
+        }
+      },
+      "additionalProperties": false
+    },
+    "positive_observations": {
+      "type": "array",
+      "description": "Positive observations about the code quality",
+      "items": {
+        "type": "object",
+        "required": ["category", "observation"],
+        "properties": {
+          "category": {
+            "type": "string",
+            "description": "Category of positive observation",
+            "enum": ["Good Practice", "Examples", "Recognition", "Documentation", "Testing", "Architecture"]
+          },
+          "observation": {
+            "type": "string",
+            "description": "The positive observation text",
+            "minLength": 10,
+            "maxLength": 500
+          }
+        },
+        "additionalProperties": false
+      }
+    },
+    "summary": {
+      "type": "object",
+      "description": "Overall summary and assessment",
+      "required": ["assessment", "priority_focus", "detailed_summary"],
+      "properties": {
+        "assessment": {
+          "type": "string",
+          "description": "Overall readiness assessment",
+          "enum": ["Ready", "Ready with minor fixes", "Needs work", "Requires significant changes", "Blocked"]
+        },
+        "priority_focus": {
+          "type": "string",
+          "description": "Top priority item for the developer to address",
+          "minLength": 10,
+          "maxLength": 300
+        },
+        "detailed_summary": {
+          "type": "string",
+          "description": "Detailed summary of the review findings",
+          "minLength": 50,
+          "maxLength": 1000
+        }
+      },
+      "additionalProperties": false
+    }
+  },
+  "additionalProperties": false,
+  "$defs": {
+    "baseIssue": {
+      "type": "object",
+      "required": ["description", "confidence", "location"],
+      "properties": {
+        "description": {
+          "type": "string",
+          "description": "Clear description of the issue",
+          "minLength": 10,
+          "maxLength": 300
+        },
+        "confidence": {
+          "type": "number",
+          "description": "Confidence score for this issue (0.0-1.0, minimum 0.6 to be reported)",
+          "minimum": 0.6,
+          "maximum": 1.0
+        },
+        "location": {
+          "type": "string",
+          "description": "File path and line number (format: path/to/file.py:123 or path/to/file.py:123-456)",
+          "pattern": "^[^:]+:\\d+(-\\d+)?$"
+        }
+      }
+    },
+    "criticalIssue": {
+      "allOf": [
+        {"$ref": "#/$defs/baseIssue"},
+        {
+          "type": "object",
+          "required": ["risk", "remediation_priority", "why_matters", "recommendation"],
+          "properties": {
+            "risk": {
+              "type": "string",
+              "description": "Security risk, data loss, system crash, etc.",
+              "minLength": 10,
+              "maxLength": 300
+            },
+            "remediation_priority": {
+              "type": "string",
+              "description": "Urgency level for fixing this issue",
+              "enum": ["Immediate", "Before merge", "Next sprint", "Backlog"]
+            },
+            "why_matters": {
+              "type": "string",
+              "description": "Explanation of business/technical impact",
+              "minLength": 10,
+              "maxLength": 300
+            },
+            "recommendation": {
+              "type": "string",
+              "description": "Specific, actionable steps to fix",
+              "minLength": 10,
+              "maxLength": 500
+            }
+          }
+        }
+      ]
+    },
+    "highIssue": {
+      "allOf": [
+        {"$ref": "#/$defs/baseIssue"},
+        {
+          "type": "object",
+          "required": ["risk", "remediation_priority", "why_matters", "recommendation"],
+          "properties": {
+            "risk": {
+              "type": "string",
+              "description": "Performance degradation, resource leak, incorrect behavior",
+              "minLength": 10,
+              "maxLength": 300
+            },
+            "remediation_priority": {
+              "type": "string",
+              "description": "Urgency level for fixing this issue",
+              "enum": ["Immediate", "Before merge", "Next sprint", "Backlog"]
+            },
+            "why_matters": {
+              "type": "string",
+              "description": "Explanation of business/technical impact",
+              "minLength": 10,
+              "maxLength": 300
+            },
+            "recommendation": {
+              "type": "string",
+              "description": "Specific, actionable steps to fix",
+              "minLength": 10,
+              "maxLength": 500
+            }
+          }
+        }
+      ]
+    },
+    "warningIssue": {
+      "allOf": [
+        {"$ref": "#/$defs/baseIssue"},
+        {
+          "type": "object",
+          "required": ["impact", "suggestion"],
+          "properties": {
+            "impact": {
+              "type": "string",
+              "description": "What could go wrong if not addressed",
+              "minLength": 10,
+              "maxLength": 300
+            },
+            "suggestion": {
+              "type": "string",
+              "description": "How to improve the code",
+              "minLength": 10,
+              "maxLength": 500
+            }
+          }
+        }
+      ]
+    },
+    "suggestionIssue": {
+      "allOf": [
+        {"$ref": "#/$defs/baseIssue"},
+        {
+          "type": "object",
+          "required": ["benefit", "recommendation"],
+          "properties": {
+            "benefit": {
+              "type": "string",
+              "description": "Improvement this suggestion would provide",
+              "minLength": 10,
+              "maxLength": 300
+            },
+            "recommendation": {
+              "type": "string",
+              "description": "Specific guidance on implementing the improvement",
+              "minLength": 10,
+              "maxLength": 500
+            }
+          }
+        }
+      ]
+    }
+  }
+}

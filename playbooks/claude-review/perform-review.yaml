@@ -33,37 +33,48 @@
 
       The project under review is located at: {{ project_src_dir }}
 
-      Generate a structured review report with severity-categorized findings
-      (Critical Issues, Warnings, Suggestions, Positive Observations) and write it to
-      {{ review_output_dir }}/review-report.md
+      Generate a structured JSON review report conforming to the review-report schema
+      with severity-categorized findings (critical, high, warnings, suggestions) and write it to
+      {{ review_output_dir }}/review-report.json
 
 - name: Execute code review with Claude
   include_tasks: tasks/run-claude-command.yaml
   vars:
     prompt_text: "{{ review_prompt }}"
     model_name: "{{ review_model }}"
-    output_file: "{{ review_output_dir }}/review-report.md"
+    output_file: "{{ review_output_dir }}/review-report.json"
     command_name: "code review"
     working_dir: "{{ project_src_dir }}"
 
-- name: Analyze review report for issues
+- name: Extract issue statistics from JSON report
   shell: |
-    grep -E "^### (Critical Issues|Warnings)" "{{ review_output_dir }}/review-report.md" || true
-  register: issue_markers
+    jq -r '.statistics | "Critical: \(.critical), High: \(.high), Warnings: \(.warnings), Suggestions: \(.suggestions), Total: \(.total)"' \
+      "{{ review_output_dir }}/review-report.json"
+  register: issue_statistics
+  changed_when: false
 
-- name: Count issues found
+- name: Get total issue count from JSON
   shell: |
-    grep -c "^\*\*\[" "{{ review_output_dir }}/review-report.md" || echo "0"
-  register: issue_count
+    jq -r '.statistics.total' "{{ review_output_dir }}/review-report.json"
+  register: issue_count_result
+  changed_when: false
+
+- name: Get critical + high issue count from JSON
+  shell: |
+    jq -r '(.statistics.critical + .statistics.high)' "{{ review_output_dir }}/review-report.json"
+  register: critical_high_count
+  changed_when: false
 
 - name: Set review result facts
   set_fact:
-    has_issues: "{{ issue_count.stdout | int > 0 }}"
-    issue_count: "{{ issue_count.stdout | int }}"
+    issue_count: "{{ issue_count_result.stdout | int }}"
+    critical_high_issues: "{{ critical_high_count.stdout | int }}"
+    has_issues: "{{ issue_count_result.stdout | int > 0 }}"
+    has_critical_issues: "{{ critical_high_count.stdout | int > 0 }}"
 
 - name: Display review summary
   debug:
     msg: |
       Review Summary:
-      - Issues found: {{ issue_count }}
-      - Status: {{ 'NEEDS ATTENTION' if has_issues else 'CLEAN' }}
+      {{ issue_statistics.stdout }}
+      Status: {{ 'NEEDS ATTENTION' if has_critical_issues else ('HAS SUGGESTIONS' if has_issues else 'CLEAN') }}

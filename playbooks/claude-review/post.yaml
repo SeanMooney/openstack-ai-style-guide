@@ -7,36 +7,42 @@
         dest: "{{ ansible_user_dir }}/"
         mode: '0755'
       loop:
-        - files/parse_review_for_comments.py
+        - files/generate_zuul_comments.py
         - files/validate_zuul_schema.py
 
-    - name: Check if review report exists
+    - name: Check if JSON review report exists
       stat:
-        path: "{{ review_output_dir }}/review-report.md"
+        path: "{{ review_output_dir }}/review-report.json"
       register: review_report_exists
+
+    - name: Check if HTML report exists
+      stat:
+        path: "{{ review_output_dir }}/review-report.html"
+      register: html_report_exists
 
     - name: Check if parser script exists
       stat:
-        path: "{{ ansible_user_dir }}/parse_review_for_comments.py"
+        path: "{{ ansible_user_dir }}/generate_zuul_comments.py"
       register: parser_script_exists
 
     - name: Fail if review report not found
       fail:
-        msg: "Review report not found at {{ review_output_dir }}/review-report.md"
+        msg: "Review report not found at {{ review_output_dir }}/review-report.json"
       when: not review_report_exists.stat.exists
 
     - name: Fail if parser script not found
       fail:
-        msg: "Parser script not found at {{ ansible_user_dir }}/parse_review_for_comments.py"
+        msg: "Parser script not found at {{ ansible_user_dir }}/generate_zuul_comments.py"
       when: not parser_script_exists.stat.exists
 
-    - name: Parse review report for inline comments
+    - name: Generate Zuul inline comments from JSON review report
       command: >
         {{ ansible_user_dir }}/.venv-html-gen/bin/python3
-        {{ ansible_user_dir }}/parse_review_for_comments.py
-        {{ review_output_dir }}/review-report.md
+        {{ ansible_user_dir }}/generate_zuul_comments.py
+        {{ review_output_dir }}/review-report.json
         -o {{ review_output_dir }}/zuul-return-data.json
         --summary
+        --validate
       register: review_comments
       failed_when: review_comments.rc != 0
       changed_when: false
@@ -67,6 +73,19 @@
       zuul_return:
         data: "{{ zuul_return_data }}"
       when: zuul_return_data is defined and zuul_return_data.zuul.file_comments | length > 0
+
+    - name: Register HTML report as Zuul artifact
+      zuul_return:
+        data:
+          zuul:
+            artifacts:
+              - name: "AI Code Review Report"
+                url: "code-review/review-report.html"
+                metadata:
+                  type: "code-review"
+                  format: "html"
+                  tool: "claude-code"
+      when: html_report_exists.stat.exists
 
     - name: Display comment summary
       debug:

@@ -27,6 +27,16 @@
     - name: Run AI review setup
       include_role:
         name: ai_review_setup
+      vars:
+        ai_review_setup_claude_binary: "{{ claude_binary }}"
+        ai_review_setup_claude_config_dir: "{{ claude_config_dir }}"
+        ai_review_setup_agents_source_dir: "{{ agents_source_dir }}"
+        ai_review_setup_agents_target_dir: "{{ agents_target_dir }}"
+        ai_review_setup_haiku_model: "{{ haiku_model }}"
+        ai_review_setup_sonnet_model: "{{ sonnet_model }}"
+        ai_review_setup_opus_model: "{{ opus_model }}"
+        ai_review_setup_review_output_dir: "{{ review_output_dir }}"
+        ai_review_setup_style_guide_project: "{{ style_guide_project }}"
 
     - name: Extract context from Zuul and git
       include_role:

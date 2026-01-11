@@ -9,62 +9,62 @@
   become: true
 
 - name: Verify Claude CLI installation
-  command: "{{ claude_binary }} --version"
-  register: claude_version
+  command: "{{ ai_review_setup_claude_binary }} --version"
+  register: ai_review_setup_claude_version
   changed_when: false
 
 - name: Display Claude CLI version
   debug:
-    msg: "Using Claude CLI: {{ claude_version.stdout }}"
+    msg: "Using Claude CLI: {{ ai_review_setup_claude_version.stdout }}"
 
 - name: Validate Claude config directory path
   stat:
-    path: "{{ claude_config_dir }}"
+    path: "{{ ai_review_setup_claude_config_dir }}"
   register: claude_config_stat
 
 - name: Fail if Claude config path exists as a file
   fail:
-    msg: "Claude config directory path {{ claude_config_dir }} exists as a file, not a directory"
+    msg: "Claude config directory path {{ ai_review_setup_claude_config_dir }} exists as a file, not a directory"
   when: claude_config_stat.stat.exists and not claude_config_stat.stat.isdir
 
 - name: Validate parent directory for Claude config is writable
   stat:
-    path: "{{ claude_config_dir | dirname }}"
+    path: "{{ ai_review_setup_claude_config_dir | dirname }}"
   register: claude_config_parent
   failed_when: not claude_config_parent.stat.exists or not claude_config_parent.stat.writeable
 
 - name: Ensure Claude config directory exists
   file:
-    path: "{{ claude_config_dir }}"
+    path: "{{ ai_review_setup_claude_config_dir }}"
     state: directory
     mode: '0755'
 
 - name: Validate agents directory path
   stat:
-    path: "{{ agents_target_dir }}"
+    path: "{{ ai_review_setup_agents_target_dir }}"
   register: agents_target_stat
 
 - name: Fail if agents path exists as a file
   fail:
-    msg: "Agents directory path {{ agents_target_dir }} exists as a file, not a directory"
+    msg: "Agents directory path {{ ai_review_setup_agents_target_dir }} exists as a file, not a directory"
   when: agents_target_stat.stat.exists and not agents_target_stat.stat.isdir
 
 - name: Ensure agents directory exists
   file:
-    path: "{{ agents_target_dir }}"
+    path: "{{ ai_review_setup_agents_target_dir }}"
     state: directory
     mode: '0755'
 
 - name: Verify agents source directory exists
   stat:
-    path: "{{ agents_source_dir }}"
+    path: "{{ ai_review_setup_agents_source_dir }}"
   register: agents_source_stat
   failed_when: not agents_source_stat.stat.exists or not agents_source_stat.stat.isdir
 
 - name: Copy agents from style guide repo
   synchronize:
-    src: "{{ agents_source_dir }}/"
-    dest: "{{ agents_target_dir }}/"
+    src: "{{ ai_review_setup_agents_source_dir }}/"
+    dest: "{{ ai_review_setup_agents_target_dir }}/"
     recursive: yes
     rsync_opts:
       - "--exclude=*.pyc"
@@ -74,13 +74,13 @@
 
 - name: Verify agents were copied successfully
   stat:
-    path: "{{ agents_target_dir }}"
+    path: "{{ ai_review_setup_agents_target_dir }}"
   register: agents_copied
   failed_when: not agents_copied.stat.exists or not agents_copied.stat.isdir
 
 - name: Verify required agent files exist
   stat:
-    path: "{{ agents_target_dir }}/{{ item }}"
+    path: "{{ ai_review_setup_agents_target_dir }}/{{ item }}"
   register: required_agents
   failed_when: not required_agents.stat.exists
   loop:
@@ -90,24 +90,24 @@
 
 - name: Display agent copy summary
   debug:
-    msg: "Successfully copied agents to {{ agents_target_dir }}"
+    msg: "Successfully copied agents to {{ ai_review_setup_agents_target_dir }}"
 
 - name: Configure Claude model mappings
   copy:
     content: |
       {
         "env": {
-          "ANTHROPIC_DEFAULT_HAIKU_MODEL": "{{ haiku_model }}",
-          "ANTHROPIC_DEFAULT_SONNET_MODEL": "{{ sonnet_model }}",
-          "ANTHROPIC_DEFAULT_OPUS_MODEL": "{{ opus_model }}"
+          "ANTHROPIC_DEFAULT_HAIKU_MODEL": "{{ ai_review_setup_haiku_model }}",
+          "ANTHROPIC_DEFAULT_SONNET_MODEL": "{{ ai_review_setup_sonnet_model }}",
+          "ANTHROPIC_DEFAULT_OPUS_MODEL": "{{ ai_review_setup_opus_model }}"
         }
       }
-    dest: "{{ claude_config_dir }}/settings.json"
+    dest: "{{ ai_review_setup_claude_config_dir }}/settings.json"
     mode: '0644'
 
 - name: Ensure output directories exist
   file:
-    path: "{{ review_output_dir }}"
+    path: "{{ ai_review_setup_review_output_dir }}"
     state: directory
     mode: '0755'
 
@@ -115,8 +115,8 @@
   debug:
     msg: |
       AI Review Setup Complete:
-      - Claude CLI: {{ claude_version.stdout }}
-      - Config Dir: {{ claude_config_dir }}
-      - Agents Dir: {{ agents_target_dir }}
-      - Output Dir: {{ review_output_dir }}
-      - Models: Haiku={{ haiku_model }}, Sonnet={{ sonnet_model }}, Opus={{ opus_model }}
+      - Claude CLI: {{ ai_review_setup_claude_version.stdout }}
+      - Config Dir: {{ ai_review_setup_claude_config_dir }}
+      - Agents Dir: {{ ai_review_setup_agents_target_dir }}
+      - Output Dir: {{ ai_review_setup_review_output_dir }}
+      - Models: Haiku={{ ai_review_setup_haiku_model }}, Sonnet={{ ai_review_setup_sonnet_model }}, Opus={{ ai_review_setup_opus_model }}

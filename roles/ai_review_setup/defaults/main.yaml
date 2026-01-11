@@ -2,22 +2,22 @@
 # Default variables for ai_review_setup role
 
 # Claude CLI binary path
-claude_binary: claude-code
+ai_review_setup_claude_binary: claude
 
 # Claude configuration directory
-claude_config_dir: "{{ ansible_user_dir }}/.claude"
+ai_review_setup_claude_config_dir: "{{ ansible_user_dir }}/.claude"
 
 # Agents source and target directories
-agents_source_dir: "{{ ansible_user_dir }}/{{ style_guide_project }}/agents"
-agents_target_dir: "{{ claude_config_dir }}/agents"
+ai_review_setup_agents_source_dir: "{{ ansible_user_dir }}/{{ ai_review_setup_style_guide_project }}/agents"
+ai_review_setup_agents_target_dir: "{{ ai_review_setup_claude_config_dir }}/agents"
 
 # Model mappings (can be overridden by job variables)
-haiku_model: "glm-4.5-air"
-sonnet_model: "glm-4.6"
-opus_model: "glm-4.6"
+ai_review_setup_haiku_model: "glm-4.5-air"
+ai_review_setup_sonnet_model: "glm-4.6"
+ai_review_setup_opus_model: "glm-4.6"
 
 # Output directory for review results
-review_output_dir: "{{ ansible_user_dir }}/logs/code-review"
+ai_review_setup_review_output_dir: "{{ ansible_user_dir }}/logs/code-review"
 
 # Style guide project name
-style_guide_project: "openstack-ai-style-guide"
+ai_review_setup_style_guide_project: "openstack-ai-style-guide"

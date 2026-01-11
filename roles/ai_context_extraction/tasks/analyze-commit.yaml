@@ -3,17 +3,17 @@
 
 - name: Get project source directory
   set_fact:
-    project_src_dir: "{{ ansible_user_dir }}/{{ zuul.project.src_dir }}"
+    ai_context_extraction_project_src_dir: "{{ ansible_user_dir }}/{{ zuul.project.src_dir }}"
 
 - name: Verify project source directory exists
   stat:
-    path: "{{ project_src_dir }}"
-  register: project_dir
+    path: "{{ ai_context_extraction_project_src_dir }}"
+  register: ai_context_extraction_project_dir
 
 - name: Fail if project directory not found
   fail:
-    msg: "Project source directory not found at {{ project_src_dir }}"
-  when: not project_dir.stat.exists
+    msg: "Project source directory not found at {{ ai_context_extraction_project_src_dir }}"
+  when: not ai_context_extraction_project_dir.stat.exists
 
 - name: Generate git context file
   shell:
@@ -29,20 +29,20 @@
         echo "# Diff (unified)";
         git diff -U0 --no-color HEAD~1..HEAD || true;
       } > "{{ ai_context_extraction_commit_context_file }}"
-    chdir: "{{ project_src_dir }}"
+    chdir: "{{ ai_context_extraction_project_src_dir }}"
   changed_when: true
 
 - name: Create commit analysis prompt with subagent invocation
   set_fact:
-    commit_prompt: >-
+    ai_context_extraction_commit_prompt: >-
       Use the @agent-commit-summary subagent to
-      Analyze the current git commit in the repository at {{ project_src_dir }}.
+      Analyze the current git commit in the repository at {{ ai_context_extraction_project_src_dir }}.
       Extract commit metadata, generate an ASCII file tree relative to
-      {{ project_src_dir }}, identify bug/feature markers
+      {{ ai_context_extraction_project_src_dir }}, identify bug/feature markers
       following OpenStack conventions, and summarize what changed and why.
       Follow commit-summarizer agent instructions.
       Write a structured commit summary to {{ ai_context_extraction_commit_summary_file }}.
-      Do not output the report in {{ project_src_dir }}.
+      Do not output the report in {{ ai_context_extraction_project_src_dir }}.
       Prefer using absolute paths when creating files to ensure they are created
       at the expected location.
       You MUST verify that the summary was created at
@@ -53,8 +53,8 @@
 - name: Execute commit analysis with Claude
   include_tasks: "../../ai_review_setup/tasks/run-claude-command.yaml"
   vars:
-    prompt_text: "{{ commit_prompt }}"
+    prompt_text: "{{ ai_context_extraction_commit_prompt }}"
     model_name: "{{ ai_context_extraction_model }}"
     output_file: "{{ ai_context_extraction_commit_summary_file }}"
     command_name: "commit analysis"
-    working_dir: "{{ project_src_dir }}"
+    working_dir: "{{ ai_context_extraction_project_src_dir }}"

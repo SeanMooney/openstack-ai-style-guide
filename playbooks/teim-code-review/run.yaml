@@ -1,12 +1,15 @@
 ---
-# AI-Assisted Code Review Playbook (Role-Based)
+# AI-Assisted Code Review Playbook (Task-Based Orchestration)
 #
 # This playbook performs comprehensive AI-assisted code review using modular
-# Ansible roles. The role dependency chain automatically executes all required
-# steps in order:
+# Ansible roles with explicit task-based orchestration. Each role is included
+# in a specific order to ensure proper execution:
 #
-# ai-zuul-integration → ai-html-generation → ai-code-review →
-# ai-context-extraction → ai-review-setup
+# 1. ai-review-setup (foundation - sets up Claude CLI)
+# 2. ai-context-extraction (extracts Zuul context and git commits)
+# 3. ai-code-review (performs AI code review)
+# 4. ai-html-generation (generates HTML report)
+# 5. ai-zuul-integration (generates Zuul comments and registers artifacts)
 #
 # Required variables (set in job definition):
 #   - claude_binary: Path to Claude CLI executable
@@ -20,11 +23,26 @@
 
 - hosts: all
   name: AI-Assisted Code Review
-  roles:
-    - role: ai-zuul-integration
-      # This role pulls in all dependencies:
-      # ai-zuul-integration → ai-html-generation → ai-code-review →
-      # ai-context-extraction → ai-review-setup
+  tasks:
+    - name: Run AI review setup
+      include_role:
+        name: ai-review-setup
+
+    - name: Extract context from Zuul and git
+      include_role:
+        name: ai-context-extraction
+
+    - name: Perform AI code review
+      include_role:
+        name: ai-code-review
+
+    - name: Generate HTML report
+      include_role:
+        name: ai-html-generation
+
+    - name: Integrate with Zuul (comments and artifacts)
+      include_role:
+        name: ai-zuul-integration
 
   post_tasks:
     - name: Display job summary

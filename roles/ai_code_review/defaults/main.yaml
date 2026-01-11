@@ -2,25 +2,25 @@
 # Default variables for ai_code_review role
 
 # Model to use for code review (typically most capable model)
-review_model: "glm-4.6"
+ai_code_review_model: "glm-4.6"
 
 # Input files (from context extraction)
-context_output_file: "{{ review_output_dir }}/zuul-context.md"
-commit_summary_file: "{{ review_output_dir }}/commit-summary.md"
+ai_code_review_context_output_file: "{{ ai_code_review_output_dir }}/zuul-context.md"
+ai_code_review_commit_summary_file: "{{ ai_code_review_output_dir }}/commit-summary.md"
 
 # Style guide files
-style_guide_project: "openstack-ai-style-guide"
-style_guide_quick_rules: "{{ ansible_user_dir }}/{{ style_guide_project }}/docs/quick-rules.md"
-style_guide_comprehensive: "{{ ansible_user_dir }}/{{ style_guide_project }}/docs/comprehensive-guide.md"
+ai_code_review_style_guide_project: "openstack-ai-style-guide"
+ai_code_review_style_guide_quick_rules: "{{ ansible_user_dir }}/{{ ai_code_review_style_guide_project }}/docs/quick-rules.md"
+ai_code_review_style_guide_comprehensive: "{{ ansible_user_dir }}/{{ ai_code_review_style_guide_project }}/docs/comprehensive-guide.md"
 
 # Output file
-review_report_file: "{{ review_output_dir }}/review-report.json"
+ai_code_review_report_file: "{{ ai_code_review_output_dir }}/review-report.json"
 
 # Review output directory
-review_output_dir: "{{ ansible_user_dir }}/logs/code-review"
+ai_code_review_output_dir: "{{ ansible_user_dir }}/logs/code-review"
 
 # Project source directory
-project_src_dir: "{{ ansible_user_dir }}/{{ zuul.project.src_dir }}"
+ai_code_review_project_src_dir: "{{ ansible_user_dir }}/{{ zuul.project.src_dir }}"
 
 # Playbook directory for shared tasks
-playbook_dir: "{{ zuul.executor.work_root }}/{{ zuul.project.src_dir }}/playbooks/claude-review"
+ai_code_review_playbook_dir: "{{ zuul.executor.work_root }}/{{ zuul.project.src_dir }}/playbooks/claude-review"

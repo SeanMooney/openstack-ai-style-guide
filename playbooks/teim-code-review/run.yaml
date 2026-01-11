@@ -74,6 +74,12 @@
     - name: Integrate with Zuul (comments and artifacts)
       include_role:
         name: ai_zuul_integration
+      vars:
+        ai_zuul_integration_venv_dir: "{{ venv_dir }}"
+        ai_zuul_integration_review_report_file: "{{ review_report_file }}"
+        ai_zuul_integration_html_report_file: "{{ html_report_file }}"
+        ai_zuul_integration_zuul_comments_file: "{{ zuul_comments_file }}"
+        ai_zuul_integration_review_output_dir: "{{ review_output_dir }}"
 
   post_tasks:
     - name: Display job summary

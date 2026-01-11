@@ -5,7 +5,7 @@
 - name: Verify prerequisite context files exist
   stat:
     path: "{{ item }}"
-  register: prereq_files
+  register: ai_code_review_prereq_files
   loop:
     - "{{ ai_code_review_context_output_file }}"
     - "{{ ai_code_review_commit_summary_file }}"
@@ -16,11 +16,11 @@
   fail:
     msg: "Missing prerequisite file: {{ item.item }}"
   when: not item.stat.exists
-  loop: "{{ prereq_files.results }}"
+  loop: "{{ ai_code_review_prereq_files.results }}"
 
 - name: Create code review prompt with @file references and subagent invocation
   set_fact:
-    review_prompt: >-
+    ai_code_review_review_prompt: >-
       Use the @agent-code-review-agent subagent to
       perform a comprehensive code review of the change.
 
@@ -38,7 +38,7 @@
 - name: Execute code review with Claude
   include_tasks: "../../ai_review_setup/tasks/run-claude-command.yaml"
   vars:
-    prompt_text: "{{ review_prompt }}"
+    prompt_text: "{{ ai_code_review_review_prompt }}"
     model_name: "{{ ai_code_review_model }}"
     output_file: "{{ ai_code_review_report_file }}"
     command_name: "code review"
@@ -48,28 +48,28 @@
   shell: |
     jq -r '.statistics | "Critical: \(.critical), High: \(.high), Warnings: \(.warnings), Suggestions: \(.suggestions), Total: \(.total)"' \
       "{{ ai_code_review_report_file }}"
-  register: issue_statistics
+  register: ai_code_review_issue_statistics
   changed_when: false
 
 - name: Get total issue count from JSON
   shell: |
     jq -r '.statistics.total' "{{ ai_code_review_report_file }}"
-  register: issue_count_result
+  register: ai_code_review_issue_count_result
   changed_when: false
 
 - name: Get critical + high issue count from JSON
   shell: |
     jq -r '(.statistics.critical + .statistics.high)' "{{ ai_code_review_report_file }}"
-  register: critical_high_count
+  register: ai_code_review_critical_high_count
   changed_when: false
 
 - name: Set review result facts
   set_fact:
-    ai_code_review_issue_count: "{{ issue_count_result.stdout | int }}"
-    ai_code_review_critical_high_issues: "{{ critical_high_count.stdout | int }}"
-    ai_code_review_has_issues: "{{ issue_count_result.stdout | int > 0 }}"
-    ai_code_review_has_critical_issues: "{{ critical_high_count.stdout | int > 0 }}"
-    ai_code_review_issue_statistics: "{{ issue_statistics }}"
+    ai_code_review_issue_count: "{{ ai_code_review_issue_count_result.stdout | int }}"
+    ai_code_review_critical_high_issues: "{{ ai_code_review_critical_high_count.stdout | int }}"
+    ai_code_review_has_issues: "{{ ai_code_review_issue_count_result.stdout | int > 0 }}"
+    ai_code_review_has_critical_issues: "{{ ai_code_review_critical_high_count.stdout | int > 0 }}"
+    ai_code_review_issue_statistics: "{{ ai_code_review_issue_statistics }}"
 
 - name: Display review summary
   debug:

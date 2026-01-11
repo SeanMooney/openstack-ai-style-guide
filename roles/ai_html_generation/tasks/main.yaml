@@ -16,12 +16,12 @@
 - name: Check if JSON review report exists
   stat:
     path: "{{ ai_html_generation_review_report_file }}"
-  register: json_report
+  register: ai_html_generation_json_report
 
 - name: Fail if JSON report not found
   fail:
     msg: "JSON review report not found at {{ ai_html_generation_review_report_file }}"
-  when: not json_report.stat.exists
+  when: not ai_html_generation_json_report.stat.exists
 
 - name: Generate HTML report from JSON
   command: >
@@ -30,24 +30,24 @@
     {{ ai_html_generation_review_report_file }}
     {{ ai_html_generation_html_report_file }}
     -v
-  register: html_generation
+  register: ai_html_generation_html_generation
 
 - name: Display HTML generation result
   debug:
-    msg: "{{ html_generation.stdout }}"
-  when: html_generation.rc == 0
+    msg: "{{ ai_html_generation_html_generation.stdout }}"
+  when: ai_html_generation_html_generation.rc == 0
 
 - name: Display HTML generation error
   debug:
-    msg: "HTML generation failed: {{ html_generation.stderr }}"
-  when: html_generation.rc != 0
+    msg: "HTML generation failed: {{ ai_html_generation_html_generation.stderr }}"
+  when: ai_html_generation_html_generation.rc != 0
 
 - name: Verify HTML report was created
   stat:
     path: "{{ ai_html_generation_html_report_file }}"
-  register: html_report
+  register: ai_html_generation_html_report
 
 - name: Fail if HTML generation failed
   fail:
     msg: "HTML report generation failed"
-  when: not html_report.stat.exists
+  when: not ai_html_generation_html_report.stat.exists

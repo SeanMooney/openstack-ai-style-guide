@@ -3,9 +3,9 @@
 # Generates enhanced HTML reports from JSON review data
 
 - name: Create virtual environment for HTML generation
-  command: python3 -m venv {{ venv_dir }}
+  command: python3 -m venv {{ ai_html_generation_venv_dir }}
   args:
-    creates: "{{ venv_dir }}"
+    creates: "{{ ai_html_generation_venv_dir }}"
 
 - name: Copy HTML renderer script
   copy:
@@ -15,20 +15,20 @@
 
 - name: Check if JSON review report exists
   stat:
-    path: "{{ review_report_file }}"
+    path: "{{ ai_html_generation_review_report_file }}"
   register: json_report
 
 - name: Fail if JSON report not found
   fail:
-    msg: "JSON review report not found at {{ review_report_file }}"
+    msg: "JSON review report not found at {{ ai_html_generation_review_report_file }}"
   when: not json_report.stat.exists
 
 - name: Generate HTML report from JSON
   command: >
-    {{ venv_dir }}/bin/python3
+    {{ ai_html_generation_venv_dir }}/bin/python3
     {{ ansible_user_dir }}/render_html_from_json.py
-    {{ review_report_file }}
-    {{ html_report_file }}
+    {{ ai_html_generation_review_report_file }}
+    {{ ai_html_generation_html_report_file }}
     -v
   register: html_generation
 
@@ -44,7 +44,7 @@
 
 - name: Verify HTML report was created
   stat:
-    path: "{{ html_report_file }}"
+    path: "{{ ai_html_generation_html_report_file }}"
   register: html_report
 
 - name: Fail if HTML generation failed

@@ -1,5 +1,5 @@
 ---
-# Default variables for ai-zuul-integration role
+# Default variables for ai_zuul_integration role
 
 # Virtual environment directory (shared with HTML generation)
 venv_dir: "{{ ansible_user_dir }}/.venv-html-gen"

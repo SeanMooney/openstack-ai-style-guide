@@ -1,5 +1,5 @@
 ---
-# Default variables for ai-review-setup role
+# Default variables for ai_review_setup role
 
 # Claude CLI binary path
 claude_binary: claude-code

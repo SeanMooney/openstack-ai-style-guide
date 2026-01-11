@@ -35,7 +35,7 @@
       Write the structured context summary to {{ context_output_file }}.
 
 - name: Execute context extraction with Claude
-  include_tasks: "../../ai-review-setup/tasks/run-claude-command.yaml"
+  include_tasks: "../../ai_review_setup/tasks/run-claude-command.yaml"
   vars:
     prompt_text: "{{ context_prompt }}"
     model_name: "{{ context_model }}"

@@ -14,7 +14,7 @@ exclude_paths:
   - .venv/
   - venv/
   # Exclude files using Zuul-specific modules (zuul_return) that ansible-lint doesn't recognize
-  - roles/ai-zuul-integration/tasks/main.yaml
+  - roles/ai_zuul_integration/tasks/main.yaml
 
 # Use production profile as baseline
 profile: production
@@ -22,9 +22,7 @@ profile: production
 # Skip specific rules that will be progressively fixed in later PRs
 skip_list:
   # === Refactor.md planned fixes ===
-  # Role naming: All roles use hyphens (ai-*) instead of underscores (ai_*)
-  # Will be fixed in PR #3 when roles are renamed to use underscores
-  - role-name
+  # Role naming: FIXED in PR #3 - all roles now use underscores (ai_*)
 
   # Variable naming: All roles use unprefixed variables
   # Will be fixed in PRs #4-8 when variables are prefixed per role

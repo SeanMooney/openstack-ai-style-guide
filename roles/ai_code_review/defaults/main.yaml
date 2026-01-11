@@ -1,5 +1,5 @@
 ---
-# Default variables for ai-code-review role
+# Default variables for ai_code_review role
 
 # Model to use for code review (typically most capable model)
 review_model: "glm-4.6"

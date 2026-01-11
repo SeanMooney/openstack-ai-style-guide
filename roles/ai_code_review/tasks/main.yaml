@@ -36,7 +36,7 @@
       {{ review_report_file }}
 
 - name: Execute code review with Claude
-  include_tasks: "../../ai-review-setup/tasks/run-claude-command.yaml"
+  include_tasks: "../../ai_review_setup/tasks/run-claude-command.yaml"
   vars:
     prompt_text: "{{ review_prompt }}"
     model_name: "{{ review_model }}"

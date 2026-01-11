@@ -2,14 +2,14 @@
 # Default variables for ai_zuul_integration role
 
 # Virtual environment directory (shared with HTML generation)
-venv_dir: "{{ ansible_user_dir }}/.venv-html-gen"
+ai_zuul_integration_venv_dir: "{{ ansible_user_dir }}/.venv-html-gen"
 
 # Input files
-review_report_file: "{{ review_output_dir }}/review-report.json"
-html_report_file: "{{ review_output_dir }}/review-report.html"
+ai_zuul_integration_review_report_file: "{{ ai_zuul_integration_review_output_dir }}/review-report.json"
+ai_zuul_integration_html_report_file: "{{ ai_zuul_integration_review_output_dir }}/review-report.html"
 
 # Output file (Zuul comments JSON)
-zuul_comments_file: "{{ review_output_dir }}/zuul-return-data.json"
+ai_zuul_integration_zuul_comments_file: "{{ ai_zuul_integration_review_output_dir }}/zuul-return-data.json"
 
 # Review output directory
-review_output_dir: "{{ ansible_user_dir }}/logs/code-review"
+ai_zuul_integration_review_output_dir: "{{ ansible_user_dir }}/logs/code-review"

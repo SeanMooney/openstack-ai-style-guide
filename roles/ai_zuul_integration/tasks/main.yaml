@@ -13,25 +13,25 @@
 
 - name: Check if JSON review report exists
   stat:
-    path: "{{ review_report_file }}"
+    path: "{{ ai_zuul_integration_review_report_file }}"
   register: json_report
 
 - name: Check if HTML report exists
   stat:
-    path: "{{ html_report_file }}"
+    path: "{{ ai_zuul_integration_html_report_file }}"
   register: html_report
 
 - name: Fail if JSON report not found
   fail:
-    msg: "JSON review report not found at {{ review_report_file }}"
+    msg: "JSON review report not found at {{ ai_zuul_integration_review_report_file }}"
   when: not json_report.stat.exists
 
 - name: Generate Zuul inline comments from JSON review report
   command: >
-    {{ venv_dir }}/bin/python3
+    {{ ai_zuul_integration_venv_dir }}/bin/python3
     {{ ansible_user_dir }}/generate_zuul_comments.py
-    {{ review_report_file }}
-    -o {{ zuul_comments_file }}
+    {{ ai_zuul_integration_review_report_file }}
+    -o {{ ai_zuul_integration_zuul_comments_file }}
     --summary
     --validate
   register: comments_generation
@@ -45,16 +45,16 @@
 
 - name: Validate Zuul comments JSON schema
   command: >
-    {{ venv_dir }}/bin/python3
+    {{ ai_zuul_integration_venv_dir }}/bin/python3
     {{ ansible_user_dir }}/validate_zuul_schema.py
-    {{ zuul_comments_file }}
+    {{ ai_zuul_integration_zuul_comments_file }}
   register: schema_validation
   changed_when: false
   when: comments_generation.rc == 0
 
 - name: Read generated JSON for zuul_return
   slurp:
-    src: "{{ zuul_comments_file }}"
+    src: "{{ ai_zuul_integration_zuul_comments_file }}"
   register: json_file_content
   when: schema_validation.rc == 0
 

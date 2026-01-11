@@ -2,15 +2,20 @@
 # Default variables for ai_context_extraction role
 
 # Model to use for context extraction (typically faster model)
-context_model: "glm-4.5-air"
+ai_context_extraction_model: "glm-4.5-air"
 
 # Output files
-context_output_file: "{{ review_output_dir }}/zuul-context.md"
-commit_summary_file: "{{ review_output_dir }}/commit-summary.md"
-commit_context_file: "{{ review_output_dir }}/git_context.txt"
+ai_context_extraction_output_file: "{{ ai_context_extraction_review_output_dir }}/zuul-context.md"
+ai_context_extraction_commit_summary_file: "{{ ai_context_extraction_review_output_dir }}/commit-summary.md"
+ai_context_extraction_commit_context_file: "{{ ai_context_extraction_review_output_dir }}/git_context.txt"
 
 # Review output directory (should be set by calling playbook)
-review_output_dir: "{{ ansible_user_dir }}/logs/code-review"
+ai_context_extraction_review_output_dir: "{{ ansible_user_dir }}/logs/code-review"
 
 # Playbook directory for shared tasks
-playbook_dir: "{{ zuul.executor.work_root }}/{{ zuul.project.src_dir }}/playbooks/claude-review"
+ai_context_extraction_playbook_dir: "{{ zuul.executor.work_root }}/{{ zuul.project.src_dir }}/playbooks/claude-review"
+
+# Claude CLI configuration
+ai_context_extraction_claude_binary: "claude"
+ai_context_extraction_anthropic_auth_token: ""
+ai_context_extraction_anthropic_api_url: ""

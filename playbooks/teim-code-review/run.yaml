@@ -41,6 +41,16 @@
     - name: Extract context from Zuul and git
       include_role:
         name: ai_context_extraction
+      vars:
+        ai_context_extraction_model: "{{ context_model }}"
+        ai_context_extraction_output_file: "{{ context_output_file }}"
+        ai_context_extraction_commit_summary_file: "{{ commit_summary_file }}"
+        ai_context_extraction_commit_context_file: "{{ commit_context_file }}"
+        ai_context_extraction_review_output_dir: "{{ review_output_dir }}"
+        # Pass through variables needed by run-claude-command.yaml
+        ai_context_extraction_claude_binary: "{{ claude_binary }}"
+        ai_context_extraction_anthropic_auth_token: "{{ anthropic_auth_token }}"
+        ai_context_extraction_anthropic_api_url: "{{ anthropic_api_url }}"
 
     - name: Perform AI code review
       include_role:

@@ -32,12 +32,15 @@
     context_prompt: >-
       Use the @agent-zuul-context-extractor subagent.
       Read and analyze the Zuul inventory at @{{ zuul_inventory_path }}.
-      Write the structured context summary to {{ context_output_file }}.
+      Write the structured context summary to {{ ai_context_extraction_output_file }}.
 
 - name: Execute context extraction with Claude
   include_tasks: "../../ai_review_setup/tasks/run-claude-command.yaml"
   vars:
     prompt_text: "{{ context_prompt }}"
-    model_name: "{{ context_model }}"
-    output_file: "{{ context_output_file }}"
+    model_name: "{{ ai_context_extraction_model }}"
+    output_file: "{{ ai_context_extraction_output_file }}"
     command_name: "context extraction"
+    claude_binary: "{{ ai_context_extraction_claude_binary }}"
+    anthropic_auth_token: "{{ ai_context_extraction_anthropic_auth_token }}"
+    anthropic_api_url: "{{ ai_context_extraction_anthropic_api_url }}"

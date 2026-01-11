@@ -21,5 +21,4 @@ galaxy_info:
     - git
     - openstack
 
-dependencies:
-  - role: ai-review-setup
+dependencies: []

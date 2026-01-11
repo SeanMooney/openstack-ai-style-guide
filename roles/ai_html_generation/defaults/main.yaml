@@ -1,5 +1,5 @@
 ---
-# Default variables for ai-html-generation role
+# Default variables for ai_html_generation role
 
 # Virtual environment directory
 venv_dir: "{{ ansible_user_dir }}/.venv-html-gen"

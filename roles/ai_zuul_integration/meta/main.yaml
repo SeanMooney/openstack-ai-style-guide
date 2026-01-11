@@ -1,7 +1,7 @@
 ---
 galaxy_info:
   author: Sean Mooney
-  description: Perform AI-powered code review using Claude Code
+  description: Generate Zuul file comments and register artifacts from AI code review
   company: Red Hat
   license: Apache-2.0
   min_ansible_version: "2.9"
@@ -17,9 +17,8 @@ galaxy_info:
   galaxy_tags:
     - ai
     - code-review
-    - claude
-    - openstack
-    - quality
+    - zuul
+    - ci-cd
 
 dependencies:
-  - role: ai-context-extraction
+  - role: ai_html_generation

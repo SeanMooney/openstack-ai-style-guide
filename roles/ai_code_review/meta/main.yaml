@@ -1,7 +1,7 @@
 ---
 galaxy_info:
   author: Sean Mooney
-  description: Generate enhanced HTML reports from JSON code review data
+  description: Perform AI-powered code review using Claude Code
   company: Red Hat
   license: Apache-2.0
   min_ansible_version: "2.9"
@@ -17,8 +17,9 @@ galaxy_info:
   galaxy_tags:
     - ai
     - code-review
-    - html
-    - reporting
+    - claude
+    - openstack
+    - quality
 
 dependencies:
-  - role: ai-code-review
+  - role: ai_context_extraction

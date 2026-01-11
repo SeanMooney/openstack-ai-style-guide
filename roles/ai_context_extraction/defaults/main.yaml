@@ -1,5 +1,5 @@
 ---
-# Default variables for ai-context-extraction role
+# Default variables for ai_context_extraction role
 
 # Model to use for context extraction (typically faster model)
 context_model: "glm-4.5-air"

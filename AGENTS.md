@@ -233,7 +233,7 @@ roles/
     defaults/
       main.yaml
     meta/
-      main.yaml  # Role dependencies
+      main.yaml  # Galaxy metadata (see note on dependencies below)
     files/
       # Scripts and files
 ```
@@ -254,7 +254,7 @@ roles/
 - **Reusability**: Roles can be shared between multiple jobs
 - **Standard location**: Top-level `roles/` is the default Ansible role path
 - **Modularity**: Each role has a single, well-defined responsibility
-- **Composability**: Roles can depend on other roles via `meta/main.yaml`
+- **Composability**: Roles can be combined via explicit playbook orchestration
 - **No path configuration**: Ansible automatically finds roles in the
   top-level `roles/` directory
 
@@ -262,9 +262,23 @@ roles/
 
 1. Create role directory structure under `roles/`
 2. Define role-specific variables in `defaults/main.yaml`
-3. Specify dependencies in `meta/main.yaml` if needed
+3. Keep `meta/main.yaml` for Galaxy metadata but use `dependencies: []`
 4. Keep roles generic - job-specific configuration goes in job variables
 5. Document role purpose and variables in role README or meta file
+
+#### Role Dependencies vs Playbook Orchestration
+
+Do NOT use `meta/main.yaml` dependencies when playbooks use explicit
+`include_role` orchestration. Using both causes duplicate role execution
+because Ansible resolves meta dependencies before executing each included role.
+
+- **Explicit orchestration** (preferred): Playbook uses `include_role` tasks
+  to control execution order. Meta files have `dependencies: []`.
+- **Meta dependencies** (alternative): A single `include_role` of the final
+  role, with execution order determined by dependency chain in meta files.
+
+This repository uses explicit orchestration in playbooks for clarity and
+easier debugging. All role meta files should have `dependencies: []`.
 
 ### Job Definition Pattern
 

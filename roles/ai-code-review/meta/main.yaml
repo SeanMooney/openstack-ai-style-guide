@@ -21,5 +21,4 @@ galaxy_info:
     - openstack
     - quality
 
-dependencies:
-  - role: ai-context-extraction
+dependencies: []

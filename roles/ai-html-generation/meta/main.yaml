@@ -20,5 +20,4 @@ galaxy_info:
     - html
     - reporting
 
-dependencies:
-  - role: ai-code-review
+dependencies: []

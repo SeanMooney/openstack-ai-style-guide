@@ -20,5 +20,4 @@ galaxy_info:
     - zuul
     - ci-cd
 
-dependencies:
-  - role: ai-html-generation
+dependencies: []

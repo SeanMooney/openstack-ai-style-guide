@@ -5,7 +5,7 @@
 - name: "Verify {{ command_name }} output file was created"
   stat:
     path: "{{ output_file }}"
-  register: output_file_stat
+  register: ai_review_setup_output_file_stat
 
 - name: "Check if {{ command_name }} output file exists"
   fail:
@@ -27,9 +27,9 @@
 
       STDERR:
       {{ command_result.stderr | default('(empty)') }}
-  when: not output_file_stat.stat.exists
+  when: not ai_review_setup_output_file_stat.stat.exists
 
 - name: "Display {{ command_name }} success"
   debug:
     msg: "✓ {{ command_name | capitalize }} completed successfully. Output at {{ output_file }}"
-  when: output_file_stat.stat.exists
+  when: ai_review_setup_output_file_stat.stat.exists

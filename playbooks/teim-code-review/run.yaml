@@ -48,9 +48,9 @@
         ai_context_extraction_commit_context_file: "{{ commit_context_file }}"
         ai_context_extraction_review_output_dir: "{{ review_output_dir }}"
         # Pass through variables needed by run-claude-command.yaml
-        claude_binary: "{{ claude_binary }}"
-        anthropic_auth_token: "{{ anthropic_auth_token }}"
-        anthropic_api_url: "{{ anthropic_api_url }}"
+        ai_context_extraction_claude_binary: "{{ claude_binary }}"
+        ai_context_extraction_anthropic_auth_token: "{{ anthropic_auth_token }}"
+        ai_context_extraction_anthropic_api_url: "{{ anthropic_api_url }}"
 
     - name: Perform AI code review
       include_role:
@@ -66,9 +66,9 @@
         ai_code_review_output_dir: "{{ review_output_dir }}"
         ai_code_review_project_src_dir: "{{ ansible_user_dir }}/{{ zuul.project.src_dir }}"
         # Pass through for shared task
-        claude_binary: "{{ claude_binary }}"
-        anthropic_auth_token: "{{ anthropic_auth_token }}"
-        anthropic_api_url: "{{ anthropic_api_url }}"
+        ai_code_review_claude_binary: "{{ claude_binary }}"
+        ai_code_review_anthropic_auth_token: "{{ anthropic_auth_token }}"
+        ai_code_review_anthropic_api_url: "{{ anthropic_api_url }}"
 
     - name: Generate HTML report
       include_role:
@@ -82,6 +82,12 @@
     - name: Integrate with Zuul (comments and artifacts)
       include_role:
         name: ai_zuul_integration
+      vars:
+        ai_zuul_integration_venv_dir: "{{ venv_dir }}"
+        ai_zuul_integration_review_report_file: "{{ review_report_file }}"
+        ai_zuul_integration_html_report_file: "{{ html_report_file }}"
+        ai_zuul_integration_zuul_comments_file: "{{ zuul_comments_file }}"
+        ai_zuul_integration_review_output_dir: "{{ review_output_dir }}"
 
   post_tasks:
     - name: Display job summary

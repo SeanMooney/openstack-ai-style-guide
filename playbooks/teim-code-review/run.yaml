@@ -65,6 +65,11 @@
     - name: Generate HTML report
       include_role:
         name: ai_html_generation
+      vars:
+        ai_html_generation_venv_dir: "{{ venv_dir }}"
+        ai_html_generation_review_report_file: "{{ review_report_file }}"
+        ai_html_generation_html_report_file: "{{ html_report_file }}"
+        ai_html_generation_review_output_dir: "{{ review_output_dir }}"
 
     - name: Integrate with Zuul (comments and artifacts)
       include_role:

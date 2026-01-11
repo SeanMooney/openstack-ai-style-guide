@@ -28,7 +28,7 @@
         echo;
         echo "# Diff (unified)";
         git diff -U0 --no-color HEAD~1..HEAD || true;
-      } > "{{ commit_context_file }}"
+      } > "{{ ai_context_extraction_commit_context_file }}"
     chdir: "{{ project_src_dir }}"
   changed_when: true
 
@@ -41,20 +41,23 @@
       {{ project_src_dir }}, identify bug/feature markers
       following OpenStack conventions, and summarize what changed and why.
       Follow commit-summarizer agent instructions.
-      Write a structured commit summary to {{ commit_summary_file }}.
+      Write a structured commit summary to {{ ai_context_extraction_commit_summary_file }}.
       Do not output the report in {{ project_src_dir }}.
       Prefer using absolute paths when creating files to ensure they are created
       at the expected location.
       You MUST verify that the summary was created at
-      {{ commit_summary_file }} before completing this task.
+      {{ ai_context_extraction_commit_summary_file }} before completing this task.
       If the structured commit summary was output to a different location move it
-      to {{ commit_summary_file }}
+      to {{ ai_context_extraction_commit_summary_file }}
 
 - name: Execute commit analysis with Claude
   include_tasks: "../../ai_review_setup/tasks/run-claude-command.yaml"
   vars:
     prompt_text: "{{ commit_prompt }}"
-    model_name: "{{ context_model }}"
-    output_file: "{{ commit_summary_file }}"
+    model_name: "{{ ai_context_extraction_model }}"
+    output_file: "{{ ai_context_extraction_commit_summary_file }}"
     command_name: "commit analysis"
     working_dir: "{{ project_src_dir }}"
+    claude_binary: "{{ ai_context_extraction_claude_binary }}"
+    anthropic_auth_token: "{{ ai_context_extraction_anthropic_auth_token }}"
+    anthropic_api_url: "{{ ai_context_extraction_anthropic_api_url }}"

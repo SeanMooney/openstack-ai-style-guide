@@ -51,6 +51,16 @@
     - name: Perform AI code review
       include_role:
         name: ai_code_review
+      vars:
+        ai_code_review_model: "{{ review_model }}"
+        ai_code_review_context_output_file: "{{ context_output_file }}"
+        ai_code_review_commit_summary_file: "{{ commit_summary_file }}"
+        ai_code_review_style_guide_project: "{{ style_guide_project }}"
+        ai_code_review_style_guide_quick_rules: "{{ style_guide_quick_rules }}"
+        ai_code_review_style_guide_comprehensive: "{{ style_guide_comprehensive }}"
+        ai_code_review_report_file: "{{ review_report_file }}"
+        ai_code_review_output_dir: "{{ review_output_dir }}"
+        ai_code_review_project_src_dir: "{{ ansible_user_dir }}/{{ zuul.project.src_dir }}"
 
     - name: Generate HTML report
       include_role:
@@ -72,7 +82,7 @@
           Zuul Comments: {{ review_output_dir }}/zuul-comments.json
 
           Issue Statistics:
-          {{ issue_statistics.stdout | default('Not available') }}
+          {{ ai_code_review_issue_statistics.stdout | default('Not available') }}
 
-          Status: {{ 'NEEDS ATTENTION' if has_critical_issues | default(false) else ('HAS SUGGESTIONS' if has_issues | default(false) else 'CLEAN') }}
+          Status: {{ 'NEEDS ATTENTION' if ai_code_review_has_critical_issues | default(false) else ('HAS SUGGESTIONS' if ai_code_review_has_issues | default(false) else 'CLEAN') }}
           ================================================================================

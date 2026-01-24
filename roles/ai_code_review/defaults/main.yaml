@@ -24,3 +24,8 @@ ai_code_review_project_src_dir: "{{ ansible_user_dir }}/{{ zuul.project.src_dir 
 
 # Playbook directory for shared tasks
 ai_code_review_playbook_dir: "{{ zuul.executor.work_root }}/{{ zuul.project.src_dir }}/playbooks/claude-review"
+
+# Claude CLI configuration
+ai_code_review_claude_binary: "claude"
+ai_code_review_anthropic_auth_token: ""
+ai_code_review_anthropic_api_url: ""

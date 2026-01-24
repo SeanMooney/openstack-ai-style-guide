@@ -58,6 +58,3 @@
     output_file: "{{ ai_context_extraction_commit_summary_file }}"
     command_name: "commit analysis"
     working_dir: "{{ project_src_dir }}"
-    claude_binary: "{{ ai_context_extraction_claude_binary }}"
-    anthropic_auth_token: "{{ ai_context_extraction_anthropic_auth_token }}"
-    anthropic_api_url: "{{ ai_context_extraction_anthropic_api_url }}"

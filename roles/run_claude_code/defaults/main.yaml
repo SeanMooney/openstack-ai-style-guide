@@ -1,0 +1,26 @@
+---
+# Default variables for run_claude_code role
+
+# Prompt string passed to Claude (may include @file references)
+run_claude_code_prompt_text: ""
+
+# Model to use for this execution
+run_claude_code_model_name: "glm-4.5-air"
+
+# Expected output file path (Claude is instructed to write here)
+run_claude_code_output_file: ""
+
+# Human-readable name for log messages (e.g., "context extraction")
+run_claude_code_command_name: "claude command"
+
+# Path to Claude CLI binary
+run_claude_code_claude_binary: "claude"
+
+# API authentication token
+run_claude_code_anthropic_auth_token: ""
+
+# API base URL
+run_claude_code_anthropic_api_url: ""
+
+# Working directory for command execution (optional)
+run_claude_code_working_dir: ""

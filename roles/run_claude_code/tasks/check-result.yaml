@@ -1,0 +1,37 @@
+---
+# Result validation for Claude CLI executions
+# Ensures the expected output file exists and provides diagnostics otherwise.
+
+- name: "Verify output file was created - {{ run_claude_code_command_name }}"
+  ansible.builtin.stat:
+    path: "{{ run_claude_code_output_file }}"
+  register: run_claude_code_output_file_stat
+
+- name: "Fail if output file missing - {{ run_claude_code_command_name }}"
+  ansible.builtin.fail:
+    msg: |
+      Claude {{ run_claude_code_command_name }} failed to produce expected output file
+      after {{ run_claude_code_result.attempts | default(1) }} attempt(s).
+
+      Expected output file: {{ run_claude_code_output_file }}
+
+      Possible causes:
+      - Claude CLI execution error
+      - File system or directory initialization
+      - LiteLLM proxy or model response
+      - Network connectivity
+
+      Command output:
+      STDOUT:
+      {{ run_claude_code_result.stdout | default('(empty)') }}
+
+      STDERR:
+      {{ run_claude_code_result.stderr | default('(empty)') }}
+  when: not run_claude_code_output_file_stat.stat.exists
+
+- name: "Display success - {{ run_claude_code_command_name }}"
+  ansible.builtin.debug:
+    msg: >-
+      {{ run_claude_code_command_name | capitalize }}
+      completed successfully. Output at {{ run_claude_code_output_file }}
+  when: run_claude_code_output_file_stat.stat.exists

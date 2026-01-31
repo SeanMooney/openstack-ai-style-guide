@@ -23,10 +23,7 @@ profile: production
 skip_list:
   # === Refactor.md planned fixes ===
   # Role naming: FIXED in PR #3 - all roles now use underscores (ai_*)
-
-  # Variable naming: All roles use unprefixed variables
-  # Will be fixed in PRs #4-8 when variables are prefixed per role
-  - var-naming
+  # Variable naming: FIXED - all roles now have properly prefixed variables (ai_<role>_*)
 
   # === Additional existing violations (to be fixed incrementally) ===
   # FQCN: Use fully qualified collection names for builtin modules
@@ -75,3 +72,4 @@ warn_list: []
 # This allows syntax checking to pass without requiring the collections to be installed
 mock_modules:
   - ansible.posix.synchronize
+  - zuul_return

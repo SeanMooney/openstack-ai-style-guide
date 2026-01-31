@@ -16,28 +16,28 @@
 - name: Verify inventory file was copied
   stat:
     path: "{{ ansible_user_dir }}/tmp/inventory.yaml"
-  register: inventory_file
+  register: ai_context_extraction_inventory_file
 
 - name: Fail if inventory copy failed
   fail:
     msg: "Could not copy Zuul inventory file from executor"
-  when: not inventory_file.stat.exists
+  when: not ai_context_extraction_inventory_file.stat.exists
 
 - name: Set inventory path
   set_fact:
-    zuul_inventory_path: "{{ ansible_user_dir }}/tmp/inventory.yaml"
+    ai_context_extraction_zuul_inventory_path: "{{ ansible_user_dir }}/tmp/inventory.yaml"
 
 - name: Create context extraction prompt with subagent invocation
   set_fact:
-    context_prompt: >-
+    ai_context_extraction_context_prompt: >-
       Use the @agent-zuul-context-extractor subagent.
-      Read and analyze the Zuul inventory at @{{ zuul_inventory_path }}.
+      Read and analyze the Zuul inventory at @{{ ai_context_extraction_zuul_inventory_path }}.
       Write the structured context summary to {{ ai_context_extraction_output_file }}.
 
 - name: Execute context extraction with Claude
   include_tasks: "../../ai_review_setup/tasks/run-claude-command.yaml"
   vars:
-    prompt_text: "{{ context_prompt }}"
+    prompt_text: "{{ ai_context_extraction_context_prompt }}"
     model_name: "{{ ai_context_extraction_model }}"
     output_file: "{{ ai_context_extraction_output_file }}"
     command_name: "context extraction"

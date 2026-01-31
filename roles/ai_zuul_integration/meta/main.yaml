@@ -16,8 +16,8 @@ galaxy_info:
         - bookworm
   galaxy_tags:
     - ai
-    - code-review
+    - codereview
     - zuul
-    - ci-cd
+    - cicd
 
 dependencies: []

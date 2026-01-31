@@ -16,7 +16,7 @@ galaxy_info:
         - bookworm
   galaxy_tags:
     - ai
-    - code-review
+    - codereview
     - claude
     - openstack
     - quality

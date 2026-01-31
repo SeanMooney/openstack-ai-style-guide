@@ -2,33 +2,33 @@
 # Extract Zuul execution context from inventory
 
 - name: Create temporary directory for inventory
-  file:
+  ansible.builtin.file:
     path: "{{ ansible_user_dir }}/tmp"
     state: directory
     mode: '0755'
 
 - name: Copy inventory from executor to remote node
-  copy:
+  ansible.builtin.copy:
     src: "{{ zuul.executor.inventory_file }}"
     dest: "{{ ansible_user_dir }}/tmp/inventory.yaml"
     mode: '0644'
 
 - name: Verify inventory file was copied
-  stat:
+  ansible.builtin.stat:
     path: "{{ ansible_user_dir }}/tmp/inventory.yaml"
   register: ai_context_extraction_inventory_file
 
 - name: Fail if inventory copy failed
-  fail:
+  ansible.builtin.fail:
     msg: "Could not copy Zuul inventory file from executor"
   when: not ai_context_extraction_inventory_file.stat.exists
 
 - name: Set inventory path
-  set_fact:
+  ansible.builtin.set_fact:
     ai_context_extraction_zuul_inventory_path: "{{ ansible_user_dir }}/tmp/inventory.yaml"
 
 - name: Create context extraction prompt with subagent invocation
-  set_fact:
+  ansible.builtin.set_fact:
     ai_context_extraction_context_prompt: >-
       Use the @agent-zuul-context-extractor subagent.
       Read and analyze the Zuul inventory at @{{ ai_context_extraction_zuul_inventory_path }}.

@@ -21,11 +21,11 @@
 #   - anthropic_auth_token: API authentication token
 #   - anthropic_api_url: API base URL
 
-- hosts: all
-  name: AI-Assisted Code Review
+- name: AI-Assisted Code Review
+  hosts: all
   tasks:
     - name: Run AI review setup
-      include_role:
+      ansible.builtin.include_role:
         name: ai_review_setup
       vars:
         ai_review_setup_claude_binary: "{{ claude_binary }}"
@@ -39,7 +39,7 @@
         ai_review_setup_style_guide_project: "{{ style_guide_project }}"
 
     - name: Extract context from Zuul and git
-      include_role:
+      ansible.builtin.include_role:
         name: ai_context_extraction
       vars:
         ai_context_extraction_model: "{{ context_model }}"
@@ -52,7 +52,7 @@
         ai_context_extraction_anthropic_api_url: "{{ anthropic_api_url }}"
 
     - name: Perform AI code review
-      include_role:
+      ansible.builtin.include_role:
         name: ai_code_review
       vars:
         ai_code_review_model: "{{ review_model }}"
@@ -66,7 +66,7 @@
         ai_code_review_project_src_dir: "{{ ansible_user_dir }}/{{ zuul.project.src_dir }}"
 
     - name: Generate HTML report
-      include_role:
+      ansible.builtin.include_role:
         name: ai_html_generation
       vars:
         ai_html_generation_venv_dir: "{{ venv_dir }}"
@@ -75,7 +75,7 @@
         ai_html_generation_review_output_dir: "{{ review_output_dir }}"
 
     - name: Integrate with Zuul (comments and artifacts)
-      include_role:
+      ansible.builtin.include_role:
         name: ai_zuul_integration
       vars:
         ai_zuul_integration_venv_dir: "{{ venv_dir }}"
@@ -86,17 +86,23 @@
 
   post_tasks:
     - name: Display job summary
-      debug:
+      ansible.builtin.debug:
         msg: |
-          ================================================================================
+          ================================================================
           AI Code Review Complete
-          ================================================================================
+          ================================================================
           Review Report (JSON): {{ review_output_dir }}/review-report.json
           HTML Report: {{ review_output_dir }}/review-report.html
           Zuul Comments: {{ review_output_dir }}/zuul-comments.json
 
           Issue Statistics:
-          {{ ai_code_review_issue_statistics.stdout | default('Not available') }}
+          {{ ai_code_review_issue_statistics.stdout | default('N/A') }}
 
-          Status: {{ 'NEEDS ATTENTION' if ai_code_review_has_critical_issues | default(false) else ('HAS SUGGESTIONS' if ai_code_review_has_issues | default(false) else 'CLEAN') }}
-          ================================================================================
+          {% if ai_code_review_has_critical_issues | default(false) %}
+          Status: NEEDS ATTENTION
+          {% elif ai_code_review_has_issues | default(false) %}
+          Status: HAS SUGGESTIONS
+          {% else %}
+          Status: CLEAN
+          {% endif %}
+          ================================================================

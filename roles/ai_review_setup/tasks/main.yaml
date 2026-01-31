@@ -3,69 +3,81 @@
 # Sets up Claude CLI, copies agents, and configures environment
 
 - name: Install jq for JSON parsing
-  package:
+  ansible.builtin.package:
     name: jq
     state: present
   become: true
 
 - name: Verify Claude CLI installation
-  command: "{{ ai_review_setup_claude_binary }} --version"
+  ansible.builtin.command: "{{ ai_review_setup_claude_binary }} --version"
   register: ai_review_setup_claude_version
   changed_when: false
 
 - name: Display Claude CLI version
-  debug:
+  ansible.builtin.debug:
     msg: "Using Claude CLI: {{ ai_review_setup_claude_version.stdout }}"
 
 - name: Validate Claude config directory path
-  stat:
+  ansible.builtin.stat:
     path: "{{ ai_review_setup_claude_config_dir }}"
   register: ai_review_setup_claude_config_stat
 
 - name: Fail if Claude config path exists as a file
-  fail:
-    msg: "Claude config directory path {{ ai_review_setup_claude_config_dir }} exists as a file, not a directory"
-  when: ai_review_setup_claude_config_stat.stat.exists and not ai_review_setup_claude_config_stat.stat.isdir
+  ansible.builtin.fail:
+    msg: >-
+      Claude config directory path {{ ai_review_setup_claude_config_dir }}
+      exists as a file, not a directory
+  when: >-
+    ai_review_setup_claude_config_stat.stat.exists and
+    not ai_review_setup_claude_config_stat.stat.isdir
 
 - name: Validate parent directory for Claude config is writable
-  stat:
+  ansible.builtin.stat:
     path: "{{ ai_review_setup_claude_config_dir | dirname }}"
   register: ai_review_setup_claude_config_parent
-  failed_when: not ai_review_setup_claude_config_parent.stat.exists or not ai_review_setup_claude_config_parent.stat.writeable
+  failed_when: >-
+    not ai_review_setup_claude_config_parent.stat.exists or
+    not ai_review_setup_claude_config_parent.stat.writeable
 
 - name: Ensure Claude config directory exists
-  file:
+  ansible.builtin.file:
     path: "{{ ai_review_setup_claude_config_dir }}"
     state: directory
     mode: '0755'
 
 - name: Validate agents directory path
-  stat:
+  ansible.builtin.stat:
     path: "{{ ai_review_setup_agents_target_dir }}"
   register: ai_review_setup_agents_target_stat
 
 - name: Fail if agents path exists as a file
-  fail:
-    msg: "Agents directory path {{ ai_review_setup_agents_target_dir }} exists as a file, not a directory"
-  when: ai_review_setup_agents_target_stat.stat.exists and not ai_review_setup_agents_target_stat.stat.isdir
+  ansible.builtin.fail:
+    msg: >-
+      Agents directory path {{ ai_review_setup_agents_target_dir }}
+      exists as a file, not a directory
+  when: >-
+    ai_review_setup_agents_target_stat.stat.exists and
+    not ai_review_setup_agents_target_stat.stat.isdir
 
 - name: Ensure agents directory exists
-  file:
+  ansible.builtin.file:
     path: "{{ ai_review_setup_agents_target_dir }}"
     state: directory
     mode: '0755'
 
 - name: Verify agents source directory exists
-  stat:
+  ansible.builtin.stat:
     path: "{{ ai_review_setup_agents_source_dir }}"
   register: ai_review_setup_agents_source_stat
-  failed_when: not ai_review_setup_agents_source_stat.stat.exists or not ai_review_setup_agents_source_stat.stat.isdir
+  failed_when: >-
+    not ai_review_setup_agents_source_stat.stat.exists or
+    not ai_review_setup_agents_source_stat.stat.isdir
 
 - name: Copy agents from style guide repo
-  synchronize:
+  ansible.posix.synchronize:
     src: "{{ ai_review_setup_agents_source_dir }}/"
     dest: "{{ ai_review_setup_agents_target_dir }}/"
-    recursive: yes
+    recursive: true
     rsync_opts:
       - "--exclude=*.pyc"
       - "--exclude=__pycache__"
@@ -73,13 +85,15 @@
   register: ai_review_setup_sync_result
 
 - name: Verify agents were copied successfully
-  stat:
+  ansible.builtin.stat:
     path: "{{ ai_review_setup_agents_target_dir }}"
   register: ai_review_setup_agents_copied
-  failed_when: not ai_review_setup_agents_copied.stat.exists or not ai_review_setup_agents_copied.stat.isdir
+  failed_when: >-
+    not ai_review_setup_agents_copied.stat.exists or
+    not ai_review_setup_agents_copied.stat.isdir
 
 - name: Verify required agent files exist
-  stat:
+  ansible.builtin.stat:
     path: "{{ ai_review_setup_agents_target_dir }}/{{ item }}"
   register: ai_review_setup_required_agents
   failed_when: not ai_review_setup_required_agents.stat.exists
@@ -89,11 +103,11 @@
     - code-review-agent.md
 
 - name: Display agent copy summary
-  debug:
+  ansible.builtin.debug:
     msg: "Successfully copied agents to {{ ai_review_setup_agents_target_dir }}"
 
 - name: Configure Claude model mappings
-  copy:
+  ansible.builtin.copy:
     content: |
       {
         "env": {
@@ -106,13 +120,13 @@
     mode: '0644'
 
 - name: Ensure output directories exist
-  file:
+  ansible.builtin.file:
     path: "{{ ai_review_setup_review_output_dir }}"
     state: directory
     mode: '0755'
 
 - name: Display setup summary
-  debug:
+  ansible.builtin.debug:
     msg: |
       AI Review Setup Complete:
       - Claude CLI: {{ ai_review_setup_claude_version.stdout }}

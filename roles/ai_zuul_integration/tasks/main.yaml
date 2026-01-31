@@ -3,7 +3,7 @@
 # Generates file comments and registers artifacts with Zuul
 
 - name: Copy Zuul integration scripts
-  copy:
+  ansible.builtin.copy:
     src: "{{ item }}"
     dest: "{{ ansible_user_dir }}/"
     mode: '0755'
@@ -12,22 +12,22 @@
     - validate_zuul_schema.py
 
 - name: Check if JSON review report exists
-  stat:
+  ansible.builtin.stat:
     path: "{{ ai_zuul_integration_review_report_file }}"
   register: ai_zuul_integration_json_report
 
 - name: Check if HTML report exists
-  stat:
+  ansible.builtin.stat:
     path: "{{ ai_zuul_integration_html_report_file }}"
   register: ai_zuul_integration_html_report
 
 - name: Fail if JSON report not found
-  fail:
+  ansible.builtin.fail:
     msg: "JSON review report not found at {{ ai_zuul_integration_review_report_file }}"
   when: not ai_zuul_integration_json_report.stat.exists
 
 - name: Generate Zuul inline comments from JSON review report
-  command: >
+  ansible.builtin.command: >
     {{ ai_zuul_integration_venv_dir }}/bin/python3
     {{ ansible_user_dir }}/generate_zuul_comments.py
     {{ ai_zuul_integration_review_report_file }}
@@ -39,12 +39,14 @@
   changed_when: false
 
 - name: Display comments generation summary
-  debug:
+  ansible.builtin.debug:
     msg: "{{ ai_zuul_integration_comments_generation.stderr_lines[-2:] }}"
-  when: ai_zuul_integration_comments_generation.stderr_lines is defined and ai_zuul_integration_comments_generation.stderr_lines | length > 0
+  when: >-
+    ai_zuul_integration_comments_generation.stderr_lines is defined and
+    ai_zuul_integration_comments_generation.stderr_lines | length > 0
 
 - name: Validate Zuul comments JSON schema
-  command: >
+  ansible.builtin.command: >
     {{ ai_zuul_integration_venv_dir }}/bin/python3
     {{ ansible_user_dir }}/validate_zuul_schema.py
     {{ ai_zuul_integration_zuul_comments_file }}
@@ -53,14 +55,15 @@
   when: ai_zuul_integration_comments_generation.rc == 0
 
 - name: Read generated JSON for zuul_return
-  slurp:
+  ansible.builtin.slurp:
     src: "{{ ai_zuul_integration_zuul_comments_file }}"
   register: ai_zuul_integration_json_file_content
   when: ai_zuul_integration_schema_validation.rc == 0
 
 - name: Load comments data for zuul_return
-  set_fact:
-    ai_zuul_integration_return_data: "{{ ai_zuul_integration_json_file_content.content | b64decode | from_json }}"
+  ansible.builtin.set_fact:
+    ai_zuul_integration_return_data: >-
+      {{ ai_zuul_integration_json_file_content.content | b64decode | from_json }}
   when:
     - ai_zuul_integration_json_file_content is defined
     - ai_zuul_integration_schema_validation.rc == 0
@@ -68,7 +71,9 @@
 - name: Return file comments to Zuul
   zuul_return:
     data: "{{ ai_zuul_integration_return_data }}"
-  when: ai_zuul_integration_return_data is defined and ai_zuul_integration_return_data.zuul.file_comments | length > 0
+  when: >-
+    ai_zuul_integration_return_data is defined and
+    ai_zuul_integration_return_data.zuul.file_comments | length > 0
 
 - name: Register HTML report as Zuul artifact
   zuul_return:

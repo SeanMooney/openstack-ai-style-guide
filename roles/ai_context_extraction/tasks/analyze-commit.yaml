@@ -2,21 +2,21 @@
 # Analyze git commit metadata and changes
 
 - name: Get project source directory
-  set_fact:
+  ansible.builtin.set_fact:
     ai_context_extraction_project_src_dir: "{{ ansible_user_dir }}/{{ zuul.project.src_dir }}"
 
 - name: Verify project source directory exists
-  stat:
+  ansible.builtin.stat:
     path: "{{ ai_context_extraction_project_src_dir }}"
   register: ai_context_extraction_project_dir
 
 - name: Fail if project directory not found
-  fail:
+  ansible.builtin.fail:
     msg: "Project source directory not found at {{ ai_context_extraction_project_src_dir }}"
   when: not ai_context_extraction_project_dir.stat.exists
 
 - name: Generate git context file
-  shell:
+  ansible.builtin.shell:
     cmd: |
       set -e
       {
@@ -33,7 +33,7 @@
   changed_when: true
 
 - name: Create commit analysis prompt with subagent invocation
-  set_fact:
+  ansible.builtin.set_fact:
     ai_context_extraction_commit_prompt: >-
       Use the @agent-commit-summary subagent to
       Analyze the current git commit in the repository at {{ ai_context_extraction_project_src_dir }}.

@@ -36,13 +36,14 @@
       {{ ai_code_review_report_file }}
 
 - name: Execute code review with Claude
-  include_tasks: "../../ai_review_setup/tasks/run-claude-command.yaml"
+  ansible.builtin.include_role:
+    name: run_claude_code
   vars:
-    prompt_text: "{{ ai_code_review_review_prompt }}"
-    model_name: "{{ ai_code_review_model }}"
-    output_file: "{{ ai_code_review_report_file }}"
-    command_name: "code review"
-    working_dir: "{{ ai_code_review_project_src_dir }}"
+    run_claude_code_prompt_text: "{{ ai_code_review_review_prompt }}"
+    run_claude_code_model_name: "{{ ai_code_review_model }}"
+    run_claude_code_output_file: "{{ ai_code_review_report_file }}"
+    run_claude_code_command_name: "code review"
+    run_claude_code_working_dir: "{{ ai_code_review_project_src_dir }}"
 
 - name: Extract issue statistics from JSON report
   shell: |

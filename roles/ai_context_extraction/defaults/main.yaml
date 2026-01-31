@@ -12,5 +12,7 @@ ai_context_extraction_commit_context_file: "{{ ai_context_extraction_review_outp
 # Review output directory (should be set by calling playbook)
 ai_context_extraction_review_output_dir: "{{ ansible_user_dir }}/logs/code-review"
 
-# Playbook directory for shared tasks
-ai_context_extraction_playbook_dir: "{{ zuul.executor.work_root }}/{{ zuul.project.src_dir }}/playbooks/claude-review"
+# Claude CLI configuration
+ai_context_extraction_claude_binary: "claude"
+ai_context_extraction_anthropic_auth_token: ""
+ai_context_extraction_anthropic_api_url: ""

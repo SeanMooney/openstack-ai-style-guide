@@ -18,7 +18,7 @@
 
 - name: Check if HTML report exists
   stat:
-    path: "{{ ai_zuul_integration_ai_zuul_integration_html_report_file }}"
+    path: "{{ ai_zuul_integration_html_report_file }}"
   register: ai_zuul_integration_html_report
 
 - name: Fail if JSON report not found

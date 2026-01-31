@@ -1,0 +1,34 @@
+{
+  "context": {
+    "change": "Review generation failed - see CI logs for details",
+    "scope": "Unable to analyze due to generation failure",
+    "impact": "Unknown - manual review required"
+  },
+  "statistics": {
+    "critical": 0,
+    "high": 0,
+    "warnings": 0,
+    "suggestions": 1,
+    "total": 1
+  },
+  "issues": {
+    "critical": [],
+    "high": [],
+    "warnings": [],
+    "suggestions": [
+      {
+        "description": "AI review generation failed. Please check CI logs and perform manual code review.",
+        "confidence": 1.0,
+        "location": "N/A:0",
+        "benefit": "Ensures human review occurs when automated review fails to generate valid output",
+        "recommendation": "1. Check CI job logs for error details. 2. Review the commit manually following OpenStack guidelines. 3. Report persistent failures to the style guide maintainers."
+      }
+    ]
+  },
+  "positive_observations": [],
+  "summary": {
+    "assessment": "Blocked",
+    "priority_focus": "Review generation failed - manual review required before merge",
+    "detailed_summary": "The automated code review failed to generate a valid report after structured output validation, repair, and fallback attempts. This may be due to API issues, model limitations, timeout, or unexpected code patterns in the change. Please review the CI job logs for specific error details, then perform a manual code review following OpenStack coding standards. If this failure persists across multiple runs, please report it to the openstack-ai-style-guide repository maintainers."
+  }
+}

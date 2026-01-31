@@ -255,15 +255,14 @@ Evaluate the code against these criteria:
 ### 4. Structured Output Format
 
 Generate your review as structured JSON conforming to the review-report JSON schema.
-The JSON schema is located at `../schemas/review-report-schema.json` relative to the
-agents directory.
 
-**IMPORTANT**: Use Claude's structured output feature to generate validated JSON.
-This ensures machine-parseability and enables automated processing of review results.
+**IMPORTANT**: Your output is validated against `review-report-schema.json` automatically.
+The Claude CLI's `--json-schema` flag ensures your output conforms to the schema.
+Focus on generating a complete, accurate review - schema compliance is handled for you.
 
 ### 5. Report Structure
 
-Generate your review as a JSON object with this structure:
+Generate a JSON object with this exact structure (all fields are required unless noted):
 
 ```json
 {
@@ -484,52 +483,31 @@ Before writing your report file, validate the JSON structure compliance:
 - [ ] Statistics.total equals sum of all severity counts
 - [ ] Positive observations use valid category values
 
-## Output File Creation and Verification
+## Output Generation
 
-After completing your code review, you MUST write the JSON report to the specified output file:
+Your JSON output is captured automatically via Claude's structured output mode.
 
-### 1. Use the Write Tool with Structured Output
+**How it works:**
 
-**CRITICAL**: Use Claude's structured output feature to generate validated JSON:
+1. The CI system passes `--json-schema` with the review-report schema to Claude CLI
+2. Your output is validated against the schema at generation time
+3. Valid JSON is written to the output file automatically
+4. If validation fails, safety nets (repair scripts, fallback templates) handle recovery
 
-- **Output path**: `{{ output_file }}` (this is an absolute path)
-- **Schema**: Reference `../schemas/review-report-schema.json` for validation
-- **Do NOT use**: Bash redirection (`>`), echo commands, or other shell methods
-- **Content**: Complete JSON object conforming to review-report-schema.json
+**Your responsibility:**
 
-### 2. Use Absolute Paths
+- Generate a complete, accurate review following the schema structure
+- Include all required fields for each issue type
+- Ensure confidence scores are in valid range (0.6-1.0)
+- Calculate statistics.total correctly (sum of all severities)
 
-The output file path is already absolute. Use it exactly as provided without modification:
+**Do NOT:**
 
-- ✓ Correct: Write directly to `{{ output_file }}`
-- ✗ Wrong: Modifying the path or making it relative
-- ✗ Wrong: Writing to the project source directory
+- Try to write files directly (output is captured from your response)
+- Include markdown or prose outside the JSON structure
+- Leave required fields empty or missing
 
-### 3. Verify File Creation
-
-After writing the file, verify it was created successfully:
-
-```bash
-# Verify file exists and check size
-ls -lh {{ output_file }}
-```
-
-### 4. Confirm Completion
-
-End your execution by stating: "✓ Code review JSON report written to {{ output_file }}"
-
-### 5. Error Handling
-
-If file creation fails:
-
-1. Check current working directory: `pwd`
-2. Verify parent directory exists: `ls -ld $(dirname {{ output_file }})`
-3. Create parent directory if needed: `mkdir -p $(dirname {{ output_file }})`
-4. Retry write operation using Write tool with absolute path
-5. If still failing, report the specific error message
-
-**CRITICAL**: The playbook validation will fail if this file is not created at the exact expected location. File
-creation is a REQUIRED step for successful completion.
+The schema validation ensures your output is machine-parseable. Focus on the review quality.
 
 ## Confidence & Quality Guidelines
 

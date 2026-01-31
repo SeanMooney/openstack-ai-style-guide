@@ -51,10 +51,14 @@
       to {{ ai_context_extraction_commit_summary_file }}
 
 - name: Execute commit analysis with Claude
-  include_tasks: "../../ai_review_setup/tasks/run-claude-command.yaml"
+  ansible.builtin.include_role:
+    name: run_claude_code
   vars:
-    prompt_text: "{{ ai_context_extraction_commit_prompt }}"
-    model_name: "{{ ai_context_extraction_model }}"
-    output_file: "{{ ai_context_extraction_commit_summary_file }}"
-    command_name: "commit analysis"
-    working_dir: "{{ ai_context_extraction_project_src_dir }}"
+    run_claude_code_prompt_text: "{{ ai_context_extraction_commit_prompt }}"
+    run_claude_code_model_name: "{{ ai_context_extraction_model }}"
+    run_claude_code_output_file: "{{ ai_context_extraction_commit_summary_file }}"
+    run_claude_code_command_name: "commit analysis"
+    run_claude_code_working_dir: "{{ ai_context_extraction_project_src_dir }}"
+    run_claude_code_claude_binary: "{{ ai_context_extraction_claude_binary }}"
+    run_claude_code_anthropic_auth_token: "{{ ai_context_extraction_anthropic_auth_token }}"
+    run_claude_code_anthropic_api_url: "{{ ai_context_extraction_anthropic_api_url }}"

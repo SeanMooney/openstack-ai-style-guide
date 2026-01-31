@@ -9,7 +9,7 @@ Ansible roles.
 **Strategy:** Progressive lint fixing with gating CI compatibility. Each commit
 independently passes all CI checks.
 
-**Total PRs:** 11 stacked pull requests
+**Total PRs:** 9 (originally planned as 11, Phases 5-6 combined into one PR)
 
 ---
 
@@ -21,7 +21,7 @@ independently passes all CI checks.
 
 - **Branch:** `01-enable-linting`
 - **Base:** `master`
-- **Status:** ✅ Completed
+- **Status:** Completed
 - **Changes:**
   - Added `.ansible-lint` with skip_list for current failures
   - Updated `.pre-commit-config.yaml` to add ansible-lint v25.11.0 hook
@@ -45,7 +45,7 @@ independently passes all CI checks.
 
 - **Branch:** `02-playbook-orchestration`
 - **Base:** `01-enable-linting`
-- **Status:** ⏳ Not started
+- **Status:** Completed
 - **Changes:**
   - Rewrite `playbooks/teim-code-review/run.yaml`
   - Remove `roles:` section (role dependency chain)
@@ -63,9 +63,9 @@ independently passes all CI checks.
 
 - **Branch:** `03-rename-roles`
 - **Base:** `02-playbook-orchestration`
-- **Status:** ⏳ Not started
+- **Status:** Completed
 - **Changes:**
-  - Rename `roles/ai-*` → `roles/ai_*` (5 roles)
+  - Rename `roles/ai-*` to `roles/ai_*` (5 roles)
   - Update playbook references
   - Remove role naming exclusions from `.ansible-lint`
 - **Why CI passes:** Playbook uses explicit include_role, just updating names
@@ -78,11 +78,11 @@ independently passes all CI checks.
 
 - **Branch:** `04-prefix-vars-setup`
 - **Base:** `03-rename-roles`
-- **Status:** ⏳ Not started
+- **Status:** Completed
 - **Changes:**
   - Add `ai_review_setup_*` prefixes to defaults
   - Update task files to use prefixed variables
-  - Update playbook to map job vars → role vars
+  - Update playbook to map job vars to role vars
   - Remove var-naming exclusions for this role
 - **Why CI passes:** Playbook explicitly passes all needed variables
 
@@ -90,7 +90,7 @@ independently passes all CI checks.
 
 - **Branch:** `05-prefix-vars-context`
 - **Base:** `04-prefix-vars-setup`
-- **Status:** ⏳ Not started
+- **Status:** Completed
 - **Changes:** Same pattern as PR #4 for ai_context_extraction role
 - **Why CI passes:** Same pattern
 
@@ -98,7 +98,7 @@ independently passes all CI checks.
 
 - **Branch:** `06-prefix-vars-review`
 - **Base:** `05-prefix-vars-context`
-- **Status:** ⏳ Not started
+- **Status:** Completed
 - **Changes:**
   - Same pattern as PR #4 for ai_code_review role
   - Update exported variables (e.g., `ai_code_review_has_critical_issues`)
@@ -109,7 +109,7 @@ independently passes all CI checks.
 
 - **Branch:** `07-prefix-vars-html`
 - **Base:** `06-prefix-vars-review`
-- **Status:** ⏳ Not started
+- **Status:** Completed
 - **Changes:** Same pattern as PR #4 for ai_html_generation role
 - **Why CI passes:** Same pattern
 
@@ -117,7 +117,7 @@ independently passes all CI checks.
 
 - **Branch:** `08-prefix-vars-zuul`
 - **Base:** `07-prefix-vars-html`
-- **Status:** ⏳ Not started
+- **Status:** Completed
 - **Changes:**
   - Same pattern as PR #4 for ai_zuul_integration role
   - Remove ALL variable naming exclusions from `.ansible-lint`
@@ -125,63 +125,52 @@ independently passes all CI checks.
 
 ---
 
-### Phase 5: Helper Role Extraction
+### Phase 5: Helper Role Extraction, Integration, and Final Cleanup
 
-#### PR #9: Extract run_claude_code helper
+#### PR #9: Extract run_claude_code, integrate, and fix all lint violations
 
-- **Branch:** `09-extract-helper`
+- **Branch:** `09-final-cleanup`
 - **Base:** `08-prefix-vars-zuul`
-- **Status:** ⏳ Not started
+- **Status:** Completed
 - **Changes:**
-  - Create `roles/run_claude_code/` with all files
-  - Extract Claude CLI execution logic
-  - Role not used yet
-- **Why CI passes:** New unused helper role
-
-#### PR #10: Integrate run_claude_code
-
-- **Branch:** `10-integrate-helper`
-- **Base:** `09-extract-helper`
-- **Status:** ⏳ Not started
-- **Changes:**
-  - Update ai_review_setup to use run_claude_code
-  - Update ai_context_extraction to use run_claude_code
-  - Update ai_code_review to use run_claude_code
-  - Delete old extracted task files
-- **Why CI passes:** Refactored to use helper, functionally equivalent
-
----
-
-### Phase 6: Final Cleanup
-
-#### PR #11: Final cleanup
-
-- **Branch:** `11-final-cleanup`
-- **Base:** `10-integrate-helper`
-- **Status:** ⏳ Not started
-- **Changes:**
-  - Python script improvements
-  - Minor code quality updates
-  - Verify no lint exclusions remaining
-- **Why CI passes:** Minor improvements to working code
+  - Fix double-prefix bug in ai_zuul_integration
+    (`ai_zuul_integration_ai_zuul_integration_html_report_file`)
+  - Create `roles/run_claude_code/` helper role with properly prefixed
+    variables (`run_claude_code_*`), FQCN modules, and retry/error logic
+  - Integrate run_claude_code into ai_context_extraction and ai_code_review
+    via `include_role` with explicit variable mapping
+  - Add claude_binary, anthropic_auth_token, anthropic_api_url to
+    ai_context_extraction defaults and playbook vars
+  - Delete old `ai_review_setup/tasks/run-claude-command.yaml` and
+    `check-claude-result.yaml`
+  - Fix all 68 remaining ansible-lint violations:
+    - FQCN: add `ansible.builtin.*` prefix to all bare module names
+    - meta-no-tags: `code-review` to `codereview`, `ci-cd` to `cicd`
+    - risky-shell-pipe: add `set -o pipefail` and `executable: /bin/bash`
+    - no-changed-when: add `changed_when` to HTML generation command
+    - yaml[truthy]: `yes` to `true` for synchronize recursive
+    - yaml[line-length]: break long Jinja conditional into multi-line
+    - key-order[play]: reorder play keys in both playbooks
+  - Remove entire skip_list from `.ansible-lint` (empty list)
+  - Remove ai_zuul_integration from exclude_paths (mock_modules handles
+    zuul_return)
+- **Why CI passes:** All violations fixed, full production profile enforced
 
 ---
 
 ## Progress Checklist
 
 - [x] Phase 1: Linting Infrastructure (PR #1)
-- [ ] Phase 2: Playbook Orchestration (PR #2)
-- [ ] Phase 3: Role Renames (PR #3)
-- [ ] Phase 4: Variable Prefixing
-  - [ ] PR #4: ai_review_setup
-  - [ ] PR #5: ai_context_extraction
-  - [ ] PR #6: ai_code_review
-  - [ ] PR #7: ai_html_generation
-  - [ ] PR #8: ai_zuul_integration
-- [ ] Phase 5: Helper Role Extraction
-  - [ ] PR #9: Extract run_claude_code
-  - [ ] PR #10: Integrate helper
-- [ ] Phase 6: Cleanup (PR #11)
+- [x] Phase 2: Playbook Orchestration (PR #2)
+- [x] Phase 3: Role Renames (PR #3)
+- [x] Phase 4: Variable Prefixing
+  - [x] PR #4: ai_review_setup
+  - [x] PR #5: ai_context_extraction
+  - [x] PR #6: ai_code_review
+  - [x] PR #7: ai_html_generation
+  - [x] PR #8: ai_zuul_integration
+- [x] Phase 5: Helper Role Extraction, Integration, and Final Cleanup
+  - [x] PR #9: Extract run_claude_code, integrate, fix all lint violations
 
 ---
 
@@ -216,9 +205,20 @@ independently passes all CI checks.
 - All playbooks and roles now pass ansible-lint
 - Pre-commit hooks installed and verified
 
----
+### Session 3 - PRs #2-8 Implementation
 
-## Next Steps
+- Implemented task-based playbook orchestration
+- Renamed all roles from hyphenated to underscore format
+- Prefixed all role variables across 5 roles
+- Progressively removed skip_list entries
 
-1. Stage and commit PR #1 changes
-2. Begin Phase 2: Task-based playbook orchestration (PR #2)
+### Session 4 - PR #9 Final Cleanup
+
+- Combined original PRs #9, #10, #11 into single PR #9
+- Fixed double-prefix bug in ai_zuul_integration
+- Created run_claude_code helper role
+- Integrated helper into ai_context_extraction and ai_code_review
+- Fixed all 68 remaining ansible-lint violations
+- Removed entire skip_list (empty)
+- Removed ai_zuul_integration from exclude_paths
+- Full production profile now enforced with zero violations

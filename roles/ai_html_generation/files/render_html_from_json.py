@@ -319,6 +319,26 @@ def escape_html(text: str) -> str:
             .replace("'", '&#39;'))
 
 
+def extract_review_data(data: Dict[str, Any]) -> Dict[str, Any]:
+    """Extract review data from Claude CLI wrapper if present.
+
+    Claude CLI with --json-schema returns a wrapper object:
+    {"type": "result", "structured_output": {...}, ...}
+
+    This function extracts the actual review data from structured_output
+    if present, otherwise returns the data as-is.
+
+    Args:
+        data: The loaded JSON data (may be wrapper or direct)
+
+    Returns:
+        The review data dictionary
+    """
+    if 'structured_output' in data and isinstance(data['structured_output'], dict):
+        return data['structured_output']
+    return data
+
+
 # Enhanced CSS with larger badges, collapsible sections, and color-coded backgrounds
 CSS_STYLES = """
 /* Base Styles */
@@ -622,6 +642,44 @@ strong {
 """
 
 
+def load_json_with_trailing_text(filepath: Path) -> Dict[str, Any]:
+    """Load JSON from a file that may have trailing text after the JSON.
+
+    Claude CLI sometimes outputs additional text after the JSON object.
+    This function handles that by using a JSON decoder that stops at the
+    end of the first complete JSON object.
+
+    Args:
+        filepath: Path to the JSON file
+
+    Returns:
+        Parsed JSON data
+
+    Raises:
+        FileNotFoundError: If file doesn't exist
+        json.JSONDecodeError: If no valid JSON found
+    """
+    content = filepath.read_text(encoding='utf-8')
+
+    # Try standard parsing first
+    try:
+        return json.loads(content)
+    except json.JSONDecodeError:
+        pass
+
+    # Try to parse just the JSON portion (handles trailing text)
+    decoder = json.JSONDecoder()
+    try:
+        data, _ = decoder.raw_decode(content)
+        return data
+    except json.JSONDecodeError as e:
+        raise json.JSONDecodeError(
+            f"No valid JSON found in file: {e.msg}",
+            e.doc,
+            e.pos
+        ) from e
+
+
 def main():
     """Main entry point."""
     parser = argparse.ArgumentParser(
@@ -645,15 +703,25 @@ def main():
 
     args = parser.parse_args()
 
-    # Read JSON file
+    # Read JSON file (handles trailing text from Claude CLI)
     try:
-        with args.json_file.open('r') as f:
-            review_data = json.load(f)
+        raw_data = load_json_with_trailing_text(args.json_file)
     except FileNotFoundError:
         print(f"Error: JSON file not found: {args.json_file}", file=sys.stderr)
         sys.exit(1)
     except json.JSONDecodeError as e:
         print(f"Error: Invalid JSON: {e}", file=sys.stderr)
+        sys.exit(1)
+
+    # Extract review data from Claude CLI wrapper if present
+    review_data = extract_review_data(raw_data)
+
+    # Check if structured_output was missing when expected
+    if 'structured_output' in raw_data and not isinstance(raw_data['structured_output'], dict):
+        print(
+            "Error: structured_output field exists but is not a dictionary",
+            file=sys.stderr
+        )
         sys.exit(1)
 
     # Validate required structure

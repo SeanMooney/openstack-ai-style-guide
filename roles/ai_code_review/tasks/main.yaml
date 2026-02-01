@@ -1,6 +1,6 @@
 ---
 # AI Code Review Role
-# Performs comprehensive code review using AI agent
+# Performs comprehensive code review using AI agent with structured output
 
 - name: Verify prerequisite context files exist
   ansible.builtin.stat:
@@ -11,6 +11,7 @@
     - "{{ ai_code_review_commit_summary_file }}"
     - "{{ ai_code_review_style_guide_quick_rules }}"
     - "{{ ai_code_review_style_guide_comprehensive }}"
+    - "{{ ai_code_review_json_schema }}"
 
 - name: Fail if prerequisite files missing
   ansible.builtin.fail:
@@ -31,67 +32,25 @@
 
       The project under review is located at: {{ ai_code_review_project_src_dir }}
 
-      Generate a structured JSON review report conforming to the review-report schema
-      with severity-categorized findings (critical, high, warnings, suggestions) and write it to
-      {{ ai_code_review_report_file }}
+      Generate a structured JSON review report conforming to the review-report-schema.json
+      with severity-categorized findings (critical, high, warnings, suggestions).
+      The output will be validated against the JSON schema automatically.
 
-- name: Execute code review with Claude
+- name: Execute code review with Claude (structured output)
   ansible.builtin.include_role:
     name: run_claude_code
   vars:
     run_claude_code_prompt_text: "{{ ai_code_review_review_prompt }}"
     run_claude_code_model_name: "{{ ai_code_review_model }}"
     run_claude_code_output_file: "{{ ai_code_review_report_file }}"
+    run_claude_code_json_schema: "{{ ai_code_review_json_schema }}"
+    run_claude_code_output_format: "json"
     run_claude_code_command_name: "code review"
     run_claude_code_working_dir: "{{ ai_code_review_project_src_dir }}"
     run_claude_code_claude_binary: "{{ ai_code_review_claude_binary }}"
     run_claude_code_anthropic_auth_token: "{{ ai_code_review_anthropic_auth_token }}"
     run_claude_code_anthropic_api_url: "{{ ai_code_review_anthropic_api_url }}"
 
-- name: Extract issue statistics from JSON report
-  ansible.builtin.shell:
-    cmd: >-
-      set -o pipefail &&
-      jq -r '.statistics |
-      "Critical: \(.critical), High: \(.high),
-      Warnings: \(.warnings), Suggestions: \(.suggestions),
-      Total: \(.total)"'
-      "{{ ai_code_review_report_file }}"
-    executable: /bin/bash
-  register: ai_code_review_issue_statistics
-  changed_when: false
-
-- name: Get total issue count from JSON
-  ansible.builtin.shell:
-    cmd: >-
-      set -o pipefail &&
-      jq -r '.statistics.total'
-      "{{ ai_code_review_report_file }}"
-    executable: /bin/bash
-  register: ai_code_review_issue_count_result
-  changed_when: false
-
-- name: Get critical + high issue count from JSON
-  ansible.builtin.shell:
-    cmd: >-
-      set -o pipefail &&
-      jq -r '(.statistics.critical + .statistics.high)'
-      "{{ ai_code_review_report_file }}"
-    executable: /bin/bash
-  register: ai_code_review_critical_high_count
-  changed_when: false
-
-- name: Set review result facts
-  ansible.builtin.set_fact:
-    ai_code_review_issue_count: "{{ ai_code_review_issue_count_result.stdout | int }}"
-    ai_code_review_critical_high_issues: "{{ ai_code_review_critical_high_count.stdout | int }}"
-    ai_code_review_has_issues: "{{ ai_code_review_issue_count_result.stdout | int > 0 }}"
-    ai_code_review_has_critical_issues: "{{ ai_code_review_critical_high_count.stdout | int > 0 }}"
-    ai_code_review_issue_statistics: "{{ ai_code_review_issue_statistics }}"
-
-- name: Display review summary
-  ansible.builtin.debug:
-    msg: |
-      Review Summary:
-      {{ ai_code_review_issue_statistics.stdout }}
-      Status: {{ 'NEEDS ATTENTION' if ai_code_review_has_critical_issues else ('HAS SUGGESTIONS' if ai_code_review_has_issues else 'CLEAN') }}
+# Claude CLI validates the structured_output against the schema automatically.
+# The downstream Python scripts (HTML generation, Zuul comments) handle
+# extracting the structured_output from the Claude CLI wrapper.

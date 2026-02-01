@@ -11,6 +11,8 @@
 # Optional variables:
 #   - run_claude_code_working_dir: Working directory for execution
 #   - run_claude_code_claude_binary: Path to Claude CLI (default: claude)
+#   - run_claude_code_json_schema: Path to JSON schema for structured output
+#   - run_claude_code_output_format: Output format (text, json, stream-json)
 
 - name: Validate required environment variables
   ansible.builtin.fail:
@@ -22,7 +24,25 @@
     - run_claude_code_anthropic_auth_token
     - run_claude_code_anthropic_api_url
 
-- name: Build Claude command
+- name: Check if JSON schema file exists
+  ansible.builtin.stat:
+    path: "{{ run_claude_code_json_schema }}"
+  register: run_claude_code_schema_stat
+  when: run_claude_code_json_schema | default('') != ''
+
+- name: Fail if JSON schema specified but not found
+  ansible.builtin.fail:
+    msg: >-
+      JSON schema file not found: {{ run_claude_code_json_schema }}
+  when:
+    - run_claude_code_json_schema | default('') != ''
+    - not run_claude_code_schema_stat.stat.exists
+
+- name: Determine if using structured output mode
+  ansible.builtin.set_fact:
+    run_claude_code_structured_mode: "{{ run_claude_code_json_schema | default('') != '' }}"
+
+- name: Build Claude command (standard mode)
   ansible.builtin.set_fact:
     # NOTE: Tool permissions are intentionally broad for CI automation:
     # - Bash: Required for git CLI operations (log, diff, status)
@@ -34,9 +54,24 @@
       {{ run_claude_code_claude_binary }}
       --print "{{ run_claude_code_prompt_text | replace('"', '\\"') }}"
       --model "{{ run_claude_code_model_name }}"
-      --output-format text
+      --output-format {{ run_claude_code_output_format | default('text') }}
       --allowedTools "Bash,Read,Write,Edit,Grep,Glob"
       --permission-mode acceptEdits
+  when: not run_claude_code_structured_mode
+
+- name: Build Claude command (structured output mode with JSON schema)
+  ansible.builtin.set_fact:
+    # When using structured output, Claude validates output against schema
+    # and returns JSON to stdout. We capture and save it to the output file.
+    run_claude_code_command: >-
+      {{ run_claude_code_claude_binary }}
+      --print "{{ run_claude_code_prompt_text | replace('"', '\\"') }}"
+      --model "{{ run_claude_code_model_name }}"
+      --output-format json
+      --json-schema "$(cat '{{ run_claude_code_json_schema }}')"
+      --allowedTools "Bash,Read,Write,Edit,Grep,Glob"
+      --permission-mode acceptEdits
+  when: run_claude_code_structured_mode
 
 - name: Display Claude command
   ansible.builtin.debug:
@@ -44,17 +79,26 @@
       Claude command (headless mode):
       {{ run_claude_code_command }}
 
-      Working directory: {{ run_claude_code_working_dir | default(ansible_user_dir) }}
+      Working directory: {{ run_claude_code_working_dir | default('(Ansible default)') }}
       Expected output: {{ run_claude_code_output_file }}
+      Structured output mode: {{ 'ENABLED' if run_claude_code_structured_mode else 'DISABLED' }}
+      {% if run_claude_code_structured_mode %}
+      JSON schema: {{ run_claude_code_json_schema }}
+      {% endif %}
 
-- name: "Run Claude in headless mode - {{ run_claude_code_command_name }}"
+- name: Log structured output mode status
+  ansible.builtin.debug:
+    msg: "Structured output mode: ENABLED - Claude CLI will validate output against JSON schema"
+  when: run_claude_code_structured_mode
+
+- name: "Run Claude in headless mode (standard) - {{ run_claude_code_command_name }}"
   ansible.builtin.shell:
     cmd: >-
       set -o pipefail &&
       {{ run_claude_code_command }} &&
       test -f '{{ run_claude_code_output_file }}'
     chdir: "{{ run_claude_code_working_dir | default(omit) }}"
-  register: run_claude_code_result
+  register: run_claude_code_result_standard
   environment:
     ANTHROPIC_AUTH_TOKEN: "{{ run_claude_code_anthropic_auth_token }}"
     ANTHROPIC_BASE_URL: "{{ run_claude_code_anthropic_api_url }}"
@@ -64,11 +108,75 @@
   delay: 10
   # Stop retrying on permanent errors (auth failures, model not found)
   until: >
-    run_claude_code_result.rc == 0 or
-    (run_claude_code_result.stderr | default('') is
+    run_claude_code_result_standard.rc == 0 or
+    (run_claude_code_result_standard.stderr | default('') is
       search('authentication|invalid.*key|unauthorized')) or
-    (run_claude_code_result.stderr | default('') is
+    (run_claude_code_result_standard.stderr | default('') is
       search('model.*not.*found|unknown.*model|invalid.*model'))
+  when: not run_claude_code_structured_mode
+
+- name: Ensure output directory exists
+  ansible.builtin.file:
+    path: "{{ run_claude_code_output_file | dirname }}"
+    state: directory
+    mode: '0755'
+
+- name: "Run Claude in headless mode (structured output) - {{ run_claude_code_command_name }}"
+  ansible.builtin.shell:
+    cmd: >-
+      set -o pipefail &&
+      {{ run_claude_code_command }} > '{{ run_claude_code_output_file }}' &&
+      if [ ! -s '{{ run_claude_code_output_file }}' ]; then
+        echo "ERROR: Output file is empty after command execution" >&2
+        exit 1
+      fi
+    chdir: "{{ run_claude_code_working_dir | default(omit) }}"
+  register: run_claude_code_result_structured
+  environment:
+    ANTHROPIC_AUTH_TOKEN: "{{ run_claude_code_anthropic_auth_token }}"
+    ANTHROPIC_BASE_URL: "{{ run_claude_code_anthropic_api_url }}"
+  failed_when: false
+  changed_when: true
+  retries: 3
+  delay: 10
+  # Stop retrying on permanent errors (auth failures, model not found)
+  # Note: Only stdout is redirected to file; stderr is captured by Ansible
+  until: >
+    run_claude_code_result_structured.rc == 0 or
+    (run_claude_code_result_structured.stderr | default('') is
+      search('authentication|invalid.*key|unauthorized')) or
+    (run_claude_code_result_structured.stderr | default('') is
+      search('model.*not.*found|unknown.*model|invalid.*model'))
+  when: run_claude_code_structured_mode
+
+- name: Set combined result variable
+  ansible.builtin.set_fact:
+    run_claude_code_result: >-
+      {{ run_claude_code_result_structured
+         if run_claude_code_structured_mode
+         else run_claude_code_result_standard }}
+
+- name: Verify structured output file exists and has content
+  ansible.builtin.stat:
+    path: "{{ run_claude_code_output_file }}"
+  register: run_claude_code_output_stat
+  when:
+    - run_claude_code_structured_mode
+    - run_claude_code_result.rc == 0
+
+- name: Debug structured output file contents
+  ansible.builtin.debug:
+    msg: |
+      Structured output file status:
+      - Exists: {{ run_claude_code_output_stat.stat.exists | default(false) }}
+      - Size: {{ run_claude_code_output_stat.stat.size | default(0) }} bytes
+      - Command return code: {{ run_claude_code_result.rc }}
+      - Command stdout length: {{ run_claude_code_result.stdout | default('') | length }}
+      - Command stderr length: {{ run_claude_code_result.stderr | default('') | length }}
+  when:
+    - run_claude_code_structured_mode
+    - run_claude_code_result.rc == 0
+    - run_claude_code_output_stat.stat.exists | default(false)
 
 - name: "Display retry summary - {{ run_claude_code_command_name }}"
   ansible.builtin.debug:

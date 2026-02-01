@@ -13,6 +13,10 @@ ai_code_review_style_guide_project: "openstack-ai-style-guide"
 ai_code_review_style_guide_quick_rules: "{{ ansible_user_dir }}/{{ ai_code_review_style_guide_project }}/docs/quick-rules.md"
 ai_code_review_style_guide_comprehensive: "{{ ansible_user_dir }}/{{ ai_code_review_style_guide_project }}/docs/comprehensive-guide.md"
 
+# JSON schema for structured output validation
+# This schema is passed to Claude CLI to ensure valid JSON generation
+ai_code_review_json_schema: "{{ ansible_user_dir }}/{{ ai_code_review_style_guide_project }}/schemas/review-report-schema.json"
+
 # Output file
 ai_code_review_report_file: "{{ ai_code_review_output_dir }}/review-report.json"
 
@@ -26,3 +30,6 @@ ai_code_review_project_src_dir: "{{ ansible_user_dir }}/{{ zuul.project.src_dir 
 ai_code_review_claude_binary: "claude"
 ai_code_review_anthropic_auth_token: ""
 ai_code_review_anthropic_api_url: ""
+
+# Virtual environment for Python scripts (validation, repair)
+ai_code_review_venv_dir: "{{ ansible_user_dir }}/.venv"

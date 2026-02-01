@@ -7,7 +7,8 @@ run_claude_code_prompt_text: ""
 # Model to use for this execution
 run_claude_code_model_name: "glm-4.5-air"
 
-# Expected output file path (Claude is instructed to write here)
+# Expected output file path (Claude is instructed to write here, or
+# where structured output JSON will be saved)
 run_claude_code_output_file: ""
 
 # Human-readable name for log messages (e.g., "context extraction")
@@ -24,3 +25,13 @@ run_claude_code_anthropic_api_url: ""
 
 # Working directory for command execution (optional)
 run_claude_code_working_dir: ""
+
+# Optional: Path to JSON schema file for structured output
+# When provided, Claude CLI uses --json-schema flag to guarantee
+# output conforms to the schema. The validated JSON is written
+# to run_claude_code_output_file.
+run_claude_code_json_schema: ""
+
+# Output format for Claude CLI (text, json, stream-json)
+# When using structured output with json_schema, this should be "json"
+run_claude_code_output_format: "text"

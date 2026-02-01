@@ -38,10 +38,10 @@
 
       # Model selection (can be overridden by child jobs)
       haiku_model: "glm-4.5-air"
-      sonnet_model: "glm-4.6"
-      opus_model: "glm-4.6"
+      sonnet_model: "glm-4.7"
+      opus_model: "glm-4.7"
       context_model: "glm-4.5-air"
-      review_model: "glm-4.6"
+      review_model: "glm-4.7"
 
       # Anthropic-compatible endpoint served by LiteLLM
       anthropic_api_url: "http://litellm.zuul-system.svc.cluster.local:4000"

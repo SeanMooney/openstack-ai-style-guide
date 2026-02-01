@@ -50,7 +50,7 @@
     chdir: "{{ working_dir | default(omit) }}"
   register: command_result
   environment:
-    ANTHROPIC_AUTH_TOKEN: "{{ anthropic_auth_token }}"
+    ANTHROPIC_API_KEY: "{{ anthropic_auth_token }}"
     ANTHROPIC_BASE_URL: "{{ anthropic_api_url }}"
   failed_when: false
   retries: 3

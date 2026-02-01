@@ -44,6 +44,9 @@
     run_claude_code_output_file: "{{ ai_code_review_report_file }}"
     run_claude_code_command_name: "code review"
     run_claude_code_working_dir: "{{ ai_code_review_project_src_dir }}"
+    run_claude_code_claude_binary: "{{ ai_code_review_claude_binary }}"
+    run_claude_code_anthropic_auth_token: "{{ ai_code_review_anthropic_auth_token }}"
+    run_claude_code_anthropic_api_url: "{{ ai_code_review_anthropic_api_url }}"
 
 - name: Extract issue statistics from JSON report
   ansible.builtin.shell:

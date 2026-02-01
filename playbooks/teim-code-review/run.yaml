@@ -64,6 +64,9 @@
         ai_code_review_report_file: "{{ review_report_file }}"
         ai_code_review_output_dir: "{{ review_output_dir }}"
         ai_code_review_project_src_dir: "{{ ansible_user_dir }}/{{ zuul.project.src_dir }}"
+        ai_code_review_claude_binary: "{{ claude_binary }}"
+        ai_code_review_anthropic_auth_token: "{{ anthropic_auth_token }}"
+        ai_code_review_anthropic_api_url: "{{ anthropic_api_url }}"
 
     - name: Generate HTML report
       ansible.builtin.include_role:

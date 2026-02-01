@@ -2,7 +2,7 @@
 # Default variables for ai_code_review role
 
 # Model to use for code review (typically most capable model)
-ai_code_review_model: "glm-4.6"
+ai_code_review_model: "glm-4.7"
 
 # Input files (from context extraction)
 ai_code_review_context_output_file: "{{ ai_code_review_output_dir }}/zuul-context.md"

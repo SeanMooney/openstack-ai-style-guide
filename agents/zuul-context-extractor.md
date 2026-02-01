@@ -281,51 +281,27 @@ This subagent follows context engineering best practices:
 4. **Agent-oriented:** Frame output for downstream automation, not human readers
 5. **Comprehensive extraction:** Include all potentially relevant variables, even if not immediately obvious
 
-## Output File Creation and Verification
+## Output File Creation
 
-After completing your analysis, you MUST write the report to the specified output file:
+Write your markdown report to `{{ output_file }}` using the Write tool.
 
-### 1. Use the Write Tool
+**Requirements:**
 
-Write your complete markdown report using the Write tool with the absolute path provided:
+- Use the Write tool with the exact path provided (already absolute)
+- Write complete markdown content in a single Write call
+- Do NOT use shell redirection, echo, or other methods
+- Verify the file exists after writing with `ls -lh {{ output_file }}`
 
-- **Output path**: `{{ output_file }}` (this is an absolute path)
-- **Do NOT use**: Bash redirection (`>`), echo commands, or other shell methods
-- **Content**: The complete structured context summary in markdown format
+**Required Sections** (include all, even if minimal):
 
-### 2. Use Absolute Paths
+1. `# Zuul CI Execution Context` (title)
+2. `## Change Information` (project, branch, pipeline, change ID)
+3. `## Workspace Locations` (paths to source, logs, projects)
+4. `## Execution Environment` (nodes, configuration)
+5. `## Git Context` (repository state)
+6. `## Usage Guidelines for Code Review Agents` (summary)
 
-The output file path is already absolute. Use it exactly as provided without modification:
-
-- ✓ Correct: Write directly to `{{ output_file }}`
-- ✗ Wrong: Modifying the path or making it relative
-- ✗ Wrong: Writing to any of the workspace directories you analyzed
-
-### 3. Verify File Creation
-
-After writing the file, verify it was created successfully:
-
-```bash
-# Verify file exists and check size
-ls -lh {{ output_file }}
-```
-
-### 4. Confirm Completion
-
-End your execution by stating: "✓ Zuul context written to {{ output_file }}"
-
-### 5. Error Handling
-
-If file creation fails:
-
-1. Check current working directory: `pwd`
-2. Verify parent directory exists: `ls -ld $(dirname {{ output_file }})`
-3. Create parent directory if needed: `mkdir -p $(dirname {{ output_file }})`
-4. Retry write operation using Write tool with absolute path
-5. If still failing, report the specific error message
-
-**CRITICAL**: The playbook validation will fail if this file is not created at the exact expected location.
-  File creation is a REQUIRED step for successful completion.
+End with: "✓ Zuul context written to {{ output_file }}"
 
 ## Error Handling
 

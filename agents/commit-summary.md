@@ -205,46 +205,26 @@ This subagent follows context engineering best practices:
 4. **External reference tracking:** Preserve all links to bugs, blueprints, and related changes
 5. **Reviewer-centric:** Frame information to answer "What should I review and why?"
 
-## Output File Creation and Verification
+## Output File Creation
 
-After completing your analysis, you MUST write the report to the specified output file:
+Write your markdown report to `{{ output_file }}` using the Write tool.
 
-### 1. Use the Write Tool
-Write your complete markdown report using the Write tool with the absolute path provided:
-- **Output path**: `{{ output_file }}` (this is an absolute path)
-- **Do NOT use**: Bash redirection (`>`), echo commands, or other shell methods
-- **Content**: The complete structured summary in markdown format
+**Requirements:**
+- Use the Write tool with the exact path provided (already absolute)
+- Write complete markdown content in a single Write call
+- Do NOT use shell redirection, echo, or other methods
+- Verify the file exists after writing with `ls -lh {{ output_file }}`
 
-### 2. Use Absolute Paths
-The output file path is already absolute. Use it exactly as provided without modification:
-- ✓ Correct: Write directly to `{{ output_file }}`
-- ✗ Wrong: Modifying the path or making it relative
-- ✗ Wrong: Writing to the current working directory
+**Required Sections** (include all, mark "N/A" if empty):
+1. `# Commit Summary for Review` (title)
+2. `## Metadata` (hash, author, date, subject)
+3. `## External References` (bugs, features, changes, impact flags)
+4. `## File Tree` (ASCII tree of modified files)
+5. `## Change Summary` (what changed, why, scope, key files)
+6. `## Review Focus Areas` (2-4 specific areas for reviewers)
+7. `## Additional Context` (optional: testing notes, limitations)
 
-### 3. Verify File Creation
-After writing the file, verify it was created successfully:
-
-```bash
-# Verify file exists and check size
-ls -lh {{ output_file }}
-```
-
-### 4. Confirm Completion
-
-End your execution by stating: "✓ Commit summary written to {{ output_file }}"
-
-### 5. Error Handling
-
-If file creation fails:
-
-1. Check current working directory: `pwd`
-2. Verify parent directory exists: `ls -ld $(dirname {{ output_file }})`
-3. Create parent directory if needed: `mkdir -p $(dirname {{ output_file }})`
-4. Retry write operation using Write tool with absolute path
-5. If still failing, report the specific error message
-
-**CRITICAL**: The playbook validation will fail if this file is not created at the exact
-expected location. File creation is a REQUIRED step for successful completion.
+End with: "✓ Commit summary written to {{ output_file }}"
 
 ## Error Handling
 

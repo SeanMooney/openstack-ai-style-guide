@@ -1,0 +1,102 @@
+---
+- name: Converge
+  hosts: all
+  gather_facts: false
+  vars:
+    ai_zuul_integration_review_output_dir: "/tmp/zuul-integration-test"
+    ai_zuul_integration_venv_dir: "/tmp/test-venv"
+    ansible_user_dir: "/tmp"
+
+  tasks:
+    - name: Install python3-venv package
+      ansible.builtin.apt:
+        name: python3-venv
+        state: present
+        update_cache: true
+
+    - name: Create test directories
+      ansible.builtin.file:
+        path: "{{ item }}"
+        state: directory
+        mode: '0755'
+      loop:
+        - "{{ ai_zuul_integration_review_output_dir }}"
+        - "{{ ansible_user_dir }}"
+
+    - name: Create Python virtual environment
+      ansible.builtin.command:
+        cmd: python3 -m venv {{ ai_zuul_integration_venv_dir }}
+        creates: "{{ ai_zuul_integration_venv_dir }}/bin/python3"
+
+    - name: Create realistic test review report JSON with issues
+      ansible.builtin.copy:
+        dest: "{{ ai_zuul_integration_review_output_dir }}/review-report.json"
+        content: |
+          {
+            "context": {
+              "change": "12345",
+              "scope": "Modified roles/ai_code_review",
+              "impact": "Adds structured output support"
+            },
+            "statistics": {
+              "critical": 1,
+              "high": 0,
+              "warnings": 1,
+              "suggestions": 0,
+              "total": 2
+            },
+            "issues": {
+              "critical": [
+                {
+                  "description": "Security issue",
+                  "confidence": 0.9,
+                  "location": "roles/ai_code_review/tasks/main.yaml:50",
+                  "risk": "High",
+                  "remediation_priority": "Immediate",
+                  "why_matters": "Allows unauthorized access",
+                  "recommendation": "Add authentication"
+                }
+              ],
+              "high": [],
+              "warnings": [
+                {
+                  "description": "Line too long",
+                  "confidence": 1.0,
+                  "location": "roles/ai_code_review/tasks/main.yaml:75",
+                  "impact": "Readability",
+                  "suggestion": "Break into multiple lines"
+                }
+              ],
+              "suggestions": []
+            },
+            "positive_observations": [],
+            "summary": {
+              "assessment": "Needs improvements",
+              "priority_focus": "Security",
+              "detailed_summary": "One critical security issue found"
+            }
+          }
+        mode: '0644'
+
+    - name: Create dummy HTML report file
+      ansible.builtin.copy:
+        dest: "{{ ai_zuul_integration_review_output_dir }}/review-report.html"
+        content: "<html><body>Test HTML report</body></html>"
+        mode: '0644'
+
+    - name: Copy Zuul integration scripts to expected location
+      ansible.builtin.copy:
+        src: "{{ item }}"
+        dest: "{{ ansible_user_dir }}/{{ item | basename }}"
+        mode: '0755'
+      loop:
+        - "{{ playbook_dir }}/../../files/generate_zuul_comments.py"
+        - "{{ playbook_dir }}/../../files/validate_zuul_schema.py"
+
+    - name: Run role to generate Zuul comments
+      ansible.builtin.include_role:
+        name: ai_zuul_integration
+      vars:
+        ai_zuul_integration_review_report_file: "{{ ai_zuul_integration_review_output_dir }}/review-report.json"
+        ai_zuul_integration_html_report_file: "{{ ai_zuul_integration_review_output_dir }}/review-report.html"
+        ai_zuul_integration_zuul_comments_file: "{{ ai_zuul_integration_review_output_dir }}/zuul-return-data.json"

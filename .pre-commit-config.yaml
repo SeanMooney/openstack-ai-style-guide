@@ -36,14 +36,14 @@ repos:
     hooks:
       # Run the linter
       - id: ruff
-        args: [--fix]
+        args: ["--fix", "--unsafe-fixes"]
 
   # Markdownlint - Markdown linting
   - repo: https://github.com/DavidAnson/markdownlint-cli2
     rev: v0.18.1
     hooks:
       - id: markdownlint-cli2
-        args: [--fix]
+        args: ["--fix"]
         exclude: ^references/MarkdownLintRules\.md$
 
   # Ansible-lint - Ansible best practices linting

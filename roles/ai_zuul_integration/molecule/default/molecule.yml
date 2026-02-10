@@ -1,0 +1,43 @@
+---
+dependency:
+  name: galaxy
+driver:
+  name: docker
+platforms:
+  - name: instance
+    image: geerlingguy/docker-ubuntu2404-ansible:latest
+    pre_build_image: true
+    pull: true
+provisioner:
+  name: ansible
+  env:
+    ANSIBLE_ROLES_PATH: "${MOLECULE_PROJECT_DIRECTORY}/../..:${MOLECULE_PROJECT_DIRECTORY}/../../roles"
+    ANSIBLE_LIBRARY: "${MOLECULE_SCENARIO_DIRECTORY}/library"
+  config_options:
+    defaults:
+      callbacks_enabled: profile_tasks,timer
+      remote_tmp: /tmp/.ansible/tmp
+      local_tmp: /tmp/.ansible/tmp
+  inventory:
+    host_vars:
+      instance:
+        ansible_python_interpreter: /usr/bin/python3
+  playbooks:
+    converge: converge.yml
+    verify: verify.yml
+verifier:
+  name: ansible
+role_name_check: 0
+scenario:
+  test_sequence:
+    - dependency
+    - cleanup
+    - destroy
+    - syntax
+    - create
+    - prepare
+    - converge
+    - side_effect
+    - verify
+    - cleanup
+    - destroy

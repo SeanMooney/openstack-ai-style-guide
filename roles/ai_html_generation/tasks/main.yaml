@@ -5,7 +5,7 @@
 - name: Create virtual environment for HTML generation
   ansible.builtin.command: python3 -m venv {{ ai_html_generation_venv_dir }}
   args:
-    creates: "{{ ai_html_generation_venv_dir }}"
+    creates: "{{ ai_html_generation_venv_dir }}/bin/python3"
 
 - name: Copy HTML renderer script
   ansible.builtin.copy:

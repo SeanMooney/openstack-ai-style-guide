@@ -1,5 +1,7 @@
 ---
 galaxy_info:
+  role_name: ai_html_generation
+  namespace: internal
   author: Sean Mooney
   description: Generate enhanced HTML reports from JSON code review data
   company: Red Hat

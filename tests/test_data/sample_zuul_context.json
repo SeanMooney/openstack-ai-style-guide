@@ -1,0 +1,12 @@
+{
+  "zuul": {
+    "change": "12345",
+    "patchset": "6",
+    "project": {
+      "name": "openstack/test-project",
+      "hostname": "opendev.org"
+    },
+    "branch": "main",
+    "ref": "refs/changes/45/12345/6"
+  }
+}

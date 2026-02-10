@@ -1,0 +1,57 @@
+{
+  "context": {
+    "change": "12345",
+    "scope": "Modified roles/ai_code_review",
+    "impact": "Adds structured output"
+  },
+  "statistics": {
+    "critical": 1,
+    "high": 0,
+    "warnings": 2,
+    "suggestions": 1,
+    "total": 4
+  },
+  "issues": {
+    "critical": [
+      {
+        "description": "Security issue",
+        "confidence": 0.9,
+        "location": "roles/ai_code_review/tasks/main.yaml:50",
+        "risk": "High",
+        "remediation_priority": "Immediate",
+        "why_matters": "Allows unauthorized access",
+        "recommendation": "Add authentication"
+      }
+    ],
+    "high": [],
+    "warnings": [
+      {
+        "description": "Line too long",
+        "confidence": 1.0,
+        "location": "roles/ai_code_review/tasks/main.yaml:75",
+        "impact": "Readability",
+        "suggestion": "Break into multiple lines"
+      }
+    ],
+    "suggestions": [
+      {
+        "description": "Use autospec=True",
+        "confidence": 0.8,
+        "location": "roles/ai_code_review/tasks/main.yaml:100",
+        "benefit": "Better mock safety",
+        "recommendation": "Add autospec=True parameter"
+      }
+    ]
+  },
+  "positive_observations": [
+    {
+      "category": "Structure",
+      "observation": "Good task organization"
+    }
+  ],
+  "summary": {
+    "assessment": "Needs improvements",
+    "priority_focus": "Security",
+    "detailed_summary": "One critical security issue found"
+  }
+}

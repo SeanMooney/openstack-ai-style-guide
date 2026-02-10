@@ -1,0 +1,122 @@
+---
+- name: Converge
+  hosts: all
+  gather_facts: false
+  vars:
+    ai_code_review_output_dir: "/tmp/code-review-test"
+    ai_code_review_project_src_dir: "/tmp/project"
+    ai_code_review_anthropic_auth_token: "test_token"
+    ai_code_review_anthropic_api_url: "http://localhost:8080"
+    ansible_user_dir: "/tmp"
+
+  tasks:
+    - name: Create test directories
+      ansible.builtin.file:
+        path: "{{ item }}"
+        state: directory
+        mode: '0755'
+      loop:
+        - "{{ ai_code_review_output_dir }}"
+        - "{{ ai_code_review_project_src_dir }}"
+        - "/tmp/openstack-ai-style-guide/docs"
+        - "/tmp/openstack-ai-style-guide/schemas"
+
+    - name: Create mock Claude CLI script
+      ansible.builtin.copy:
+        dest: /usr/local/bin/mock-claude-review
+        mode: '0755'
+        content: |
+          #!/bin/bash
+          # Mock Claude CLI that writes valid review JSON
+          # Output JSON to stdout first (for structured output mode)
+          cat << 'EOF'
+          {
+            "type": "result",
+            "structured_output": {
+              "context": {"change": "12345", "scope": "Test", "impact": "Test impact"},
+              "statistics": {"critical": 0, "high": 0, "warnings": 0, "suggestions": 0, "total": 0},
+              "issues": {"critical": [], "high": [], "warnings": [], "suggestions": []},
+              "positive_observations": [],
+              "summary": {"assessment": "Ready", "priority_focus": "None", "detailed_summary": "Test review"}
+            }
+          }
+          EOF
+          # Also write to file (role will redirect stdout to file, so this ensures file exists)
+          # Note: The role redirects stdout to the file, so the heredoc above goes to the file
+
+    - name: Create prerequisite context files
+      ansible.builtin.copy:
+        dest: "{{ ai_code_review_output_dir }}/{{ item.name }}"
+        content: "{{ item.content }}"
+        mode: '0644'
+      loop:
+        - name: "zuul-context.md"
+          content: "# Zuul Context\n\nTest context"
+        - name: "commit-summary.md"
+          content: "# Commit Summary\n\nTest commit"
+
+    - name: Create prerequisite style guide files
+      ansible.builtin.copy:
+        dest: "/tmp/{{ item.name }}"
+        content: "{{ item.content }}"
+        mode: '0644'
+      loop:
+        - name: "openstack-ai-style-guide/docs/quick-rules.md"
+          content: "# Quick Rules\n\nTest rules"
+        - name: "openstack-ai-style-guide/docs/comprehensive-guide.md"
+          content: "# Comprehensive Guide\n\nTest guide"
+
+    - name: Create prerequisite JSON schema file
+      ansible.builtin.copy:
+        dest: "/tmp/openstack-ai-style-guide/schemas/review-report-schema.json"
+        content: |
+          {
+            "type": "object",
+            "properties": {
+              "context": {"type": "object"},
+              "statistics": {"type": "object"},
+              "issues": {"type": "object"},
+              "summary": {"type": "object"}
+            }
+          }
+        mode: '0644'
+
+    - name: Run role with all prerequisites - success path
+      ansible.builtin.include_role:
+        name: ai_code_review
+      vars:
+        ai_code_review_claude_binary: mock-claude-review
+        ai_code_review_model: "test-model"
+        ai_code_review_style_guide_project: "openstack-ai-style-guide"
+      register: ai_code_review_role_result_success
+
+    - name: Verify role succeeded
+      ansible.builtin.assert:
+        that:
+          - ai_code_review_role_result_success is not failed
+        fail_msg: "Role should have succeeded with all prerequisites"
+
+    - name: Test validation failure - missing prerequisite file
+      block:
+        - name: Include role with missing prerequisite
+          ansible.builtin.include_role:
+            name: ai_code_review
+          vars:
+            ai_code_review_claude_binary: mock-claude-review
+            ai_code_review_model: "test-model"
+            ai_code_review_style_guide_project: "openstack-ai-style-guide"
+            ai_code_review_style_guide_quick_rules: "/tmp/missing-file.md"
+      rescue:
+        - name: Capture expected failure
+          ansible.builtin.set_fact:
+            ai_code_review_role_result_fail:
+              failed: true
+              msg: "{{ ansible_failed_result.msg | default('Role failed as expected') }}"
+      always:
+        - name: Verify role failed as expected
+          ansible.builtin.assert:
+            that:
+              - ai_code_review_role_result_fail is defined
+              - ai_code_review_role_result_fail.failed | default(false) | bool
+            fail_msg: "Role should have failed with missing prerequisite file"
+            success_msg: "Role correctly failed with missing prerequisite file"

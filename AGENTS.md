@@ -300,3 +300,106 @@ Job definitions in `zuul.d/jobs.yaml` reference the organized structure:
 - Role variables are set in the job's `vars:` section
 - Roles themselves remain generic and reusable
 - Each job can customize role behavior through variables
+
+## Testing and Linting Commands
+
+This repository uses `uvx` (via `uv`) to run tests and linters without requiring
+local Python environment setup. All commands should be run from the repository
+root.
+
+### Unit Tests
+
+Run all unit tests using stestr:
+
+```bash
+uvx tox -e py3
+```
+
+Run specific test files or patterns:
+
+```bash
+uvx tox -e py3 -- tests/unit/test_render_html.py
+uvx tox -e py3 -- tests.unit.test_tools
+```
+
+Run tests with coverage reporting:
+
+```bash
+uvx tox -e cover
+```
+
+### Molecule Tests
+
+Molecule tests require Docker and the `molecule-plugins[docker]` package.
+
+**Run molecule tests for a specific role:**
+
+```bash
+cd roles/<role-name>
+uvx --with molecule-plugins[docker] molecule test
+```
+
+**Example:**
+
+```bash
+cd roles/run_claude_code
+uvx --with molecule-plugins[docker] molecule test
+```
+
+**Run molecule tests for all roles:**
+
+```bash
+uvx tox -e molecule
+```
+
+This runs the `scripts/run-molecule-all.sh` script which executes `make molecule`
+for each role with molecule tests.
+
+**Note:** Molecule tests are located in `roles/<role-name>/molecule/default/`
+following the conventional Ansible layout. The `--with molecule-plugins[docker]`
+flag ensures the Docker driver is available. Individual role Makefiles call
+`molecule test` directly, so when running manually you must use `uvx` to ensure
+the correct environment.
+
+### Linters
+
+Run all linters (pre-commit hooks):
+
+```bash
+uvx tox -e linters
+```
+
+This runs:
+
+- Trailing whitespace and line ending checks
+- YAML/JSON validation
+- Ruff (Python linting and formatting)
+- Markdownlint (Markdown style checks)
+- Ansible-lint (Ansible best practices)
+- Apache license header verification
+
+Run individual pre-commit hooks:
+
+```bash
+uvx pre-commit run <hook-id> --all-files
+```
+
+**Example:**
+
+```bash
+uvx pre-commit run ruff --all-files
+uvx pre-commit run ansible-lint --all-files
+```
+
+### Quick Test Summary
+
+```bash
+# Unit tests
+uvx tox -e py3
+
+# Linters
+uvx tox -e linters
+
+# Molecule tests (requires Docker)
+cd roles/run_claude_code && uvx --with molecule-plugins[docker] molecule test
+```

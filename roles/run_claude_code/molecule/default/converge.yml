@@ -1,0 +1,82 @@
+---
+- name: Converge
+  hosts: all
+  gather_facts: false
+  vars:
+    run_claude_code_output_file: "/tmp/test_output.json"
+    run_claude_code_json_schema: "/tmp/test_schema.json"
+    run_claude_code_anthropic_auth_token: "test_token"
+    run_claude_code_anthropic_api_url: "http://localhost:8080"
+
+  tasks:
+    - name: Create mock Claude CLI script
+      ansible.builtin.copy:
+        dest: /usr/local/bin/mock-claude
+        mode: '0755'
+        content: |
+          #!/bin/bash
+          # Mock Claude CLI that writes valid structured output JSON
+          # Parses --output-format and --json-schema args
+          if echo "$@" | grep -q "json"; then
+            # Structured output mode - write JSON to stdout
+            echo '{"type":"result","structured_output":{"test":"pass","context":{"change":"12345"},"statistics":{"total":1}}}'
+          else
+            # Standard mode - write text
+            echo "Mock Claude CLI output"
+          fi
+
+    - name: Create test JSON schema file
+      ansible.builtin.copy:
+        dest: "{{ run_claude_code_json_schema }}"
+        content: '{"type":"object","properties":{"test":{"type":"string"}}}'
+        mode: '0644'
+
+    - name: Ensure output directory exists
+      ansible.builtin.file:
+        path: "{{ run_claude_code_output_file | dirname }}"
+        state: directory
+        mode: '0755'
+
+    - name: Run role with mock Claude CLI (structured output) - success path
+      ansible.builtin.include_role:
+        name: run_claude_code
+      vars:
+        run_claude_code_claude_binary: mock-claude
+        run_claude_code_model_name: "test-model"
+        run_claude_code_prompt_text: "Test prompt"
+        run_claude_code_command_name: "molecule test"
+      register: run_claude_code_role_result_success
+
+    - name: Verify role succeeded
+      ansible.builtin.assert:
+        that:
+          - run_claude_code_role_result_success is not failed
+        fail_msg: "Role should have succeeded with valid vars"
+
+    - name: Test validation failure - missing auth token
+      block:
+        - name: Include role with missing auth token
+          ansible.builtin.include_role:
+            name: run_claude_code
+          vars:
+            run_claude_code_claude_binary: mock-claude
+            run_claude_code_model_name: "test-model"
+            run_claude_code_prompt_text: "Test prompt"
+            run_claude_code_output_file: "/tmp/test_fail.json"
+            run_claude_code_command_name: "molecule test"
+            run_claude_code_anthropic_auth_token: ""
+            run_claude_code_anthropic_api_url: ""
+      rescue:
+        - name: Capture expected failure
+          ansible.builtin.set_fact:
+            run_claude_code_role_result_fail:
+              failed: true
+              msg: "{{ ansible_failed_result.msg | default('Role failed as expected') }}"
+      always:
+        - name: Verify role failed as expected
+          ansible.builtin.assert:
+            that:
+              - run_claude_code_role_result_fail is defined
+              - run_claude_code_role_result_fail.failed | default(false) | bool
+            fail_msg: "Role should have failed with missing auth token"
+            success_msg: "Role correctly failed with missing auth token"

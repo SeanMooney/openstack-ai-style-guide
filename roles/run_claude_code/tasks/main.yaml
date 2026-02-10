@@ -97,6 +97,7 @@
       set -o pipefail &&
       {{ run_claude_code_command }} &&
       test -f '{{ run_claude_code_output_file }}'
+    executable: /bin/bash
     chdir: "{{ run_claude_code_working_dir | default(omit) }}"
   register: run_claude_code_result_standard
   environment:
@@ -130,6 +131,7 @@
         echo "ERROR: Output file is empty after command execution" >&2
         exit 1
       fi
+    executable: /bin/bash
     chdir: "{{ run_claude_code_working_dir | default(omit) }}"
   register: run_claude_code_result_structured
   environment:

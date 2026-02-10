@@ -1,0 +1,84 @@
+---
+- name: Converge
+  hosts: all
+  gather_facts: false
+  vars:
+    ai_html_generation_review_output_dir: "/tmp/html-gen-test"
+    ai_html_generation_venv_dir: "/tmp/test-venv"
+    ansible_user_dir: "/tmp"
+
+  tasks:
+    - name: Install python3-venv package
+      ansible.builtin.apt:
+        name: python3-venv
+        state: present
+        update_cache: true
+
+    - name: Create test directories
+      ansible.builtin.file:
+        path: "{{ item }}"
+        state: directory
+        mode: '0755'
+      loop:
+        - "{{ ai_html_generation_review_output_dir }}"
+        - "{{ ansible_user_dir }}"
+
+    - name: Create realistic test review report JSON
+      ansible.builtin.copy:
+        dest: "{{ ai_html_generation_review_output_dir }}/review-report.json"
+        content: |
+          {
+            "context": {
+              "change": "12345",
+              "scope": "Modified roles/ai_code_review",
+              "impact": "Adds structured output support"
+            },
+            "statistics": {
+              "critical": 1,
+              "high": 2,
+              "warnings": 3,
+              "suggestions": 1,
+              "total": 7
+            },
+            "issues": {
+              "critical": [
+                {
+                  "description": "Security vulnerability",
+                  "confidence": 0.95,
+                  "location": "roles/ai_code_review/tasks/main.yaml:25",
+                  "risk": "High",
+                  "remediation_priority": "Immediate",
+                  "why_matters": "Allows unauthorized access",
+                  "recommendation": "Add authentication check"
+                }
+              ],
+              "high": [],
+              "warnings": [],
+              "suggestions": []
+            },
+            "positive_observations": [
+              {
+                "category": "Code Quality",
+                "observation": "Good structure"
+              }
+            ],
+            "summary": {
+              "assessment": "Needs improvements",
+              "priority_focus": "Security",
+              "detailed_summary": "Multiple security issues found"
+            }
+          }
+        mode: '0644'
+
+    - name: Copy HTML renderer script to expected location  # noqa: no-relative-paths
+      ansible.builtin.copy:
+        src: "{{ playbook_dir }}/../../files/render_html_from_json.py"
+        dest: "{{ ansible_user_dir }}/render_html_from_json.py"
+        mode: '0755'
+
+    - name: Run role to generate HTML report
+      ansible.builtin.include_role:
+        name: ai_html_generation
+      vars:
+        ai_html_generation_review_report_file: "{{ ai_html_generation_review_output_dir }}/review-report.json"
+        ai_html_generation_html_report_file: "{{ ai_html_generation_review_output_dir }}/review-report.html"

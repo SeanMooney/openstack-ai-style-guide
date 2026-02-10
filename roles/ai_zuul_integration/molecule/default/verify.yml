@@ -1,0 +1,64 @@
+---
+- name: Verify
+  hosts: all
+  gather_facts: false
+  tasks:
+    - name: Check if Zuul comments JSON file exists
+      ansible.builtin.stat:
+        path: /tmp/zuul-integration-test/zuul-return-data.json
+      register: ai_zuul_integration_zuul_comments_file
+
+    - name: Verify Zuul comments file exists
+      ansible.builtin.assert:
+        that:
+          - ai_zuul_integration_zuul_comments_file.stat.exists
+          - ai_zuul_integration_zuul_comments_file.stat.size > 0
+        fail_msg: "Zuul comments JSON file was not created"
+        success_msg: "Zuul comments JSON file created successfully"
+
+    - name: Read Zuul comments file content
+      ansible.builtin.slurp:
+        src: /tmp/zuul-integration-test/zuul-return-data.json
+      register: ai_zuul_integration_comments_content
+
+    - name: Parse Zuul comments JSON
+      ansible.builtin.set_fact:
+        ai_zuul_integration_parsed_json: "{{ (ai_zuul_integration_comments_content.content | b64decode | trim) | from_json }}"
+
+    - name: Verify comments file contains valid JSON
+      ansible.builtin.assert:
+        that:
+          - ai_zuul_integration_parsed_json is mapping
+        fail_msg: "Zuul comments file does not contain valid JSON"
+        success_msg: "Zuul comments file contains valid JSON"
+
+    - name: Verify comments file contains zuul.file_comments structure
+      ansible.builtin.assert:
+        that:
+          - ai_zuul_integration_parsed_json.zuul is defined
+          - ai_zuul_integration_parsed_json.zuul.file_comments is defined
+        fail_msg: "Zuul comments file does not contain expected zuul.file_comments structure"
+        success_msg: "Zuul comments file contains expected zuul.file_comments structure"
+
+    - name: Verify comments reference issues from test review JSON
+      ansible.builtin.assert:
+        that:
+          - ai_zuul_integration_parsed_json.zuul.file_comments | length > 0
+        fail_msg: "Zuul comments file does not contain any file comments"
+        success_msg: "Zuul comments file contains file comments"
+
+    - name: Verify scripts were copied
+      ansible.builtin.stat:
+        path: "{{ item }}"
+      register: ai_zuul_integration_script_files
+      loop:
+        - /tmp/generate_zuul_comments.py
+        - /tmp/validate_zuul_schema.py
+
+    - name: Verify scripts exist
+      ansible.builtin.assert:
+        that:
+          - item.stat.exists
+        fail_msg: "Script {{ item.item }} was not copied"
+        success_msg: "Script {{ item.item }} copied successfully"
+      loop: "{{ ai_zuul_integration_script_files.results }}"

@@ -1,0 +1,41 @@
+---
+- name: Verify
+  hosts: all
+  gather_facts: false
+  tasks:
+    - name: Check if output file exists
+      ansible.builtin.stat:
+        path: /tmp/test_output.json
+      register: run_claude_code_output_file
+
+    - name: Verify output file exists
+      ansible.builtin.assert:
+        that:
+          - run_claude_code_output_file.stat.exists
+          - run_claude_code_output_file.stat.size > 0
+        fail_msg: "Output file was not created or is empty"
+        success_msg: "Output file created successfully"
+
+    - name: Read output file content
+      ansible.builtin.slurp:
+        src: /tmp/test_output.json
+      register: run_claude_code_output_content
+
+    - name: Parse output JSON
+      ansible.builtin.set_fact:
+        run_claude_code_parsed_json: "{{ (run_claude_code_output_content.content | b64decode | trim) | from_json }}"
+
+    - name: Verify output contains valid JSON
+      ansible.builtin.assert:
+        that:
+          - run_claude_code_parsed_json is mapping
+        fail_msg: "Output file does not contain valid JSON"
+        success_msg: "Output file contains valid JSON"
+
+    - name: Verify output contains expected structure
+      ansible.builtin.assert:
+        that:
+          - run_claude_code_parsed_json.type is defined
+          - run_claude_code_parsed_json.structured_output is defined
+        fail_msg: "Output JSON does not contain expected structure"
+        success_msg: "Output JSON contains expected structure"

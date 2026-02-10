@@ -1,0 +1,51 @@
+---
+- name: Verify
+  hosts: all
+  gather_facts: false
+  tasks:
+    - name: Check if HTML report exists
+      ansible.builtin.stat:
+        path: /tmp/html-gen-test/review-report.html
+      register: ai_html_generation_html_report
+
+    - name: Verify HTML report exists
+      ansible.builtin.assert:
+        that:
+          - ai_html_generation_html_report.stat.exists
+          - ai_html_generation_html_report.stat.size > 0
+        fail_msg: "HTML report was not created"
+        success_msg: "HTML report created successfully"
+
+    - name: Read HTML report content
+      ansible.builtin.slurp:
+        src: /tmp/html-gen-test/review-report.html
+      register: ai_html_generation_html_content
+
+    - name: Verify HTML contains expected structure
+      ansible.builtin.assert:
+        that:
+          - "'<!DOCTYPE html>' in (ai_html_generation_html_content.content | b64decode)"
+          - "'<title>Code Review Report</title>' in (ai_html_generation_html_content.content | b64decode)"
+        fail_msg: "HTML report does not contain expected structure"
+        success_msg: "HTML report contains expected structure"
+
+    - name: Verify HTML contains issue data from input JSON
+      ansible.builtin.assert:
+        that:
+          - "'Security vulnerability' in (ai_html_generation_html_content.content | b64decode)"
+          - "'1 Critical' in (ai_html_generation_html_content.content | b64decode)"
+        fail_msg: "HTML report does not contain issue data from input JSON"
+        success_msg: "HTML report contains issue data from input JSON"
+
+    - name: Verify venv was created
+      ansible.builtin.stat:
+        path: /tmp/test-venv
+      register: ai_html_generation_venv_dir
+
+    - name: Verify venv exists
+      ansible.builtin.assert:
+        that:
+          - ai_html_generation_venv_dir.stat.exists
+          - ai_html_generation_venv_dir.stat.isdir
+        fail_msg: "Virtual environment was not created"
+        success_msg: "Virtual environment created successfully"

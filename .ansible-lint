@@ -10,8 +10,9 @@ exclude_paths:
 # Use production profile as baseline
 profile: production
 
-# All rules enforced - no skip_list
-skip_list: []
+# Skip role-name check for internal roles (not published to galaxy)
+skip_list:
+  - role-name
 
 # Optional: Warn on these rules instead of failing
 warn_list: []

@@ -1,5 +1,7 @@
 ---
 galaxy_info:
+  role_name: ai_code_review
+  namespace: internal
   author: Sean Mooney
   description: Perform AI-powered code review using Claude Code
   company: Red Hat

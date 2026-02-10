@@ -1,5 +1,7 @@
 ---
 galaxy_info:
+  role_name: run_claude_code
+  namespace: internal
   author: Sean Mooney
   description: Execute Claude CLI commands with retry logic and error analysis
   company: Red Hat

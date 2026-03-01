@@ -2,7 +2,7 @@
 # Default variables for ai_context_extraction role
 
 # Model to use for context extraction (typically faster model)
-ai_context_extraction_model: "glm-4.5-air"
+ai_context_extraction_model: "glm-4.7-flash"
 
 # Output files
 ai_context_extraction_output_file: "{{ ai_context_extraction_review_output_dir }}/zuul-context.md"

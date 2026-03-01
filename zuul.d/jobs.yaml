@@ -37,11 +37,11 @@
       claude_config_dir: "{{ ansible_user_dir }}/.claude"
 
       # Model selection (can be overridden by child jobs)
-      haiku_model: "glm-4.5-air"
+      haiku_model: "glm-4.7-flash"
       sonnet_model: "glm-4.7"
-      opus_model: "glm-4.7"
-      context_model: "glm-4.5-air"
-      review_model: "glm-4.7"
+      opus_model: "glm-5"
+      context_model: "glm-4.7-flash"
+      review_model: "glm-5"
 
       # Anthropic-compatible endpoint served by LiteLLM
       anthropic_api_url: "http://litellm.zuul-system.svc.cluster.local:4000"

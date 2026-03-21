@@ -127,3 +127,52 @@ class TestRenderHtml(test.NoDBTestCase):
         self.assertThat(html, matchers.Contains('2'))  # Critical count
         self.assertThat(html, matchers.Contains('stat-critical'))
         self.assertThat(html, matchers.Contains('stat-high'))
+
+    def test_render_out_of_patch_observations_empty(self):
+        """Empty list returns empty string."""
+        html = self.render_html.render_out_of_patch_observations([])
+        self.assertThat(html, matchers.Equals(''))
+
+    def test_render_out_of_patch_observations_normal(self):
+        """Observations are rendered with location, description, and suggestion."""
+        observations = [
+            {
+                'location': 'nova/compute/manager.py:42',
+                'description': 'Potential resource leak in cleanup path',
+                'suggestion': 'Address in a follow-up patch',
+            }
+        ]
+        html = self.render_html.render_out_of_patch_observations(observations)
+        self.assertThat(html, matchers.Contains('nova/compute/manager.py:42'))
+        self.assertThat(html, matchers.Contains('Potential resource leak'))
+        self.assertThat(html, matchers.Contains('follow-up patch'))
+        self.assertThat(html, matchers.Contains('Out-of-Patch Observations'))
+
+    def test_render_out_of_patch_observations_html_escaping(self):
+        """Special characters in observation fields are escaped."""
+        observations = [
+            {
+                'location': 'path/to/file.py:1',
+                'description': '<script>alert("xss")</script>',
+                'suggestion': 'Use & instead of &&',
+            }
+        ]
+        html = self.render_html.render_out_of_patch_observations(observations)
+        self.assertThat(html, matchers.Not(matchers.Contains('<script>')))
+        self.assertThat(html, matchers.Contains('&lt;script&gt;'))
+        self.assertThat(html, matchers.Contains('&amp;'))
+
+    def test_render_html_template_includes_out_of_patch(self):
+        """render_html_template includes out-of-patch section when data present."""
+        review_data = self._create_sample_review()
+        review_data['out_of_patch_observations'] = [
+            {
+                'location': 'nova/compute/manager.py:42',
+                'description': 'Potential resource leak in cleanup path',
+                'suggestion': 'Address in a follow-up patch',
+            }
+        ]
+        html_content = self.render_html.render_html_template(review_data)
+        self.assertThat(html_content, matchers.Contains('Out-of-Patch Observations'))
+        self.assertThat(html_content, matchers.Contains('nova/compute/manager.py:42'))
+        self.assertThat(html_content, matchers.Contains('Potential resource leak'))

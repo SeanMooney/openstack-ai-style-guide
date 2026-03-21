@@ -101,6 +101,34 @@
       },
       "additionalProperties": false
     },
+    "out_of_patch_observations": {
+      "type": "array",
+      "description": "Findings in unmodified code outside the diff — appear in HTML report only, not as inline comments",
+      "items": {
+        "type": "object",
+        "required": ["description", "location", "suggestion"],
+        "properties": {
+          "description": {
+            "type": "string",
+            "description": "Description of the issue found in unmodified code",
+            "minLength": 10,
+            "maxLength": 300
+          },
+          "location": {
+            "type": "string",
+            "description": "File path and line number",
+            "pattern": "^[^:]+:\\d+(-\\d+)?$"
+          },
+          "suggestion": {
+            "type": "string",
+            "description": "What should be done in a follow-up patch",
+            "minLength": 10,
+            "maxLength": 500
+          }
+        },
+        "additionalProperties": false
+      }
+    },
     "positive_observations": {
       "type": "array",
       "description": "Positive observations about the code quality",

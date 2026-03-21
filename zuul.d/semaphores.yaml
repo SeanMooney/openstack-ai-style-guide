@@ -1,0 +1,4 @@
+---
+- semaphore:
+    name: teim-code-review
+    max: 1

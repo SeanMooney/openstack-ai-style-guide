@@ -230,17 +230,60 @@ Evaluate the code against these criteria:
 
 - **Readability**: Assess clarity and maintainability
 - **Complexity**: Identify overly complex functions or logic
-- **Duplication**: Spot code that could be consolidated
+- **Duplication**: Only flag when consolidation would meaningfully reduce maintenance burden
+  (e.g., a 20+ line function copy-pasted with diverging behaviour). Do not flag 2-3 similar
+  lines or trivially parallel patterns.
+- **Dead code**: Be conservative — dynamic dispatch, stevedore, entry_points, and
+  reflection patterns can make code appear unused when it is not. Only flag dead code with
+  high confidence from the diff context alone.
 - **Naming**: Evaluate variable, function, and class naming conventions
 - **Structure**: Assess architectural soundness and organization
 
 #### Security
 
-- **Input Validation**: Check for proper input sanitization
-- **SQL Injection**: Look for unsafe database queries
-- **Path Traversal**: Identify unsafe file path operations
-- **Authentication**: Verify proper permission checks
-- **Secrets**: Check for hardcoded credentials or sensitive data
+Use this three-question decision framework before reporting any security finding:
+
+```text
+1. Is there untrusted input?
+2. Does it reach a sensitive operation?
+3. Is sanitization missing or weak?
+→ Only report if YES to all three.
+```
+
+**High-severity patterns to look for:**
+
+- SQL queries with string concatenation and user-controlled input
+- Command execution (`subprocess`, `os.system`) with user-controlled parameters
+- Authentication bypasses or privilege escalation paths
+- Deserialization of untrusted data
+- File operations with user-controlled paths (path traversal)
+
+**Calibrate security focus by project type:**
+
+- **Web apps/APIs**: injection attacks, authentication, authorization, CSRF
+- **CLI tools**: command injection (only if concrete untrusted input path)
+- **Libraries**: API surface, input validation, safe defaults
+- **Infrastructure/CI scripts**: secrets management, configuration issues
+
+**Security exclusions — do NOT flag these:**
+
+- DOS/resource exhaustion, rate limiting, memory leaks (operational concerns, not code issues)
+- Secrets in environment variables or CLI flags (these are trusted delivery mechanisms)
+- Hardening gaps, missing audit logs, theoretical TOCTOU races
+- GitHub Actions expressions (unless there is a concrete untrusted input → shell path)
+- Client-side authentication checks (enforcement is the backend's responsibility)
+- Memory safety issues in memory-safe languages (Rust, Go — language guarantees apply)
+- Log statements containing URLs (URLs are not secrets)
+- Regex injection, SSRF (path-only, no SSRF if host is not user-controlled),
+  AI prompt injection, outdated dependencies
+
+**Key security precedents:**
+
+- Logging secrets/PII = vulnerability; logging URLs = safe
+- UUIDs as identifiers = unguessable; no brute-force validation required
+- Environment variables and CLI flags = trusted input; do not flag as "exposed secret"
+- `subprocess` in CI scripts with hardcoded args = safe; flag only if args include
+  user-supplied values
 
 #### Performance
 
@@ -314,6 +357,18 @@ Only report an issue if **at least one** of the following is true:
 - Type hints in projects that do not already use type annotations
 - Deprecation timelines or roadmap items requiring team consensus
 - Anything you cannot verify without context outside the diff
+- Security: rate limiting, DOS protection, resource exhaustion (operational, not code)
+- Security: secrets in env vars or CLI flags (trusted delivery mechanisms, not vulnerabilities)
+- Security: UUIDs as identifiers (unguessable, brute-force validation not needed)
+- Security: URLs or config paths in log output (not sensitive data)
+- Security: client-side auth checks (backend responsibility)
+- Security: regex injection, SSRF with hardcoded host, AI prompt injection
+- Security: outdated dependency versions (managed by dependency tooling, not PR review)
+- Code quality: duplication of 2-3 lines or trivially similar patterns — only flag duplication
+  when consolidation would meaningfully reduce maintenance burden (e.g., a 20+ line function
+  copy-pasted with diverging behaviour)
+- Code quality: apparent "dead code" in dynamic code paths (stevedore, entry_points,
+  reflection, `importlib`) — these patterns hide usage and cannot be verified from the diff
 
 If you are not certain an issue is real, **do not flag it**. False positives erode trust.
 

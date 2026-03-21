@@ -57,6 +57,7 @@ def render_html_template(review_data: Dict[str, Any]) -> str:
     statistics = review_data.get('statistics', {})
     issues = review_data.get('issues', {})
     positive_observations = review_data.get('positive_observations', [])
+    out_of_patch = review_data.get('out_of_patch_observations', [])
     summary = review_data.get('summary', {})
 
     # Build HTML sections
@@ -64,6 +65,7 @@ def render_html_template(review_data: Dict[str, Any]) -> str:
     stats_html = render_statistics_section(statistics)
     issues_html = render_all_issues(issues)
     positive_html = render_positive_observations(positive_observations)
+    out_of_patch_html = render_out_of_patch_observations(out_of_patch)
     summary_html = render_summary_section(summary, statistics)
 
     # Complete HTML document
@@ -86,6 +88,7 @@ def render_html_template(review_data: Dict[str, Any]) -> str:
         {context_html}
         {issues_html}
         {positive_html}
+        {out_of_patch_html}
         {summary_html}
     </div>
 </body>
@@ -276,6 +279,34 @@ def render_positive_observations(observations: List[Dict[str, str]]) -> str:
     return f"""<section role="region" aria-label="Positive observations">
 <h2>Positive Observations</h2>
 <div class="positive-observation">
+<ul>
+{''.join(obs_html)}
+</ul>
+</div>
+</section>
+"""
+
+
+def render_out_of_patch_observations(observations: List[Dict[str, str]]) -> str:
+    """Render out-of-patch observations section (findings outside the diff)."""
+    if not observations:
+        return ''
+
+    obs_html = []
+    for obs in observations:
+        location = escape_html(obs.get('location', ''))
+        description = escape_html(obs.get('description', ''))
+        suggestion = escape_html(obs.get('suggestion', ''))
+        obs_html.append(
+            f'<li><code>{location}</code> — {description}'
+            f'<br><em>Suggestion: {suggestion}</em></li>'
+        )
+
+    return f"""<section role="region" aria-label="Out-of-patch observations">
+<h2>Out-of-Patch Observations</h2>
+<p>These findings are in unmodified code and are not blocking. Consider addressing them in a
+follow-up patch.</p>
+<div class="out-of-patch-observation">
 <ul>
 {''.join(obs_html)}
 </ul>
@@ -499,7 +530,7 @@ strong {
 }
 
 .severity-badge.severity-warning {
-    background-color: #d53d0d;
+    background-color: #e07b39;
     color: #ffffff;
 }
 
@@ -603,6 +634,16 @@ strong {
     padding: 15px;
     margin-bottom: 15px;
     border-radius: 4px;
+}
+
+/* Out-of-Patch Observations */
+.out-of-patch-observation {
+    background-color: #252525;
+    border-left: 4px solid #78909c;
+    padding: 15px;
+    margin-bottom: 15px;
+    border-radius: 4px;
+    color: #b0bec5;
 }
 
 /* Responsive */

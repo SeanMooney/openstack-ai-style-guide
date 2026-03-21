@@ -77,6 +77,8 @@ Look for these files in the project source directory:
 
 1. **`CLAUDE.md`** - Project-specific guidance for Claude Code and AI tools
 2. **`AGENTS.md`** - Agent definitions and project-specific rules (in `agents/` directory)
+3. **`HACKING.rst`** - In-repo style guide with project-specific coding rules and exceptions
+   (standard OpenStack convention — always check this first for project overrides)
 
 ### How to Use Project Configuration
 
@@ -106,6 +108,7 @@ Projects may define:
 
 ### MANDATORY Enforcement
 
+- **ALWAYS read HACKING.rst if present**: It is the primary in-repo style authority
 - **ALWAYS read CLAUDE.md if present**: It's the project's instruction manual for AI tools
 - **ALWAYS read AGENTS.md**: Check for agent-specific guidance and exceptions
 - **NEVER override project rules**: Even if they differ from OpenStack standards
@@ -170,7 +173,14 @@ First, understand the environment and change scope:
 
 ### 2. Commit Message Review
 
-Before analyzing code, review the commit message for compliance with OpenInfra Foundation AI Policy:
+Before analyzing code, review the commit message for compliance with OpenInfra Foundation AI Policy.
+
+**CRITICAL: Commit message issues MUST go in the summary section only.**
+
+- **NEVER** leave a commit message issue as an inline code comment
+- Inline comments MUST reference actual lines of code within the diff
+- Typos, subject line problems, missing DCO sign-off, and AI attribution issues
+  all belong in the change-level summary — not attached to a file and line number
 
 #### AI Attribution Guidelines
 
@@ -211,7 +221,9 @@ Evaluate the code against these criteria:
 - **Import Organization**: Verify stdlib → third-party → local project ordering
 - **Exception Handling**: Ensure specific exceptions (no bare except)
 - **Mock Usage**: Verify `autospec=True` in all `@mock.patch` decorators
-- **Logging**: Check for delayed string interpolation (`LOG.info('Value: %s', val)`)
+- **Logging**: Prefer `%s`-style delayed interpolation (`LOG.info('Value: %s', val)`)
+  but do NOT flag f-strings or `.format()` in LOG calls as H702 violations — many
+  projects have disabled oslo.i18n translation, making lazy interpolation optional
 - **Function Parameters**: Limit to reasonable number (≤6 for most cases)
 
 #### Code Quality
@@ -252,15 +264,66 @@ Evaluate the code against these criteria:
 - **Error Handling**: Verify appropriate error responses
 - **Documentation**: Ensure API changes are properly documented
 
-### 4. Structured Output Format
+### 4. Comment Placement and Scope Rules
+
+**These rules determine where issues are reported.**
+
+#### Inline comment scope (critical)
+
+Only add an issue to the main `issues` object (which becomes an inline Gerrit comment) if:
+
+- The issue exists on a line that appears **within the diff** (modified or newly added lines)
+- It is a direct consequence of a change made in this patch
+
+#### Cross-file impact rule
+
+If a change in file A breaks or degrades code in file B (which is not in the diff):
+
+- Report the issue **inline on the code in file A that caused the breakage**
+- Explain in the comment which downstream code is affected and how
+- Do **NOT** add an inline comment on file B — it is not in the patch
+
+#### Out-of-patch findings
+
+Issues found in **unmodified code** (code present in the repo but not changed by this patch):
+
+- Do **NOT** include as inline comments
+- Add them to `out_of_patch_observations` instead
+- These appear only in the HTML report, not as Gerrit inline comments
+- Use language like: "Not in this patch — consider a follow-up"
+
+#### High-signal-only principle
+
+Only report an issue if **at least one** of the following is true:
+
+- The code will definitely fail or produce wrong results (clear logic error, undefined variable,
+  syntax error, missing import)
+- It is a clear, unambiguous violation of a rule you can directly quote from HACKING.rst,
+  CLAUDE.md, or AGENTS.md
+- It is a security or data-integrity risk directly introduced by this patch
+
+**Do NOT flag:**
+
+- Pre-existing issues in unmodified code
+- Style or quality concerns that a linter enforces (ruff, flake8, pep8)
+- Potential issues that depend on specific inputs or runtime state
+- Subjective improvements or refactoring suggestions that weren't asked for
+- Performance optimisations for scripts where performance is not a concern
+- Idempotency, rollback, or production-grade error handling in one-shot CI scripts
+  (devstack plugins, check scripts in `devstack/` or `tools/` directories)
+- Type hints in projects that do not already use type annotations
+- Deprecation timelines or roadmap items requiring team consensus
+- Anything you cannot verify without context outside the diff
+
+If you are not certain an issue is real, **do not flag it**. False positives erode trust.
+
+### 5. Report Structure
 
 Generate your review as structured JSON conforming to the review-report JSON schema.
 
 **IMPORTANT**: Your output is validated against `review-report-schema.json` automatically.
 The Claude CLI's `--json-schema` flag ensures your output conforms to the schema.
 Focus on generating a complete, accurate review - schema compliance is handled for you.
-
-### 5. Report Structure
 
 Generate a JSON object with this exact structure (all fields are required unless noted):
 
@@ -314,6 +377,13 @@ Generate a JSON object with this exact structure (all fields are required unless
     {
       "category": "Good Practice",
       "observation": "Highlight well-implemented aspects"
+    }
+  ],
+  "out_of_patch_observations": [
+    {
+      "description": "Issue description in unmodified code",
+      "location": "path/to/file.py:123",
+      "suggestion": "What to do in a follow-up patch"
     }
   ],
   "summary": {
@@ -449,6 +519,25 @@ all reported issues are actionable.
 7. **Consider Context**: Account for project constraints and history
 8. **Evidence-Based AI Attribution**: Only flag missing AI attribution when there is explicit evidence of AI use
    (see AI Attribution Guidelines)
+
+### 6. Validation Pass (Before Finalising)
+
+After assembling your initial list of findings, perform a validation pass on each issue before
+including it in the final report.
+
+For each issue, verify:
+
+1. **Is it in the diff?** Check that the location is a line added or modified in this patch.
+   If not, move it to `out_of_patch_observations`.
+2. **Is it a real bug or a clear rule violation?** Re-read the relevant code and the rule
+   you're citing. Can you quote the exact rule from HACKING.rst / CLAUDE.md / AGENTS.md?
+   If you're guessing, drop it.
+3. **Would a senior OpenStack engineer flag this in review?** If it's a pedantic nit,
+   an optimisation for its own sake, or something a linter would catch — drop it.
+4. **Is the severity appropriate?** Critical/High require definitive evidence. Downgrade
+   to Suggestion anything that needs team consensus or is project-roadmap dependent.
+
+Only issues that survive this validation pass should appear in the final `issues` object.
 
 ## Pre-Output Quality Assurance
 

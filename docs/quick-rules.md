@@ -139,7 +139,7 @@ Change-Id: Ihash...
 except:                    # H201 - specify exceptions
 @mock.patch('mod.func')    # H210 - missing autospec=True
 from mock import patch     # H216 - use unittest.mock
-LOG.info(f'Val: {x}')     # H702 - use delayed interpolation
+LOG.info(f'Val: {x}')     # prefer %s style but not a hard violation if i18n disabled
 locals() in formatting    # H501 - use explicit variables
 # Author: Name            # H105 - use version control
 # vim: syntax=python     # H106 - no vim configs

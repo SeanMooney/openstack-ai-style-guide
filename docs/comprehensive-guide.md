@@ -259,17 +259,22 @@ from mock import patch  # H216 violation
 
 ## 6. Logging & String Formatting
 
-### Logging with Delayed Interpolation
+### Logging String Formatting
 
 ```python
-# Correct (H702/H904 compliant):
+# Preferred (%s-style delayed interpolation):
 LOG.info('Processing %d items', len(items))
-LOG.error(_('Failed to connect to %s'), server)  # Translatable
+LOG.error('Failed to connect to %s', server)
 
-# Wrong:
-LOG.info(f'Processing {len(items)} items')  # Immediate interpolation
+# Acceptable in projects without oslo.i18n translation enabled:
+LOG.info(f'Processing {len(items)} items')
 LOG.info('Processing {} items'.format(len(items)))
 ```
+
+**Note on H702**: The H702 rule (mandatory lazy interpolation) only applies when the project
+uses `oslo.i18n` translation wrappers (`_()`). Many newer OpenStack projects have disabled
+log translation. Check `HACKING.rst` for the project's stance before flagging f-strings
+in LOG calls as violations.
 
 ### String Formatting Preferences
 
@@ -783,10 +788,10 @@ from mock import patch  # Third-party mock library
 from .utils import helper  # Don't use relative imports
 # Fix: from package.utils import helper
 
-# H702 - String formatting in logging (CRITICAL)
-LOG.info(f"Value: {val}")  # Immediate interpolation
-LOG.info("Value: {}".format(val))  # Also wrong
-# Fix: LOG.info("Value: %s", val)  # Delayed interpolation
+# H702 - String formatting in logging (project-dependent)
+# Only a violation when the project uses oslo.i18n translation wrappers
+# Check HACKING.rst — many projects have disabled log translation
+# Preferred style regardless: LOG.info("Value: %s", val)
 ```
 
 ### Code Quality Violations

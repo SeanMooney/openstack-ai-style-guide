@@ -4,7 +4,7 @@
   "title": "AI Code Review Report",
   "description": "Schema for AI-generated code review reports in OpenStack projects",
   "type": "object",
-  "required": ["context", "statistics", "issues", "summary"],
+  "required": ["context", "statistics", "statistics_html_only", "issues", "summary"],
   "properties": {
     "context": {
       "type": "object",
@@ -60,6 +60,39 @@
         "total": {
           "type": "integer",
           "description": "Total number of all issues",
+          "minimum": 0
+        }
+      },
+      "additionalProperties": false
+    },
+    "statistics_html_only": {
+      "type": "object",
+      "description": "Counts of html_only findings by severity (not posted as Gerrit inline comments)",
+      "required": ["critical", "high", "warnings", "suggestions", "total"],
+      "properties": {
+        "critical": {
+          "type": "integer",
+          "description": "Number of critical severity html_only issues",
+          "minimum": 0
+        },
+        "high": {
+          "type": "integer",
+          "description": "Number of high severity html_only issues",
+          "minimum": 0
+        },
+        "warnings": {
+          "type": "integer",
+          "description": "Number of warning level html_only issues",
+          "minimum": 0
+        },
+        "suggestions": {
+          "type": "integer",
+          "description": "Number of html_only suggestions",
+          "minimum": 0
+        },
+        "total": {
+          "type": "integer",
+          "description": "Total html_only findings",
           "minimum": 0
         }
       },
@@ -181,7 +214,7 @@
   "$defs": {
     "baseIssue": {
       "type": "object",
-      "required": ["description", "confidence", "location"],
+      "required": ["description", "confidence", "reporting_mode", "location"],
       "properties": {
         "description": {
           "type": "string",
@@ -191,9 +224,14 @@
         },
         "confidence": {
           "type": "number",
-          "description": "Confidence score for this issue (0.0-1.0, minimum 0.6 to be reported)",
+          "description": "Confidence score (0.60-1.0). Per-severity routing thresholds determine reporting_mode.",
           "minimum": 0.6,
           "maximum": 1.0
+        },
+        "reporting_mode": {
+          "type": "string",
+          "description": "Routing decision: inline = post as Gerrit comment; html_only = HTML report only",
+          "enum": ["inline", "html_only"]
         },
         "location": {
           "type": "string",

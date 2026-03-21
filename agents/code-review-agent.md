@@ -341,11 +341,19 @@ Generate a JSON object with this exact structure (all fields are required unless
     "suggestions": 0,
     "total": 0
   },
+  "statistics_html_only": {
+    "critical": 0,
+    "high": 0,
+    "warnings": 0,
+    "suggestions": 0,
+    "total": 0
+  },
   "issues": {
     "critical": [
       {
         "description": "Issue description",
         "confidence": 0.9,
+        "reporting_mode": "inline",
         "location": "path/to/file.py:123",
         "risk": "Security risk description",
         "remediation_priority": "Immediate",
@@ -353,11 +361,23 @@ Generate a JSON object with this exact structure (all fields are required unless
         "recommendation": "Specific fix needed"
       }
     ],
-    "high": [...],
+    "high": [
+      {
+        "description": "Issue description (below inline threshold example)",
+        "confidence": 0.72,
+        "reporting_mode": "html_only",
+        "location": "path/to/file.py:200",
+        "risk": "Risk description",
+        "remediation_priority": "Before merge",
+        "why_matters": "Impact explanation",
+        "recommendation": "Fix guidance"
+      }
+    ],
     "warnings": [
       {
         "description": "Issue description",
-        "confidence": 0.8,
+        "confidence": 0.82,
+        "reporting_mode": "inline",
         "location": "path/to/file.py:456",
         "impact": "What this affects",
         "suggestion": "How to improve"
@@ -366,7 +386,8 @@ Generate a JSON object with this exact structure (all fields are required unless
     "suggestions": [
       {
         "description": "Improvement opportunity",
-        "confidence": 0.7,
+        "confidence": 0.87,
+        "reporting_mode": "inline",
         "location": "path/to/file.py:789",
         "benefit": "Why this improvement helps",
         "recommendation": "Suggested approach"
@@ -387,12 +408,16 @@ Generate a JSON object with this exact structure (all fields are required unless
     }
   ],
   "summary": {
-    "assessment": "Ready",
+    "assessment": "Ready with minor fixes",
     "priority_focus": "What should be addressed before merge",
     "detailed_summary": "Overall summary of review findings"
   }
 }
 ```
+
+**`statistics` counts inline findings only** (where `reporting_mode == "inline"`).
+**`statistics_html_only` counts html_only findings only** (where `reporting_mode == "html_only"`).
+`out_of_patch_observations` are NOT counted in either statistics object.
 
 **Note on AI Attribution Issues**: Only report missing AI attribution as Critical if
 you have explicit evidence (e.g., commit message says "used AI" but lacks
@@ -407,10 +432,12 @@ Generated-By footer). Do NOT report this as an issue for normal human-written co
 **Required fields for all issue objects**:
 
 - `description`: Clear description of the issue (string, 10-300 chars)
-- `confidence`: Confidence score (number, 0.6-1.0)
+- `confidence`: Confidence score (number, 0.60-1.0)
   - **MANDATORY for all issues** (no exceptions)
-  - Must be >= 0.6 (issues with lower confidence should not be reported)
-  - Must be a valid decimal (0.6, 0.75, 0.9, etc.)
+  - Must be a valid decimal (0.60, 0.75, 0.9, etc.)
+  - See the Confidence Scoring and Routing section for per-severity minimums
+- `reporting_mode`: Routing decision (enum: `"inline"` or `"html_only"`)
+  - **MANDATORY for all issues** — see Routing Decision table below
 - `location`: File path and line number (string, format: `path/to/file.py:123`)
 
 #### Field Requirements by Severity
@@ -439,40 +466,67 @@ Generated-By footer). Do NOT report this as an issue for normal human-written co
 - `benefit`: Improvement this provides (string, 10-300 chars)
 - `recommendation`: Implementation guidance (string, 10-500 chars)
 
-#### Confidence Score Requirements
+#### Enum Value Reference
 
-- **Always required**: Every issue must include confidence score
-- **Minimum threshold**: Must be >= 0.6 (don't report lower confidence issues)
-- **Valid range**: 0.0 - 1.0 (decimals only, e.g., 0.8 not 80%)
-- **Calculation**: Use the scoring guidelines in "Confidence Scoring" section below
+**`positive_observations[*].category`** — must be one of exactly:
+
+- `"Good Practice"`, `"Examples"`, `"Recognition"`, `"Documentation"`,
+  `"Testing"`, `"Architecture"`
+
+**`summary.assessment`** — must be one of exactly:
+
+- `"Ready"` — no issues blocking merge
+- `"Ready with minor fixes"` — suggestions only, or low-risk warnings
+- `"Needs work"` — warnings or high issues that should be addressed
+- `"Requires significant changes"` — critical issues present
+- `"Blocked"` — patch should not merge without resolution (e.g. policy violation,
+  data corruption risk)
+
+#### Confidence Score and Routing Requirements
+
+- **Always required**: Every issue must include a confidence score
+- **Schema minimum**: 0.60 — findings below this floor are dropped entirely
+- **Valid range**: 0.60-1.0 (decimals only, e.g., 0.80 not 80%)
+- **Routing**: Confidence determines whether an issue is posted inline to Gerrit or
+  held to the HTML report only — see Routing Decision table below
 
 ## Severity Guidelines
 
-### Confidence Scoring (MANDATORY for ALL Reported Findings)
+### Confidence Scoring and Routing (MANDATORY for ALL Reported Findings)
 
-**IMPORTANT**: Every issue you report MUST include a confidence score in the JSON output.
-Issues without confidence scores will fail schema validation.
+**IMPORTANT**: Every issue you report MUST include both a `confidence` score and a
+`reporting_mode` field. Issues without these fields will fail schema validation.
 
-Assign confidence scores based on these guidelines:
+#### Confidence Scoring
 
-- **0.9-1.0** (Critical confidence): Certain, verifiable issues with definitive evidence
-  - Use for: Code you can trace through, obvious bugs, clear violations of documented rules
-  - Example: A bare `except:` statement that violates OpenStack hacking rules
-- **0.8-0.9** (High confidence): Strong evidence, highly likely the finding is correct
-  - Use for: Clear patterns that indicate an issue, high-confidence analysis
-  - Example: A security vulnerability that matches known CVE patterns
-- **0.6-0.8** (Medium confidence): Good evidence, but some reasonable uncertainty
-  - Use for: Pattern matching where context could affect the conclusion
-  - Example: A complexity issue that might be intentional given project requirements
-- **0.3-0.6** (Low confidence): Some evidence, possible false positive
-  - **DO NOT REPORT THESE**: If your confidence is below 0.6, skip the issue entirely
-  - Do not include in your output at all
-- **<0.3** (Too speculative): Insufficient evidence
-  - **DO NOT REPORT**: Skip entirely, don't include in output
+Assign confidence scores based on how certain you are the finding is correct:
 
-**Application Rule**: If you cannot assign a confidence score of at least 0.6 to a finding,
-**do not include it in the report**. This maintains high signal-to-noise ratio and ensures
-all reported issues are actionable.
+- **0.90-1.0** — Certain, verifiable. Code you can trace through; obvious bugs; clear
+  documented-rule violations
+- **0.80-0.90** — Strong evidence. Clear patterns; high-confidence analysis
+- **0.70-0.80** — Good evidence with some uncertainty. Context could affect conclusion
+- **0.60-0.70** — Moderate evidence. Possible false positive; include only for Critical
+  severity where surfacing uncertain issues is still valuable
+
+#### Routing Decision (setting `reporting_mode`)
+
+Use this table to determine `reporting_mode` for every issue. The model is **inverted**:
+lower-severity findings need higher confidence to justify an inline comment.
+
+| Severity    | Set `"inline"` if | Set `"html_only"` if     | Drop entirely if |
+|-------------|-------------------|--------------------------|------------------|
+| critical    | confidence >= 0.70 | 0.60 <= confidence < 0.70 | confidence < 0.60 |
+| high        | confidence >= 0.75 | 0.60 <= confidence < 0.75 | confidence < 0.60 |
+| warnings    | confidence >= 0.80 | 0.65 <= confidence < 0.80 | confidence < 0.65 |
+| suggestions | confidence >= 0.85 | 0.70 <= confidence < 0.85 | confidence < 0.70 |
+
+**Rationale**: A critical finding with 0.72 confidence might be a real blocking bug —
+surface it in the HTML report for human review. A suggestion at 0.72 confidence is
+probably noise — drop it. This keeps Gerrit inline comments high-signal while ensuring
+the HTML report shows the full picture.
+
+**`out_of_patch_observations`**: Always go to the HTML report regardless of confidence.
+No `confidence` or `reporting_mode` field required for these.
 
 ### Issue Severity
 
@@ -528,7 +582,7 @@ including it in the final report.
 For each issue, verify:
 
 1. **Is it in the diff?** Check that the location is a line added or modified in this patch.
-   If not, move it to `out_of_patch_observations`.
+   If not, move it to `out_of_patch_observations` (see Section 4).
 2. **Is it a real bug or a clear rule violation?** Re-read the relevant code and the rule
    you're citing. Can you quote the exact rule from HACKING.rst / CLAUDE.md / AGENTS.md?
    If you're guessing, drop it.
@@ -536,6 +590,9 @@ For each issue, verify:
    an optimisation for its own sake, or something a linter would catch — drop it.
 4. **Is the severity appropriate?** Critical/High require definitive evidence. Downgrade
    to Suggestion anything that needs team consensus or is project-roadmap dependent.
+5. **Apply the routing table** (Section 4 / Confidence Scoring and Routing): Based on
+   the issue's severity and confidence score, set `reporting_mode` to `"inline"` or
+   `"html_only"`, or drop the issue entirely if confidence is below the HTML threshold.
 
 Only issues that survive this validation pass should appear in the final `issues` object.
 
@@ -548,29 +605,43 @@ Before writing your report file, validate the JSON structure compliance:
 **Schema Compliance** (Critical for machine parsing):
 
 - [ ] Output conforms to review-report-schema.json
-- [ ] All required top-level fields present: context, statistics, issues, summary
+- [ ] All required top-level fields present: context, statistics, statistics_html_only,
+      issues, summary
 - [ ] Context has: change, scope, impact
-- [ ] Statistics has: critical, high, warnings, suggestions, total
+- [ ] `statistics` has: critical, high, warnings, suggestions, total
+      — counts **inline** issues only (reporting_mode == "inline")
+- [ ] `statistics_html_only` has: critical, high, warnings, suggestions, total
+      — counts **html_only** issues only (reporting_mode == "html_only")
+- [ ] `statistics.total` equals sum of inline critical + high + warnings + suggestions
+- [ ] `statistics_html_only.total` equals sum of html_only critical + high + warnings +
+      suggestions
+- [ ] `out_of_patch_observations` are NOT counted in either statistics object
 - [ ] Issues has arrays for: critical, high, warnings, suggestions
 
 **Issue Structure** (Critical for downstream processing):
 
-- [ ] Every issue includes: description, confidence, location
+- [ ] Every issue includes: description, confidence, reporting_mode, location
 - [ ] Critical/High issues have: risk, remediation_priority, why_matters, recommendation
 - [ ] Warnings have: impact, suggestion
 - [ ] Suggestions have: benefit, recommendation
-- [ ] No issues with confidence < 0.6 are included
+- [ ] `reporting_mode` is either `"inline"` or `"html_only"` — never absent
+- [ ] Confidence thresholds respected per routing table (no inline issue below its minimum)
+
+**Enum Validation**:
+
+- [ ] All `positive_observations[*].category` values are one of: Good Practice, Examples,
+      Recognition, Documentation, Testing, Architecture
+- [ ] `summary.assessment` is one of: Ready, Ready with minor fixes, Needs work,
+      Requires significant changes, Blocked
+- [ ] All `remediation_priority` values are one of: Immediate, Before merge, Next sprint,
+      Backlog
 
 **Data Quality**:
 
 - [ ] All file paths are relative to repository root
 - [ ] Location format: `path/to/file.ext:line_number`
 - [ ] Line numbers are valid integers
-- [ ] All confidence scores are decimals 0.6-1.0
-- [ ] Remediation priority is valid enum value
-- [ ] Assessment is valid enum value
-- [ ] Statistics.total equals sum of all severity counts
-- [ ] Positive observations use valid category values
+- [ ] All confidence scores are decimals in range 0.60-1.0
 
 ## Output Generation
 

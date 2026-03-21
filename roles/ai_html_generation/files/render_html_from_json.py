@@ -55,6 +55,7 @@ def render_html_template(review_data: Dict[str, Any]) -> str:
     """
     context = review_data.get('context', {})
     statistics = review_data.get('statistics', {})
+    statistics_html_only = review_data.get('statistics_html_only', {})
     issues = review_data.get('issues', {})
     positive_observations = review_data.get('positive_observations', [])
     out_of_patch = review_data.get('out_of_patch_observations', [])
@@ -62,7 +63,7 @@ def render_html_template(review_data: Dict[str, Any]) -> str:
 
     # Build HTML sections
     context_html = render_context_section(context)
-    stats_html = render_statistics_section(statistics)
+    stats_html = render_statistics_section(statistics, statistics_html_only)
     issues_html = render_all_issues(issues)
     positive_html = render_positive_observations(positive_observations)
     out_of_patch_html = render_out_of_patch_observations(out_of_patch)
@@ -109,7 +110,10 @@ def render_context_section(context: Dict[str, str]) -> str:
 """
 
 
-def render_statistics_section(statistics: Dict[str, int]) -> str:
+def render_statistics_section(
+    statistics: Dict[str, int],
+    statistics_html_only: Dict[str, int],
+) -> str:
     """Render summary statistics with visual indicators."""
     critical = statistics.get('critical', 0)
     high = statistics.get('high', 0)
@@ -117,8 +121,44 @@ def render_statistics_section(statistics: Dict[str, int]) -> str:
     suggestions = statistics.get('suggestions', 0)
     total = statistics.get('total', 0)
 
+    ho_critical = statistics_html_only.get('critical', 0)
+    ho_high = statistics_html_only.get('high', 0)
+    ho_warnings = statistics_html_only.get('warnings', 0)
+    ho_suggestions = statistics_html_only.get('suggestions', 0)
+    ho_total = statistics_html_only.get('total', 0)
+
+    html_only_row = ''
+    if ho_total > 0:
+        html_only_row = f"""
+<div class="stats-container stats-html-only" role="region"
+     aria-label="HTML-only findings (below inline confidence threshold)">
+    <div class="stat-item-label">HTML report only</div>
+    <div class="stat-item stat-critical">
+        <div class="stat-number" aria-label="{ho_critical} critical html-only">{ho_critical}</div>
+        <div class="stat-label">Critical</div>
+    </div>
+    <div class="stat-item stat-high">
+        <div class="stat-number" aria-label="{ho_high} high html-only">{ho_high}</div>
+        <div class="stat-label">High</div>
+    </div>
+    <div class="stat-item stat-warning">
+        <div class="stat-number" aria-label="{ho_warnings} warnings html-only">{ho_warnings}</div>
+        <div class="stat-label">Warnings</div>
+    </div>
+    <div class="stat-item stat-suggestion">
+        <div class="stat-number"
+             aria-label="{ho_suggestions} suggestions html-only">{ho_suggestions}</div>
+        <div class="stat-label">Suggestions</div>
+    </div>
+    <div class="stat-item">
+        <div class="stat-number" aria-label="{ho_total} total html-only">{ho_total}</div>
+        <div class="stat-label">Total</div>
+    </div>
+</div>"""
+
     return f"""<div class="summary-stats">
-<div class="stats-container" role="region" aria-label="Summary statistics">
+<div class="stats-container" role="region" aria-label="Inline findings (posted to Gerrit)">
+    <div class="stat-item-label">Inline comments</div>
     <div class="stat-item stat-critical">
         <div class="stat-number" aria-label="{critical} critical issues">{critical}</div>
         <div class="stat-label">Critical</div>
@@ -139,7 +179,7 @@ def render_statistics_section(statistics: Dict[str, int]) -> str:
         <div class="stat-number" aria-label="{total} total findings">{total}</div>
         <div class="stat-label">Total</div>
     </div>
-</div>
+</div>{html_only_row}
 </div>
 """
 
@@ -247,6 +287,16 @@ def render_issue_card(issue: Dict[str, Any], severity: str, number: int, total: 
 
     details_html = '\n'.join(details_parts)
 
+    # HTML-only badge for issues below the inline confidence threshold
+    reporting_mode = issue.get('reporting_mode', 'inline')
+    html_only_badge = ''
+    if reporting_mode == 'html_only':
+        html_only_badge = (
+            '<span class="html-only-badge" '
+            'title="Below inline confidence threshold — not posted to Gerrit">'
+            'HTML only</span>'
+        )
+
     # Collapsible card with enhanced visuals
     return f"""<details class="issue-card {severity}" open>
     <summary class="issue-summary">
@@ -254,6 +304,7 @@ def render_issue_card(issue: Dict[str, Any], severity: str, number: int, total: 
             <span class="severity-icon" aria-hidden="true">{icon}</span>
             {label}
         </span>
+        {html_only_badge}
         <span class="issue-number">{number} of {total}</span>
         <span class="issue-description">{description}</span>
         <span class="confidence">Confidence: {confidence:.1f}</span>
@@ -466,10 +517,41 @@ strong {
     gap: 20px;
 }
 
+.stats-html-only {
+    opacity: 0.65;
+    background-color: rgba(255, 255, 255, 0.03);
+    border-radius: 6px;
+    padding: 4px 8px;
+    margin-bottom: 8px;
+}
+
+.stat-item-label {
+    width: 100%;
+    text-align: center;
+    font-size: 0.75em;
+    color: #888888;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin-bottom: 4px;
+}
+
 .stat-item {
     text-align: center;
     padding: 10px 20px;
     min-width: 120px;
+}
+
+.html-only-badge {
+    display: inline-block;
+    font-size: 0.7em;
+    padding: 1px 6px;
+    border-radius: 10px;
+    background-color: #3a3a3a;
+    color: #999999;
+    border: 1px solid #555555;
+    margin-left: 6px;
+    vertical-align: middle;
+    font-weight: normal;
 }
 
 .stat-number {
@@ -766,7 +848,7 @@ def main():
         sys.exit(1)
 
     # Validate required structure
-    required_keys = ['context', 'statistics', 'issues', 'summary']
+    required_keys = ['context', 'statistics', 'statistics_html_only', 'issues', 'summary']
     missing_keys = [key for key in required_keys if key not in review_data]
     if missing_keys:
         print(

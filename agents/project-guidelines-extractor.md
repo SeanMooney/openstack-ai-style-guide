@@ -6,7 +6,7 @@ description: |
   Reads HACKING.rst, AGENTS.md, CLAUDE.md, and linter config files (tox.ini,
   pyproject.toml, ruff.toml, etc.) to build a picture of the project's style philosophy
   and quality conventions.
-model: inherit
+model: haiku
 color: green
 ---
 

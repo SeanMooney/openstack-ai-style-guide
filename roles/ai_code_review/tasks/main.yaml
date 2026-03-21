@@ -37,7 +37,7 @@
     name: run_claude_code
   vars:
     run_claude_code_prompt_text: "{{ ai_code_review_guidelines_prompt }}"
-    run_claude_code_model_name: "{{ ai_code_review_model }}"
+    run_claude_code_model_name: "{{ ai_code_review_guidelines_model }}"
     run_claude_code_output_file: "{{ ai_code_review_project_guidelines_file }}"
     run_claude_code_output_format: "text"
     run_claude_code_command_name: "project guidelines extraction"

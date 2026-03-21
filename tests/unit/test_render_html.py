@@ -48,11 +48,19 @@ class TestRenderHtml(test.NoDBTestCase):
                 'suggestions': 1,
                 'total': 7,
             },
+            'statistics_html_only': {
+                'critical': 0,
+                'high': 0,
+                'warnings': 0,
+                'suggestions': 0,
+                'total': 0,
+            },
             'issues': {
                 'critical': [
                     {
                         'description': 'Security vulnerability',
                         'confidence': 0.95,
+                        'reporting_mode': 'inline',
                         'location': 'roles/ai_code_review/tasks/main.yaml:25',
                         'risk': 'High',
                         'remediation_priority': 'Immediate',
@@ -122,11 +130,25 @@ class TestRenderHtml(test.NoDBTestCase):
     def test_render_statistics_section(self):
         """Test statistics HTML generation."""
         stats = {'critical': 2, 'high': 3, 'warnings': 5, 'suggestions': 1, 'total': 11}
+        stats_html_only = {'critical': 0, 'high': 1, 'warnings': 2, 'suggestions': 0, 'total': 3}
 
-        html = self.render_html.render_statistics_section(stats)
+        html = self.render_html.render_statistics_section(stats, stats_html_only)
         self.assertThat(html, matchers.Contains('2'))  # Critical count
         self.assertThat(html, matchers.Contains('stat-critical'))
         self.assertThat(html, matchers.Contains('stat-high'))
+        self.assertThat(html, matchers.Contains('HTML report only'))  # html_only row shown
+
+    def test_render_statistics_section_no_html_only(self):
+        """Test statistics section without html_only findings."""
+        stats = {'critical': 1, 'high': 0, 'warnings': 0, 'suggestions': 0, 'total': 1}
+        stats_html_only = {'critical': 0, 'high': 0, 'warnings': 0, 'suggestions': 0, 'total': 0}
+
+        html = self.render_html.render_statistics_section(stats, stats_html_only)
+        self.assertThat(html, matchers.Contains('stat-critical'))
+        # html_only row should not appear when all counts are zero
+        self.assertThat(
+            html, matchers.Not(matchers.Contains('HTML report only'))
+        )
 
     def test_render_out_of_patch_observations_empty(self):
         """Empty list returns empty string."""

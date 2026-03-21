@@ -4,6 +4,9 @@
 # Model to use for code review (typically most capable model)
 ai_code_review_model: "glm-5-turbo"
 
+# Model to use for project-guidelines extraction (lightweight task, use faster/cheaper model)
+ai_code_review_guidelines_model: "glm-4.7-flash"
+
 # Input files (from context extraction)
 ai_code_review_context_output_file: "{{ ai_code_review_output_dir }}/zuul-context.md"
 ai_code_review_commit_summary_file: "{{ ai_code_review_output_dir }}/commit-summary.md"

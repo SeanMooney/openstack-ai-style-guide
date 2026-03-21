@@ -171,6 +171,10 @@ def extract_file_comments(review_data: Dict[str, Any]) -> Dict[str, List[Dict[st
         severity_label = severity.rstrip('s')  # Remove trailing 's' for label
 
         for issue in issues.get(severity_key, []):
+            # Skip issues routed to HTML report only
+            if issue.get('reporting_mode') == 'html_only':
+                continue
+
             location = issue.get('location', '')
             if not location:
                 continue  # Skip issues without file locations

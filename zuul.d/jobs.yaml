@@ -24,6 +24,7 @@
       Base job for AI-assisted code review using Claude Code via LiteLLM.
       Uses modular Ansible roles for maintainable and reusable workflow components.
     abstract: true
+    semaphore: teim-code-review
     run: playbooks/teim-code-review/run.yaml
     post-run: playbooks/teim-code-review/post.yaml
     timeout: 1800

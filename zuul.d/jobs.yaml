@@ -39,9 +39,9 @@
       # Model selection (can be overridden by child jobs)
       haiku_model: "glm-4.7-flash"
       sonnet_model: "glm-4.7"
-      opus_model: "glm-5"
+      opus_model: "glm-5-turbo"
       context_model: "glm-4.7-flash"
-      review_model: "glm-5"
+      review_model: "glm-5-turbo"
 
       # Anthropic-compatible endpoint served by LiteLLM
       anthropic_api_url: "http://litellm.zuul-system.svc.cluster.local:4000"

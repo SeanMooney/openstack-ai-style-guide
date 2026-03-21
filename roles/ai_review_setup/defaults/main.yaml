@@ -15,7 +15,7 @@ ai_review_setup_agents_target_dir: "{{ ai_review_setup_claude_config_dir }}/agen
 # Using z.ai GLM models via LiteLLM anthropic endpoint
 ai_review_setup_haiku_model: "glm-4.7-flash"
 ai_review_setup_sonnet_model: "glm-4.7"
-ai_review_setup_opus_model: "glm-5"
+ai_review_setup_opus_model: "glm-5-turbo"
 
 # Output directory for review results
 ai_review_setup_review_output_dir: "{{ ansible_user_dir }}/logs/code-review"

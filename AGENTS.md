@@ -174,6 +174,68 @@ complete formatting requirements. When updating agents:
 - Note that agent output (100 chars) is more conservative than repository
   files (120 chars)
 
+## Plugin and Marketplace Structure
+
+This repository is a Claude Code plugin. Users can install it locally to get
+the `/teim-review` skill and all agent definitions.
+
+### Plugin Layout
+
+```text
+.claude-plugin/
+  plugin.json       # Plugin manifest (agents, commands paths)
+  marketplace.json  # Marketplace catalog (lists this plugin)
+agents/
+  *.md              # Agent definitions (installed as Claude Code agents)
+skills/
+  teim-review/
+    SKILL.md        # /teim-review slash command
+```
+
+### Local Installation
+
+```bash
+# Add this repo as a Claude Code marketplace
+/plugin marketplace add /path/to/openstack-ai-style-guide
+
+# Install the teim-review plugin
+/plugin install teim-review@openstack-ai-style-guide
+
+# Run a local code review
+/teim-review
+```
+
+### Plugin Conventions
+
+- **Agents** (`agents/*.md`): Agents use a two-tier model strategy:
+  - **`model: inherit`** — orchestrators and the code-review-agent, so the
+    most capable model available in the session is used for complex reasoning.
+  - **`model: haiku`** — lightweight extraction agents (`zuul-context-extractor`,
+    `commit-summary`, `project-guidelines-extractor`) to reduce cost. In CI,
+    `ANTHROPIC_DEFAULT_HAIKU_MODEL` remaps `haiku` to the configured fast
+    model (e.g. `glm-4.7-flash`). Locally it resolves to the current
+    `claude-haiku-*` release.
+- **Skills** (`skills/*/SKILL.md`): Slash commands for interactive use.
+  They delegate to agents via `@agent-name` syntax.
+- **Tools** (`tools/`): Standalone Python scripts with uv inline script
+  metadata (`# /// script`) for zero-setup local execution. CI uses these
+  scripts directly via a venv (uv not available in CI images).
+
+### teim-review Local Output
+
+When `/teim-review` is run locally, output is written to `.teim-review/`:
+
+```text
+.teim-review/
+  zuul-context.md       # Detected execution context (local git info)
+  commit-summary.md     # Commit metadata and file tree
+  project-guidelines.md # Extracted project coding standards
+  review-report.json    # Structured review findings (JSON)
+  review-report.html    # Visual HTML report
+```
+
+The `.teim-review/` directory is gitignored and safe to leave in place.
+
 ## Repository Organization Patterns
 
 This section documents the organizational patterns used in this repository

@@ -27,10 +27,59 @@ cat docs/quick-rules.md | pbcopy  # macOS
 cat docs/quick-rules.md | xclip -selection clipboard  # Linux
 ```
 
+## 📦 Claude Code Plugin
+
+This repository is a Claude Code plugin providing the `/teim-review` skill and
+a suite of AI agents for OpenStack code review.
+
+### Install as a Plugin
+
+```bash
+# Add this repo as a marketplace (local clone)
+/plugin marketplace add /path/to/openstack-ai-style-guide
+
+# Install the teim-review plugin
+/plugin install teim-review@openstack-ai-style-guide
+```
+
+### Local Code Review
+
+Once installed, run `/teim-review` in any OpenStack project to get a full
+AI-assisted review:
+
+```bash
+# In your OpenStack project directory:
+/teim-review
+```
+
+Output is written to `.teim-review/` (gitignored):
+
+- `review-report.json` — structured findings
+- `review-report.html` — visual HTML report
+
+### Included Agents
+
+| Agent | Purpose |
+|-------|---------|
+| `teim-review-agent` | Orchestrates the full review pipeline |
+| `code-review-agent` | OpenStack code review with confidence scoring |
+| `zuul-context-extractor` | Extracts Zuul CI job context from inventory |
+| `commit-summary` | Summarises commits and generates file trees |
+| `project-guidelines-extractor` | Reads HACKING.rst, AGENTS.md, CLAUDE.md |
+| `code-maintainability-auditor` | Dead code and refactoring analysis |
+| `security-auditor` | Security vulnerability assessment |
+
 ## 📁 Repository Structure
 
 ```text
 openstack-ai-style-guide/
+├── .claude-plugin/                # Claude Code plugin manifest
+│   ├── plugin.json               # Plugin definition (agents, skills)
+│   └── marketplace.json          # Marketplace catalog
+├── agents/                        # Agent definitions (*.md)
+├── skills/                        # Slash command skills
+│   └── teim-review/
+│       └── SKILL.md              # /teim-review command
 ├── docs/                          # Style guide documentation
 │   ├── quick-rules.md            # Concise reference (710 tokens)
 │   ├── comprehensive-guide.md    # Detailed guide (4700 tokens)
@@ -50,7 +99,8 @@ openstack-ai-style-guide/
 │   ├── dco.md                   # Developer Certificate of Origin
 │   ├── hacking.md               # OpenStack Hacking Rules
 │   └── pep8.md                  # PEP 8 Style Guide
-├── tools/                        # Validation and helper scripts
+├── tools/                        # Standalone helper scripts
+│   └── render_html_from_json.py # HTML report generator (uv-compatible)
 ├── CONTRIBUTING.md               # Contribution guidelines
 ├── LICENSE                       # Apache 2.0 license
 └── README.md                     # This file

@@ -1,0 +1,17 @@
+{
+  "name": "openstack-ai-style-guide",
+  "owner": {
+    "name": "Sean Mooney"
+  },
+  "metadata": {
+    "description": "OpenStack AI style guide and code review tools"
+  },
+  "plugins": [
+    {
+      "name": "teim-review",
+      "source": "./",
+      "description": "AI-powered OpenStack code review toolkit",
+      "version": "1.0.0"
+    }
+  ]
+}

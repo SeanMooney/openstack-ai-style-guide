@@ -7,10 +7,6 @@ ai_review_setup_claude_binary: claude
 # Claude configuration directory
 ai_review_setup_claude_config_dir: "{{ ansible_user_dir }}/.claude"
 
-# Agents source and target directories
-ai_review_setup_agents_source_dir: "{{ ansible_user_dir }}/{{ ai_review_setup_style_guide_project }}/agents"
-ai_review_setup_agents_target_dir: "{{ ai_review_setup_claude_config_dir }}/agents"
-
 # Model mappings (can be overridden by job variables)
 # Using z.ai GLM models via LiteLLM anthropic endpoint
 ai_review_setup_haiku_model: "glm-4.7-flash"
@@ -20,5 +16,10 @@ ai_review_setup_opus_model: "glm-5-turbo"
 # Output directory for review results
 ai_review_setup_review_output_dir: "{{ ansible_user_dir }}/logs/code-review"
 
-# Style guide project name
-ai_review_setup_style_guide_project: "openstack-ai-style-guide"
+# Absolute path to the style guide project on the CI node
+# (used for plugin marketplace add and referencing tools/)
+ai_review_setup_style_guide_project: "{{ ansible_user_dir }}/openstack-ai-style-guide"
+
+# API credentials for plugin installation commands
+ai_review_setup_anthropic_auth_token: ""
+ai_review_setup_anthropic_api_url: ""

@@ -1,63 +1,62 @@
 ---
 # AI-Assisted Code Review Playbook (Task-Based Orchestration)
 #
-# This playbook performs comprehensive AI-assisted code review using modular
-# Ansible roles with explicit task-based orchestration. Each role is included
-# in a specific order to ensure proper execution:
+# This playbook performs comprehensive AI-assisted code review using the
+# teim-review-agent, which orchestrates all subagents in a single Claude
+# invocation. The workflow is:
 #
-# 1. ai_review_setup (foundation - sets up Claude CLI)
-# 2. ai_context_extraction (extracts Zuul context and git commits)
-# 3. ai_code_review (performs AI code review)
-# 4. ai_html_generation (generates HTML report)
-# 5. ai_zuul_integration (generates Zuul comments and registers artifacts)
+# 1. Inventory copy — copies Zuul executor inventory to the output directory
+# 2. ai_review_setup — installs teim-review plugin, configures Claude CLI
+# 3. ai_code_review — single Claude invocation via teim-review-agent:
+#    - invokes teim-review-agent (context extraction, commit summary,
+#      project guidelines, and code review in one pass)
+# 4. ai_html_generation — converts JSON report to HTML (Python, no Claude)
+# 5. ai_zuul_integration — posts Gerrit comments, registers artifacts
 #
 # Required variables (set in job definition):
 #   - claude_binary: Path to Claude CLI executable
 #   - claude_config_dir: Claude CLI configuration directory
-#   - haiku_model, sonnet_model, opus_model: Model names
-#   - context_model: Model for context extraction (fast)
-#   - review_model: Model for code review (most capable)
-#   - style_guide_project: Path to style guide repository
+#   - haiku_model, sonnet_model, opus_model: Model name overrides
+#   - review_model: Model for the teim-review-agent invocation
+#   - style_guide_project: Absolute path to style guide repository on node
 #   - anthropic_auth_token: API authentication token
 #   - anthropic_api_url: API base URL
 
 - name: AI-Assisted Code Review
   hosts: all
   tasks:
-    - name: Run AI review setup
+    - name: Ensure review output directory exists
+      ansible.builtin.file:
+        path: "{{ review_output_dir }}"
+        state: directory
+        mode: '0755'
+
+    - name: Copy Zuul inventory to output directory
+      ansible.builtin.copy:
+        src: "{{ zuul.executor.inventory_file }}"
+        dest: "{{ review_output_dir }}/inventory.yaml"
+        mode: '0644'
+
+    - name: Run AI review setup (install teim-review plugin)
       ansible.builtin.include_role:
         name: ai_review_setup
       vars:
         ai_review_setup_claude_binary: "{{ claude_binary }}"
         ai_review_setup_claude_config_dir: "{{ claude_config_dir }}"
-        ai_review_setup_agents_source_dir: "{{ agents_source_dir }}"
-        ai_review_setup_agents_target_dir: "{{ agents_target_dir }}"
         ai_review_setup_haiku_model: "{{ haiku_model }}"
         ai_review_setup_sonnet_model: "{{ sonnet_model }}"
         ai_review_setup_opus_model: "{{ opus_model }}"
         ai_review_setup_review_output_dir: "{{ review_output_dir }}"
         ai_review_setup_style_guide_project: "{{ style_guide_project }}"
+        ai_review_setup_anthropic_auth_token: "{{ anthropic_auth_token }}"
+        ai_review_setup_anthropic_api_url: "{{ anthropic_api_url }}"
 
-    - name: Extract context from Zuul and git
-      ansible.builtin.include_role:
-        name: ai_context_extraction
-      vars:
-        ai_context_extraction_model: "{{ context_model }}"
-        ai_context_extraction_output_file: "{{ context_output_file }}"
-        ai_context_extraction_commit_summary_file: "{{ commit_summary_file }}"
-        ai_context_extraction_commit_context_file: "{{ commit_context_file }}"
-        ai_context_extraction_review_output_dir: "{{ review_output_dir }}"
-        ai_context_extraction_claude_binary: "{{ claude_binary }}"
-        ai_context_extraction_anthropic_auth_token: "{{ anthropic_auth_token }}"
-        ai_context_extraction_anthropic_api_url: "{{ anthropic_api_url }}"
-
-    - name: Perform AI code review
+    - name: Perform AI code review (teim-review-agent orchestrates all subagents)
       ansible.builtin.include_role:
         name: ai_code_review
       vars:
         ai_code_review_model: "{{ review_model }}"
-        ai_code_review_context_output_file: "{{ context_output_file }}"
-        ai_code_review_commit_summary_file: "{{ commit_summary_file }}"
+        ai_code_review_inventory_file: "{{ review_output_dir }}/inventory.yaml"
         ai_code_review_style_guide_project: "{{ style_guide_project }}"
         ai_code_review_style_guide_quick_rules: "{{ style_guide_quick_rules }}"
         ai_code_review_style_guide_comprehensive: "{{ style_guide_comprehensive }}"
@@ -76,6 +75,7 @@
         ai_html_generation_review_report_file: "{{ review_report_file }}"
         ai_html_generation_html_report_file: "{{ html_report_file }}"
         ai_html_generation_review_output_dir: "{{ review_output_dir }}"
+        ai_html_generation_style_guide_project: "{{ style_guide_project }}"
 
     - name: Integrate with Zuul (comments and artifacts)
       ansible.builtin.include_role:
@@ -88,24 +88,41 @@
         ai_zuul_integration_review_output_dir: "{{ review_output_dir }}"
 
   post_tasks:
+    - name: Extract issue statistics from review report
+      ansible.builtin.command:
+        cmd: >-
+          jq -r '
+            (.structured_output // .) as $d |
+            "Critical: \($d.statistics.critical // 0)  " +
+            "High: \($d.statistics.high // 0)  " +
+            "Warnings: \($d.statistics.warnings // 0)  " +
+            "Suggestions: \($d.statistics.suggestions // 0)  " +
+            "Total: \($d.statistics.total // 0)"
+          ' {{ review_report_file }}
+      register: teim_review_stats
+      failed_when: false
+      changed_when: false
+
+    - name: Compute review status from issue counts
+      ansible.builtin.set_fact:
+        teim_review_status: >-
+          {%- set raw = teim_review_stats.stdout | default('') -%}
+          {%- set crit = (raw | regex_search('Critical: (\d+)', '\\1') or ['0'])[0] | int -%}
+          {%- set tot = (raw | regex_search('Total: (\d+)', '\\1') or ['0'])[0] | int -%}
+          {{ 'NEEDS ATTENTION' if crit > 0 else ('HAS SUGGESTIONS' if tot > 0 else 'CLEAN') }}
+
     - name: Display job summary
       ansible.builtin.debug:
         msg: |
           ================================================================
           AI Code Review Complete
           ================================================================
-          Review Report (JSON): {{ review_output_dir }}/review-report.json
-          HTML Report: {{ review_output_dir }}/review-report.html
-          Zuul Comments: {{ review_output_dir }}/zuul-comments.json
+          Review Report (JSON): {{ review_report_file }}
+          HTML Report: {{ html_report_file }}
+          Zuul Comments: {{ zuul_comments_file }}
 
           Issue Statistics:
-          {{ ai_code_review_issue_statistics.stdout | default('N/A') }}
+          {{ teim_review_stats.stdout | default('N/A') }}
 
-          {% if ai_code_review_has_critical_issues | default(false) %}
-          Status: NEEDS ATTENTION
-          {% elif ai_code_review_has_issues | default(false) %}
-          Status: HAS SUGGESTIONS
-          {% else %}
-          Status: CLEAN
-          {% endif %}
+          Status: {{ teim_review_status }}
           ================================================================

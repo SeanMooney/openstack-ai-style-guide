@@ -80,3 +80,6 @@ npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 .ansible
+
+# teim-review local output directory
+.teim-review/

@@ -1,4 +1,8 @@
-#!/usr/bin/env python3
+#!/usr/bin/env -S uv run --script
+# /// script
+# requires-python = ">=3.10"
+# dependencies = []
+# ///
 # Copyright 2025 Sean Mooney
 #
 # Licensed under the Apache License, Version 2.0 (the "License"); you may
@@ -18,6 +22,12 @@
 This script reads structured JSON review reports and generates WCAG AA
 compliant HTML with enhanced visual features including collapsible sections,
 larger badges, and color-coded backgrounds.
+
+Usage (with uv, no venv required):
+    ./tools/render_html_from_json.py review-report.json review-report.html -v
+
+Usage (with plain python3):
+    python3 tools/render_html_from_json.py review-report.json review-report.html -v
 """
 
 import argparse
@@ -267,23 +277,41 @@ def render_issue_card(issue: Dict[str, Any], severity: str, number: int, total: 
         if 'risk' in issue:
             details_parts.append(f'<p><strong>Risk</strong>: {escape_html(issue["risk"])}</p>')
         if 'remediation_priority' in issue:
-            details_parts.append(f'<p><strong>Remediation Priority</strong>: {escape_html(issue["remediation_priority"])}</p>')
+            details_parts.append(
+                f'<p><strong>Remediation Priority</strong>: '
+                f'{escape_html(issue["remediation_priority"])}</p>'
+            )
         if 'why_matters' in issue:
-            details_parts.append(f'<p><strong>Why This Matters</strong>: {escape_html(issue["why_matters"])}</p>')
+            details_parts.append(
+                f'<p><strong>Why This Matters</strong>: '
+                f'{escape_html(issue["why_matters"])}</p>'
+            )
         if 'recommendation' in issue:
-            details_parts.append(f'<p><strong>Recommendation</strong>: {escape_html(issue["recommendation"])}</p>')
+            details_parts.append(
+                f'<p><strong>Recommendation</strong>: '
+                f'{escape_html(issue["recommendation"])}</p>'
+            )
 
     elif severity == 'warning':
         if 'impact' in issue:
-            details_parts.append(f'<p><strong>Impact</strong>: {escape_html(issue["impact"])}</p>')
+            details_parts.append(
+                f'<p><strong>Impact</strong>: {escape_html(issue["impact"])}</p>'
+            )
         if 'suggestion' in issue:
-            details_parts.append(f'<p><strong>Suggestion</strong>: {escape_html(issue["suggestion"])}</p>')
+            details_parts.append(
+                f'<p><strong>Suggestion</strong>: {escape_html(issue["suggestion"])}</p>'
+            )
 
     elif severity == 'suggestion':
         if 'benefit' in issue:
-            details_parts.append(f'<p><strong>Benefit</strong>: {escape_html(issue["benefit"])}</p>')
+            details_parts.append(
+                f'<p><strong>Benefit</strong>: {escape_html(issue["benefit"])}</p>'
+            )
         if 'recommendation' in issue:
-            details_parts.append(f'<p><strong>Recommendation</strong>: {escape_html(issue["recommendation"])}</p>')
+            details_parts.append(
+                f'<p><strong>Recommendation</strong>: '
+                f'{escape_html(issue["recommendation"])}</p>'
+            )
 
     details_html = '\n'.join(details_parts)
 
@@ -380,7 +408,8 @@ def render_summary_section(summary: Dict[str, str], statistics: Dict[str, int]) 
     return f"""<section role="region" aria-label="Summary">
 <h2>Summary</h2>
 <ul>
-<li><strong>Total Issues</strong>: {critical} Critical, {high} High, {warnings} Warnings, {suggestions} Suggestions</li>
+<li><strong>Total Issues</strong>: {critical} Critical, {high} High, {warnings} Warnings,
+{suggestions} Suggestions</li>
 <li><strong>Overall Assessment</strong>: {assessment}</li>
 <li><strong>Priority Focus</strong>: {priority_focus}</li>
 </ul>
@@ -852,7 +881,8 @@ def main():
     missing_keys = [key for key in required_keys if key not in review_data]
     if missing_keys:
         print(
-            f"Error: Invalid review data structure. Missing required keys: {', '.join(missing_keys)}",
+            f"Error: Invalid review data structure. Missing required keys: "
+            f"{', '.join(missing_keys)}",
             file=sys.stderr
         )
         sys.exit(1)

@@ -1,6 +1,6 @@
 ---
 # AI Review Setup Role
-# Sets up Claude CLI, copies agents, and configures environment
+# Installs the teim-review plugin and configures the Claude CLI environment
 
 - name: Install jq for JSON parsing
   ansible.builtin.package:
@@ -45,67 +45,6 @@
     state: directory
     mode: '0755'
 
-- name: Validate agents directory path
-  ansible.builtin.stat:
-    path: "{{ ai_review_setup_agents_target_dir }}"
-  register: ai_review_setup_agents_target_stat
-
-- name: Fail if agents path exists as a file
-  ansible.builtin.fail:
-    msg: >-
-      Agents directory path {{ ai_review_setup_agents_target_dir }}
-      exists as a file, not a directory
-  when: >-
-    ai_review_setup_agents_target_stat.stat.exists and
-    not ai_review_setup_agents_target_stat.stat.isdir
-
-- name: Ensure agents directory exists
-  ansible.builtin.file:
-    path: "{{ ai_review_setup_agents_target_dir }}"
-    state: directory
-    mode: '0755'
-
-- name: Verify agents source directory exists
-  ansible.builtin.stat:
-    path: "{{ ai_review_setup_agents_source_dir }}"
-  register: ai_review_setup_agents_source_stat
-  failed_when: >-
-    not ai_review_setup_agents_source_stat.stat.exists or
-    not ai_review_setup_agents_source_stat.stat.isdir
-
-- name: Copy agents from style guide repo
-  ansible.posix.synchronize:
-    src: "{{ ai_review_setup_agents_source_dir }}/"
-    dest: "{{ ai_review_setup_agents_target_dir }}/"
-    recursive: true
-    rsync_opts:
-      - "--exclude=*.pyc"
-      - "--exclude=__pycache__"
-  delegate_to: "{{ inventory_hostname }}"
-  register: ai_review_setup_sync_result
-
-- name: Verify agents were copied successfully
-  ansible.builtin.stat:
-    path: "{{ ai_review_setup_agents_target_dir }}"
-  register: ai_review_setup_agents_copied
-  failed_when: >-
-    not ai_review_setup_agents_copied.stat.exists or
-    not ai_review_setup_agents_copied.stat.isdir
-
-- name: Verify required agent files exist
-  ansible.builtin.stat:
-    path: "{{ ai_review_setup_agents_target_dir }}/{{ item }}"
-  register: ai_review_setup_required_agents
-  failed_when: not ai_review_setup_required_agents.stat.exists
-  loop:
-    - zuul-context-extractor.md
-    - commit-summary.md
-    - code-review-agent.md
-
-- name: Display agent copy summary
-  ansible.builtin.debug:
-    msg: "Successfully copied agents to {{ ai_review_setup_agents_target_dir }}"
-
 - name: Configure Claude model mappings
   ansible.builtin.copy:
     content: |
@@ -119,6 +58,56 @@
     dest: "{{ ai_review_setup_claude_config_dir }}/settings.json"
     mode: '0644'
 
+- name: Verify style guide project directory exists
+  ansible.builtin.stat:
+    path: "{{ ai_review_setup_style_guide_project }}"
+  register: ai_review_setup_style_guide_stat
+  failed_when: >-
+    not ai_review_setup_style_guide_stat.stat.exists or
+    not ai_review_setup_style_guide_stat.stat.isdir
+
+- name: Add teim-review plugin marketplace from style guide repo
+  ansible.builtin.command: >-
+    {{ ai_review_setup_claude_binary }} plugin marketplace add
+    {{ ai_review_setup_style_guide_project }}
+  environment:
+    ANTHROPIC_AUTH_TOKEN: "{{ ai_review_setup_anthropic_auth_token }}"
+    ANTHROPIC_BASE_URL: "{{ ai_review_setup_anthropic_api_url }}"
+  register: ai_review_setup_marketplace_add
+  changed_when: >-
+    ai_review_setup_marketplace_add.stdout is search('added|installed|updated')
+
+- name: Verify marketplace was registered
+  ansible.builtin.assert:
+    that:
+      - ai_review_setup_marketplace_add.rc == 0
+    fail_msg: >-
+      Failed to register openstack-ai-style-guide marketplace
+      (rc={{ ai_review_setup_marketplace_add.rc }}).
+      stdout: {{ ai_review_setup_marketplace_add.stdout }}
+      stderr: {{ ai_review_setup_marketplace_add.stderr }}
+
+- name: Install teim-review plugin
+  ansible.builtin.command: >-
+    {{ ai_review_setup_claude_binary }} plugin install
+    teim-review@openstack-ai-style-guide
+  environment:
+    ANTHROPIC_AUTH_TOKEN: "{{ ai_review_setup_anthropic_auth_token }}"
+    ANTHROPIC_BASE_URL: "{{ ai_review_setup_anthropic_api_url }}"
+  register: ai_review_setup_plugin_install
+  changed_when: >-
+    ai_review_setup_plugin_install.stdout is search('installed|updated')
+
+- name: Verify teim-review plugin was installed
+  ansible.builtin.assert:
+    that:
+      - ai_review_setup_plugin_install.rc == 0
+    fail_msg: >-
+      Failed to install teim-review plugin
+      (rc={{ ai_review_setup_plugin_install.rc }}).
+      stdout: {{ ai_review_setup_plugin_install.stdout }}
+      stderr: {{ ai_review_setup_plugin_install.stderr }}
+
 - name: Ensure output directories exist
   ansible.builtin.file:
     path: "{{ ai_review_setup_review_output_dir }}"
@@ -131,6 +120,6 @@
       AI Review Setup Complete:
       - Claude CLI: {{ ai_review_setup_claude_version.stdout }}
       - Config Dir: {{ ai_review_setup_claude_config_dir }}
-      - Agents Dir: {{ ai_review_setup_agents_target_dir }}
+      - Plugin: teim-review@openstack-ai-style-guide installed
       - Output Dir: {{ ai_review_setup_review_output_dir }}
       - Models: Haiku={{ ai_review_setup_haiku_model }}, Sonnet={{ ai_review_setup_sonnet_model }}, Opus={{ ai_review_setup_opus_model }}

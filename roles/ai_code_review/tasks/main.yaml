@@ -1,17 +1,18 @@
 ---
 # AI Code Review Role
-# Performs comprehensive code review using AI agent with structured output
+# Performs comprehensive code review using the teim-review-agent in a single
+# Claude invocation. Context extraction, commit summary, project guidelines
+# extraction, and code review are all orchestrated by the agent.
 
-- name: Verify prerequisite context files exist
+- name: Verify prerequisite files exist
   ansible.builtin.stat:
     path: "{{ item }}"
   register: ai_code_review_prereq_files
   loop:
-    - "{{ ai_code_review_context_output_file }}"
-    - "{{ ai_code_review_commit_summary_file }}"
     - "{{ ai_code_review_style_guide_quick_rules }}"
     - "{{ ai_code_review_style_guide_comprehensive }}"
     - "{{ ai_code_review_json_schema }}"
+    - "{{ ai_code_review_inventory_file }}"
 
 - name: Fail if prerequisite files missing
   ansible.builtin.fail:
@@ -19,81 +20,25 @@
   when: not item.stat.exists
   loop: "{{ ai_code_review_prereq_files.results }}"
 
-- name: Create project-guidelines extraction prompt
-  ansible.builtin.set_fact:
-    ai_code_review_guidelines_prompt: >-
-      Use the @agent-project-guidelines-extractor subagent to read project-specific
-      coding guidelines from the repository being reviewed.
-
-      The project source directory is: {{ ai_code_review_project_src_dir }}
-      Write the output to: {{ ai_code_review_project_guidelines_file }}
-
-      Read HACKING.rst, AGENTS.md, and CLAUDE.md from the project root if they exist.
-      Produce a concise project-guidelines.md summarising rules that override or extend
-      generic OpenStack standards. Keep the output under 700 tokens.
-
-- name: Extract project-specific guidelines
-  ansible.builtin.include_role:
-    name: run_claude_code
-  vars:
-    run_claude_code_prompt_text: "{{ ai_code_review_guidelines_prompt }}"
-    run_claude_code_model_name: "{{ ai_code_review_guidelines_model }}"
-    run_claude_code_output_file: "{{ ai_code_review_project_guidelines_file }}"
-    run_claude_code_output_format: "text"
-    run_claude_code_command_name: "project guidelines extraction"
-    run_claude_code_working_dir: "{{ ai_code_review_project_src_dir }}"
-    run_claude_code_claude_binary: "{{ ai_code_review_claude_binary }}"
-    run_claude_code_anthropic_auth_token: "{{ ai_code_review_anthropic_auth_token }}"
-    run_claude_code_anthropic_api_url: "{{ ai_code_review_anthropic_api_url }}"
-
-- name: Check whether project-guidelines file was produced
-  ansible.builtin.stat:
-    path: "{{ ai_code_review_project_guidelines_file }}"
-  register: ai_code_review_guidelines_stat
-
-- name: Warn if project-guidelines file is missing or empty
-  ansible.builtin.debug:
-    msg: >-
-      Project-guidelines extraction produced no output
-      ({{ ai_code_review_project_guidelines_file }} missing or empty).
-      Review will proceed without project-specific guidelines.
-  when: >-
-    not ai_code_review_guidelines_stat.stat.exists
-    or ai_code_review_guidelines_stat.stat.size == 0
-
-- name: Build optional project-guidelines context line
-  ansible.builtin.set_fact:
-    ai_code_review_guidelines_context: >-
-      {{
-        'Read @' + ai_code_review_project_guidelines_file
-        + ' for project-specific rules that override'
-        + ' generic standards — treat these as authoritative'
-        + ' and apply them before any other guidance.'
-        if (ai_code_review_guidelines_stat.stat.exists
-            and ai_code_review_guidelines_stat.stat.size > 0)
-        else ''
-      }}
-
-- name: Create code review prompt with @file references and subagent invocation
+- name: Create teim-review orchestration prompt
   ansible.builtin.set_fact:
     ai_code_review_review_prompt: >-
-      Use the @agent-code-review-agent subagent to
-      perform a comprehensive code review of the change.
+      Use the @teim-review-agent subagent to perform a complete code review.
 
-      Read @{{ ai_code_review_context_output_file }} for Zuul execution context.
-      Read @{{ ai_code_review_commit_summary_file }} for commit metadata and change summary.
-      Read @{{ ai_code_review_style_guide_quick_rules }} for essential OpenStack coding standards and rules.
-      Read @{{ ai_code_review_style_guide_comprehensive }} for detailed explanations and complex scenarios.
-      {{ ai_code_review_guidelines_context }}
+      inventory_file: {{ ai_code_review_inventory_file }}
+      output_dir: {{ ai_code_review_output_dir }}
+      project_dir: {{ ai_code_review_project_src_dir }}
+      style_guide_quick_rules: {{ ai_code_review_style_guide_quick_rules }}
+      style_guide_comprehensive: {{ ai_code_review_style_guide_comprehensive }}
+      json_schema: {{ ai_code_review_json_schema }}
+      tools_dir: {{ ai_code_review_style_guide_project }}/tools
+      generate_html: false
 
-      The project under review is located at: {{ ai_code_review_project_src_dir }}
-
-      Generate a structured JSON review report conforming to the review-report-schema.json
-      with severity-categorized findings (critical, high, warnings, suggestions).
+      Write the structured JSON review report to
+      {{ ai_code_review_report_file }}.
       Out-of-patch findings go in out_of_patch_observations, not in issues.
-      The output will be validated against the JSON schema automatically.
 
-- name: Execute code review with Claude (structured output)
+- name: Execute code review with Claude via teim-review-agent
   ansible.builtin.include_role:
     name: run_claude_code
   vars:

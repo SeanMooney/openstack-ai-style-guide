@@ -31,20 +31,15 @@ formatting:
 
 ## 3. Add molecule tests for remaining roles
 
-`ai_review_setup` and `ai_context_extraction` are harder to molecule
-test because they depend on:
+`ai_review_setup` is harder to molecule test because it depends on:
 
 - **ai_review_setup**: Live Claude CLI (`claude --version`),
   `ansible.posix.synchronize` (rsync), package installation (`jq`)
-- **ai_context_extraction**: Live `zuul` inventory variables
-  (`zuul.executor.inventory_file`, `zuul.project.src_dir`), Claude
-  CLI, git repository with commits
 
 Approaches:
 
 - Mock Claude CLI with a script that prints a version string
 - Mock `zuul` vars in molecule inventory host_vars
-- Set up a test git repo in converge for `ai_context_extraction`
 - Use `delegate_to: localhost` override for synchronize
 
 ## 4. Add unit tests for `generate_zuul_comments.py`

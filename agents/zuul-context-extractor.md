@@ -5,7 +5,7 @@ description: |
   for code review and analysis. Identifies change context, repository locations,
   working directories, and log output paths. Invoked when analyzing Zuul CI job
   results or preparing review context from CI environments.
-model: inherit
+model: haiku
 ---
 
 You are a specialized Zuul CI context extraction agent that analyzes Zuul inventory files to identify

@@ -27,7 +27,7 @@ class TestRenderHtml(test.NoDBTestCase):
     def setUp(self):
         super().setUp()
         self.render_html = test.load_script(
-            'roles/ai_html_generation/files/render_html_from_json.py'
+            'tools/render_html_from_json.py'
         )
 
     def _create_sample_review(self):

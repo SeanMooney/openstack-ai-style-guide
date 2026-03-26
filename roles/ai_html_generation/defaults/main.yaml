@@ -12,3 +12,7 @@ ai_html_generation_html_report_file: "{{ ai_html_generation_review_output_dir }}
 
 # Review output directory
 ai_html_generation_review_output_dir: "{{ ansible_user_dir }}/logs/code-review"
+
+# Absolute path to the style guide project on the CI node
+# Used to locate tools/render_html_from_json.py
+ai_html_generation_style_guide_project: "{{ ansible_user_dir }}/openstack-ai-style-guide"

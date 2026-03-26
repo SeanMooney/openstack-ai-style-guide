@@ -22,7 +22,10 @@
     name: teim-code-review-base
     description: |
       Base job for AI-assisted code review using Claude Code via LiteLLM.
-      Uses modular Ansible roles for maintainable and reusable workflow components.
+      Installs the teim-review plugin from the openstack-ai-style-guide repo,
+      then runs a single Claude invocation using the teim-review-agent to
+      orchestrate context extraction, commit analysis, project guidelines
+      extraction, and code review in one pass.
     abstract: true
     semaphore: teim-code-review
     run: playbooks/teim-code-review/run.yaml
@@ -38,10 +41,11 @@
       claude_config_dir: "{{ ansible_user_dir }}/.claude"
 
       # Model selection (can be overridden by child jobs)
+      # These are remapped to GLM models via ANTHROPIC_DEFAULT_*_MODEL env vars
+      # set in ~/.claude/settings.json by ai_review_setup.
       haiku_model: "glm-4.7-flash"
       sonnet_model: "glm-4.7"
       opus_model: "glm-5-turbo"
-      context_model: "glm-4.7-flash"
       review_model: "glm-5-turbo"
 
       # Anthropic-compatible endpoint served by LiteLLM
@@ -55,18 +59,14 @@
       # Do NOT copy this pattern to environments with external access or real API keys.
       anthropic_auth_token: "sk-1234"
 
-      # Style guide project location (Zuul provides this)
-      style_guide_project: "{{ zuul.projects['github.com/SeanMooney/openstack-ai-style-guide'].src_dir }}"
-      agents_source_dir: "{{ ansible_user_dir }}/{{ style_guide_project }}/agents"
-      agents_target_dir: "{{ claude_config_dir }}/agents"
-      style_guide_quick_rules: "{{ ansible_user_dir }}/{{ style_guide_project }}/docs/quick-rules.md"
-      style_guide_comprehensive: "{{ ansible_user_dir }}/{{ style_guide_project }}/docs/comprehensive-guide.md"
+      # Style guide project location on the CI node (absolute path)
+      style_guide_project: >-
+        {{ ansible_user_dir }}/{{ zuul.projects['github.com/SeanMooney/openstack-ai-style-guide'].src_dir }}
+      style_guide_quick_rules: "{{ style_guide_project }}/docs/quick-rules.md"
+      style_guide_comprehensive: "{{ style_guide_project }}/docs/comprehensive-guide.md"
 
       # Output configuration
       review_output_dir: "{{ ansible_user_dir }}/logs/code-review"
-      context_output_file: "{{ review_output_dir }}/zuul-context.md"
-      commit_summary_file: "{{ review_output_dir }}/commit-summary.md"
-      commit_context_file: "{{ review_output_dir }}/commit-context.txt"
       review_report_file: "{{ review_output_dir }}/review-report.json"
       html_report_file: "{{ review_output_dir }}/review-report.html"
       zuul_comments_file: "{{ review_output_dir }}/zuul-comments.json"

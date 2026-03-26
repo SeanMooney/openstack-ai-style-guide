@@ -5,7 +5,7 @@ description: |
   Invoked when reviewing proposed changes, analyzing commits, or preparing code
   review context. Creates structured summaries including file trees, metadata,
   and change rationale following OpenStack commit conventions.
-model: inherit
+model: haiku
 ---
 
 You are a specialized commit analysis agent that extracts salient information from

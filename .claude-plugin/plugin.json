@@ -1,0 +1,5 @@
+{
+  "name": "teim-review",
+  "description": "AI-powered OpenStack code review toolkit for Gerrit/Zuul CI",
+  "version": "1.0.0"
+}

@@ -7,12 +7,6 @@
   args:
     creates: "{{ ai_html_generation_venv_dir }}/bin/python3"
 
-- name: Copy HTML renderer script
-  ansible.builtin.copy:
-    src: render_html_from_json.py
-    dest: "{{ ansible_user_dir }}/render_html_from_json.py"
-    mode: '0755'
-
 - name: Check if JSON review report exists
   ansible.builtin.stat:
     path: "{{ ai_html_generation_review_report_file }}"
@@ -26,7 +20,7 @@
 - name: Generate HTML report from JSON
   ansible.builtin.command: >
     {{ ai_html_generation_venv_dir }}/bin/python3
-    {{ ansible_user_dir }}/render_html_from_json.py
+    {{ ai_html_generation_style_guide_project }}/tools/render_html_from_json.py
     {{ ai_html_generation_review_report_file }}
     {{ ai_html_generation_html_report_file }}
     -v

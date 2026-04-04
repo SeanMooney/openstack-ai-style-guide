@@ -3,8 +3,9 @@ name: project-guidelines-extractor
 description: |
   Extracts and condenses project-specific coding guidelines from in-repo documentation
   and linter configuration to prepare a concise context file for the code review agent.
-  Reads HACKING.rst, AGENTS.md, CLAUDE.md, and linter config files (tox.ini,
-  pyproject.toml, ruff.toml, etc.) to build a picture of the project's style philosophy
+  Reads HACKING.rst, AGENTS.md, CLAUDE.md, linter config files (tox.ini,
+  pyproject.toml, ruff.toml, etc.), and optional review knowledge overlays from
+  the style-guide repository to build a picture of the project's style philosophy
   and quality conventions.
 model: haiku
 color: green
@@ -54,6 +55,48 @@ From the linter config, build an understanding of:
 - **Per-file relaxations** — directories or files where rules are looser (e.g. `tests/`
   often relaxes H-rules), indicating what the project treats differently in test code
 
+## Optional Review Knowledge Inputs
+
+If `{{ knowledge_root }}` is provided and exists, also read the review knowledge
+material that is relevant to the current repository and review domain.
+
+### Knowledge Root Layout
+
+Expect the knowledge root to follow this shape:
+
+```text
+docs/knowledge/
+  overlays/
+    language/
+    repo/
+    topic/
+  examples/
+    good/
+    bad/
+```
+
+### Overlay Selection Rules
+
+Use the overlays conservatively:
+
+1. **Language overlays** — include overlays that clearly apply to the
+   repository language or ecosystem (for example OpenStack Python guidance).
+2. **Repo overlays** — include overlays that clearly apply to the project under
+   review or its family of repositories.
+3. **Topic overlays** — include only when they are obviously relevant to the
+   diff or the project domain, such as testing, security, API, or docs.
+4. If no overlays match, do not create a placeholder result for them.
+
+### Example Selection Rules
+
+- Treat examples as supporting evidence and pattern references.
+- Good examples show preferred patterns.
+- Bad examples show anti-patterns and failure modes.
+- Do not treat a single example as an authoritative rule on its own.
+- Use examples to strengthen or explain guidance already grounded in the
+  references, baseline guides, or explicit project rules.
+- If no examples apply, omit them silently rather than listing empty sections.
+
 ## Output Format
 
 Write a markdown file to `{{ output_file }}` with this structure:
@@ -74,6 +117,12 @@ List any explicit overrides. Examples:
 
 Rules from HACKING.rst that add to (not override) generic standards.
 One line per rule.
+
+### Derived Knowledge Applied
+
+List any overlays or examples used from `{{ knowledge_root }}` and what they
+added to the review context.
+Omit this section entirely when no derived knowledge was applied.
 
 ### Linter Configuration Summary
 
@@ -102,6 +151,10 @@ Brief summary (1-3 sentences) of the project's purpose and codebase conventions.
   guidelines were found
 - Be concise — the output is context for the code review agent, not a full report
 - Extract config values verbatim (rule IDs, line lengths, profile names)
+- Use external references and baseline guides as the foundation, then add
+  relevant overlays and examples as supporting context
+- If no overlays or examples match, omit the `Derived Knowledge Applied`
+  section instead of emitting empty headings or categories
 - The Linter Configuration Summary helps the reviewer calibrate suggestions to the
   project's actual quality bar — use it to describe what the project values, not to
   list enforcement rules

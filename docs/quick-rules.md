@@ -1,6 +1,8 @@
-# OpenStack Python Quick Rules for AI Code Generation
+# Quick Rules for the OpenStack AI Review System
 
-> **Quick Reference**: Essential rules for AI tools generating OpenStack-compliant Python code.
+> Compatibility input for the current review workflow.
+> This file remains in the live prompt path used by `teim-review-agent`, but
+> it is supporting knowledge rather than the primary product definition.
 
 ## Critical Rules (Follow ALL)
 

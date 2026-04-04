@@ -1,6 +1,10 @@
-# OpenStack Code Examples
+# Legacy Example Material
 
-This directory contains code examples demonstrating correct and incorrect patterns for OpenStack Python development.
+This directory contains example material from the repository's earlier
+style-guide-focused layout.
+
+Examples here can still be useful as supporting context, but they are not the
+authoritative definition of review behavior.
 
 ## Directory Structure
 

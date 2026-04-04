@@ -4,7 +4,7 @@
     "name": "Sean Mooney"
   },
   "metadata": {
-    "description": "OpenStack AI style guide and code review tools"
+    "description": "AI review system for OpenStack with canonical references and derived review knowledge"
   },
   "plugins": [
     {

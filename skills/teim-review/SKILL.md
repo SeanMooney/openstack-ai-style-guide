@@ -18,4 +18,6 @@ Use the @teim-review-agent subagent to perform a complete code review.
 - **Generate HTML**: yes — write `.teim-review/review-report.html`
 - **Style guide**: use `./docs/quick-rules.md` and
   `./docs/comprehensive-guide.md` from the current repo
+- **Knowledge root**: use `./docs/knowledge/` from the current repo for
+  overlays and example-backed review context
 - **JSON schema**: `schemas/review-report-schema.json` (relative to the plugin root)

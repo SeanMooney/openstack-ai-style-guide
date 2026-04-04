@@ -1,6 +1,15 @@
-# OpenStack AI Style Guide - Authoritative References
+# Canonical External References for the Review System
 
-This directory contains converted versions of authoritative source documents that inform the OpenStack AI Style Guide.
+This directory contains markdown copies or distillations of authoritative
+upstream policy and style documents used to support the review system.
+
+These files are the repository's canonical snapshots of external coding
+standards, policy, and review guidance. They are the source material from
+which curated internal guidance is derived.
+
+They are not the place where runtime review behavior, orchestration, or output
+contracts are defined. Those remain in `schemas/`, `agents/`, `skills/`, and
+the workflow glue.
 
 ## Available References
 
@@ -195,52 +204,62 @@ When updating reference documents:
    Signed-off-by: Your Name <your.email>"
    ```
 
-## Relationship to Main Guides
+## Relationship to Internal Guidance
 
 ```text
 ┌──────────────────────┐
-│ Authoritative        │
-│ Sources              │
+│ Official upstream    │
+│ sources              │
 │ (web, RST, etc.)     │
 └──────────┬───────────┘
            │
            ▼
 ┌──────────────────────┐
-│ references/          │  ◄── You are here
-│ (converted markdown) │
+│ references/          │  ◄── Canonical external snapshots
 └──────────┬───────────┘
            │
            ▼
 ┌──────────────────────┐
-│ docs/                │
-│ comprehensive-guide  │  ◄── Main style guide
-│ quick-rules          │      (distilled from references)
+│ docs/quick-rules     │  ◄── Curated baseline guidance
+│ docs/comprehensive   │
+│ docs/knowledge/      │  ◄── Derived overlays and examples
 └──────────────────────┘
 ```
 
-The reference documents are **sources of truth**. The main guides are **AI-optimized distillations** of these sources.
+`references/` is the source of truth for external standards snapshots.
+`docs/` contains the repository's derived and constructed review knowledge.
+Runtime review behavior is then encoded in the review agents, skills, schema,
+and workflow prompts.
 
 ## Using References
 
 ### For Contributors
 
-When writing the style guide:
+When updating internal review guidance:
 
-1. **Always check references first** before adding new content
+1. **Always check references first** before adding or changing standards-based
+   content
 2. **Cite specific sections** when referencing rules
-3. **Link to references** for detailed explanations
-4. **Keep guides in sync** with reference updates
+3. **Link to references** for detailed explanations and provenance
+4. **Update the derived guides or overlays** that depend on the changed
+   reference material
 
 ### For AI Tools
 
-These references can be provided as context to AI tools, but the main guides are optimized for AI consumption:
+These references can be provided as context to AI tools, but the repository's
+derived guidance is optimized for regular review use:
 
-**For Generation:**
+**For baseline review context:**
 
 - Use `docs/quick-rules.md` (concise, AI-optimized)
 - Use `docs/comprehensive-guide.md` (detailed examples)
 
-**For Deep Dive:**
+**For overlays and examples:**
+
+- Use `docs/knowledge/` as it grows
+- Prefer overlays and examples as supporting context, not replacement policy
+
+**For Deep Dive and provenance:**
 
 - Use references for complete, authoritative information
 - Use when quick-rules don't answer the question
@@ -250,9 +269,10 @@ These references can be provided as context to AI tools, but the main guides are
 When you have questions:
 
 1. **Quick answer:** Check `docs/quick-rules.md`
-2. **Detailed explanation:** Check `docs/comprehensive-guide.md`
-3. **Official source:** Check `references/` directory
-4. **Deepest dive:** Follow `source_url` to original document
+2. **Detailed baseline guidance:** Check `docs/comprehensive-guide.md`
+3. **Internal overlays/examples:** Check `docs/knowledge/`
+4. **Canonical snapshot:** Check `references/`
+5. **Deepest dive:** Follow `source_url` to the original upstream document
 
 ## Citation Format
 
@@ -293,19 +313,24 @@ See [CONTRIBUTING.md](../CONTRIBUTING.md) for full contribution guidelines.
 
 ## Important Notes
 
-### These Are NOT the Style Guide
+### These Are NOT the Runtime Review Rules
 
-The files in this directory are **reference sources**, not the style guide itself.
+The files in this directory are canonical external snapshots, not the runtime
+review rules themselves.
 
-**The style guide is:**
+**The baseline derived guides are:**
 
 - `docs/comprehensive-guide.md`
 - `docs/quick-rules.md`
 
+**The derived internal knowledge base is:**
+
+- `docs/knowledge/`
+
 **These references are:**
 
-- Source material for the style guide
-- Authoritative documentation for deep dives
+- Source material for the derived guides and overlays
+- Canonical documentation for deep dives and provenance
 - Verification for accuracy
 
 ### Authoritative Sources
@@ -314,7 +339,9 @@ When there's a conflict or question:
 
 1. **Official source** (linked in frontmatter) is authoritative
 2. **Reference file** reflects official source at time of conversion
-3. **Style guide** distills references for AI consumption
+3. **Derived guides and overlays** distill or construct reusable review
+   knowledge
+4. **Runtime review prompts and schema** decide how that knowledge is consumed
 
 If you find a discrepancy, check the official source and update accordingly.
 
@@ -337,7 +364,8 @@ For questions about:
 
 - **Content of references:** Check the official source URLs
 - **Updates to references:** Open an issue
-- **Style guide interpretation:** See docs/comprehensive-guide.md
+- **Derived guidance interpretation:** See `docs/comprehensive-guide.md` and
+  `docs/knowledge/`
 - **Contributing:** See CONTRIBUTING.md
 
 ---

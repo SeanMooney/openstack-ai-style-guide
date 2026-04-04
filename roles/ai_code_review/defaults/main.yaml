@@ -13,6 +13,8 @@ ai_code_review_style_guide_quick_rules: >-
   {{ ai_code_review_style_guide_project }}/docs/quick-rules.md
 ai_code_review_style_guide_comprehensive: >-
   {{ ai_code_review_style_guide_project }}/docs/comprehensive-guide.md
+ai_code_review_knowledge_root: >-
+  {{ ai_code_review_style_guide_project }}/docs/knowledge
 
 # JSON schema for structured output validation
 # This schema is passed to Claude CLI to ensure valid JSON generation

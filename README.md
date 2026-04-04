@@ -1,209 +1,129 @@
-# OpenStack AI Style Guide
+# OpenStack AI Review System
 
-A comprehensive style guide and ruleset designed for AI code generation tools working with
-OpenStack Python projects.
+This repository packages the active pieces of an AI-assisted OpenStack review
+workflow:
 
-## 🚀 Quick Start for AI Tools
+- Claude plugin and marketplace metadata
+- review agents and the `/teim-review` skill
+- review report schema and helper transforms
+- Zuul jobs and Ansible roles that run the workflow in CI
 
-### Primary Files
+The repository started as a generic AI style-guide project. It has since
+evolved into a review system with a growing internal knowledge base. The
+runtime pipeline is the primary product, while standards snapshots and derived
+review knowledge support that pipeline.
 
-- **[`quick-rules.md`](docs/quick-rules.md)** (710 tokens) - Essential rules for immediate use
-- **[`comprehensive-guide.md`](docs/comprehensive-guide.md)** (4700 tokens) - Detailed explanations and examples
+## Active Workflow
 
-### Integration Commands
+The current production path is:
 
-```bash
-# Claude Code
-claude-code --context-file docs/quick-rules.md
+1. Zuul checks out this repository as a required project.
+2. `ai_review_setup` registers the local marketplace and installs the
+   `teim-review` plugin.
+3. `ai_code_review` invokes `teim-review-agent` in one Claude session.
+4. The agent orchestrates context extraction, commit summarization,
+   project-guideline extraction, and structured review generation.
+5. Python helpers turn the JSON report into HTML and Zuul file comments.
 
-# Cursor
-# Add to .cursorrules: @docs/quick-rules.md
+Local interactive usage follows the same model through `/teim-review`.
 
-# Generic AI tool
-curl https://raw.githubusercontent.com/username/openstack-ai-style-guide/main/docs/quick-rules.md
+## Primary Entry Points
 
-# Local usage
-cat docs/quick-rules.md | pbcopy  # macOS
-cat docs/quick-rules.md | xclip -selection clipboard  # Linux
-```
-
-## 📦 Claude Code Plugin
-
-This repository is a Claude Code plugin providing the `/teim-review` skill and
-a suite of AI agents for OpenStack code review.
-
-### Install as a Plugin
+### Local review
 
 ```bash
-# Add this repo as a marketplace (local clone)
 /plugin marketplace add /path/to/openstack-ai-style-guide
-
-# Install the teim-review plugin
 /plugin install teim-review@openstack-ai-style-guide
-```
-
-### Local Code Review
-
-Once installed, run `/teim-review` in any OpenStack project to get a full
-AI-assisted review:
-
-```bash
-# In your OpenStack project directory:
 /teim-review
 ```
 
-Output is written to `.teim-review/` (gitignored):
+Local output is written to `.teim-review/`:
 
-- `review-report.json` — structured findings
-- `review-report.html` — visual HTML report
+- `zuul-context.md`
+- `commit-summary.md`
+- `project-guidelines.md`
+- `review-report.json`
+- `review-report.html`
 
-### Included Agents
+### Zuul review
 
-| Agent | Purpose |
-|-------|---------|
-| `teim-review-agent` | Orchestrates the full review pipeline |
-| `code-review-agent` | OpenStack code review with confidence scoring |
-| `zuul-context-extractor` | Extracts Zuul CI job context from inventory |
-| `commit-summary` | Summarises commits and generates file trees |
-| `project-guidelines-extractor` | Reads HACKING.rst, AGENTS.md, CLAUDE.md |
-| `code-maintainability-auditor` | Dead code and refactoring analysis |
-| `security-auditor` | Security vulnerability assessment |
+The live job entrypoint is `teim-code-review`, defined in
+`zuul.d/jobs.yaml` and executed via `playbooks/teim-code-review/run.yaml`.
 
-## 📁 Repository Structure
+## Repository Layout
 
 ```text
 openstack-ai-style-guide/
-├── .claude-plugin/                # Claude Code plugin manifest
-│   ├── plugin.json               # Plugin definition (agents, skills)
-│   └── marketplace.json          # Marketplace catalog
-├── agents/                        # Agent definitions (*.md)
-├── skills/                        # Slash command skills
-│   └── teim-review/
-│       └── SKILL.md              # /teim-review command
-├── docs/                          # Style guide documentation
-│   ├── quick-rules.md            # Concise reference (710 tokens)
-│   ├── comprehensive-guide.md    # Detailed guide (4700 tokens)
-│   ├── examples/                 # Code examples and patterns
-│   │   ├── good/                # Correct OpenStack patterns
-│   │   └── bad/                 # Anti-patterns to avoid
-│   ├── checklists/              # Validation checklists
-│   │   ├── pre-submit.md       # Before committing and pushing
-│   │   └── code-review.md      # Reviewing AI code
-│   └── templates/               # Code and commit templates
-│       ├── python_module.py.template
-│       ├── python_test.py.template
-│       ├── commit_message.txt
-│       └── pre-commit-config.yaml
-├── references/                   # Authoritative source documents
-│   ├── ai-policy.md             # OpenInfra AI Policy
-│   ├── dco.md                   # Developer Certificate of Origin
-│   ├── hacking.md               # OpenStack Hacking Rules
-│   └── pep8.md                  # PEP 8 Style Guide
-├── tools/                        # Standalone helper scripts
-│   └── render_html_from_json.py # HTML report generator (uv-compatible)
-├── CONTRIBUTING.md               # Contribution guidelines
-├── LICENSE                       # Apache 2.0 license
-└── README.md                     # This file
-
+├── .claude-plugin/        # Claude plugin and marketplace metadata
+├── agents/                # Review orchestration and specialist agents
+├── skills/                # Interactive skill entrypoints
+├── schemas/               # Structured output contracts
+├── tools/                 # JSON → HTML and JSON → Zuul helpers
+├── roles/                 # Ansible roles used by the Zuul workflow
+├── playbooks/             # Zuul playbooks
+├── zuul.d/                # Jobs, projects, semaphores
+├── docs/                  # Baseline guides, knowledge overlays, and legacy docs
+├── references/            # Canonical external standards snapshots
+└── tests/                 # Unit and contract tests
 ```
 
-## 🎯 When to Use Which Guide
+## Knowledge Model
 
-### Use `quick-rules.md` for
+The repository now treats review knowledge in three layers:
 
-- ✅ Real-time code generation
-- ✅ Quick validation checks
-- ✅ Context-constrained AI tools
-- ✅ Fast reference lookups
+1. **Canonical external snapshots**: `references/`
+2. **Curated baseline and derived knowledge**: `docs/`
+3. **Runtime behavior and contracts**: `agents/`, `skills/`, and
+   `schemas/review-report-schema.json`
 
-### Use `comprehensive-guide.md` for
+`references/` holds canonical snapshots of external coding standards, policy,
+and review guidance. `docs/quick-rules.md` and
+`docs/comprehensive-guide.md` are curated baseline guides distilled from those
+references. `docs/knowledge/` is the starting point for internal overlays,
+examples, and future RAG-oriented review knowledge.
 
-- 📚 Learning OpenStack patterns
-- 🐛 Complex debugging scenarios
-- 📝 Policy and compliance questions
-- 🔍 Detailed implementation guidance
+Agents and the schema remain authoritative for review behavior, orchestration,
+and output contracts.
 
-## 🛠 AI Tool Configuration
+See [docs/review-system-overview.md](docs/review-system-overview.md) for the
+runtime model and [docs/archive/README.md](docs/archive/README.md) for legacy
+material status.
 
-### Claude Code
+## Compatibility Commitments
+
+This restructuring pass preserves the current runtime contracts:
+
+- plugin name: `teim-review`
+- marketplace identity: `openstack-ai-style-guide`
+- skill entrypoint: `/teim-review`
+- orchestrator: `teim-review-agent`
+- output schema: `schemas/review-report-schema.json`
+- local output directory: `.teim-review/`
+- Zuul jobs: `teim-code-review` and `openstack-ai-style-guide-lint`
+
+## Validation
+
+Common checks:
 
 ```bash
-# Include in system prompt or use context file
-claude-code --context-file docs/quick-rules.md --model claude-3-sonnet
+python3 -m unittest discover -s tests/unit -p 'test_*.py'
+tox -e py3
+tox -e linters
 ```
 
-### GitHub Copilot
+`tox` is the main developer path when available. The unit tests also cover
+repo contracts such as plugin metadata, skill wiring, and workflow references.
 
-Add to your `.github/copilot-instructions.md`:
+## Supporting Material
 
-```markdown
-Follow the OpenStack style guide at docs/quick-rules.md for all Python code generation.
-```
+The repo still includes `docs/quick-rules.md`,
+`docs/comprehensive-guide.md`, a new `docs/knowledge/` area, and legacy
+checklists/templates material. These serve different purposes:
 
-### Cursor
+- baseline review context for the current workflow
+- constructed internal knowledge that will grow over time
+- legacy support content pending further pruning or relocation
 
-Add to `.cursorrules`:
+## License
 
-```text
-@docs/quick-rules.md
-
-Always follow OpenStack Python style guidelines for code generation.
-```
-
-### Custom AI Tools
-
-Include the quick rules as system context:
-
-```python
-with open('docs/quick-rules.md', 'r') as f:
-    style_guide = f.read()
-
-# Pass style_guide as system context to your AI model
-```
-
-## 🚦 Compliance Checklist
-
-Before submitting AI-generated OpenStack code:
-
-- [ ] Apache 2.0 license header included
-- [ ] Line length ≤ 79 characters
-- [ ] No bare `except:` statements
-- [ ] `autospec=True` in all mock decorators
-- [ ] Delayed logging interpolation used
-- [ ] Proper import organization
-- [ ] AI attribution in commit message (Generated-By/Assisted-By)
-- [ ] **DCO sign-off included** (git commit -s - REQUIRED)
-
-## 📊 Token Usage Guide
-
-| Context | File | Tokens | Use Case |
-|---------|------|--------|----------|
-| Minimal | `quick-rules.md` | 710 | Real-time generation |
-| Standard | Both files | 5410 | Complex implementations |
-| Full | All docs + examples | ~7100+ | Learning/training |
-
-**Token Constraints:**
-
-- `quick-rules.md`: Target < 1000 tokens for standalone copying to other repos
-- `comprehensive-guide.md`: Target < 5000 tokens for comprehensive reference
-- Both files designed to be self-contained and readable without external dependencies
-
-## 🤝 Contributing
-
-See [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines on:
-
-- Adding new rules and patterns
-- Contributing examples
-- AI-generated content attribution
-- Community review process
-
-## 📄 License
-
-This project is licensed under the Apache License 2.0 - see the [LICENSE](LICENSE) file for details.
-
-## 🔗 Related Resources
-
-- [OpenStack Contributor Guide](https://docs.openstack.org/contributors/)
-- [OpenInfra Foundation AI Policy](https://openinfra.dev/ai-policy)
-- [Python PEP 8 Style Guide](https://pep8.org/)
-- [Hacking Style Checks](https://docs.openstack.org/hacking/latest/)
+Apache License 2.0. See [LICENSE](LICENSE).

@@ -33,77 +33,69 @@ These variables are set and used in Zuul CI jobs defined in `zuul.d/jobs.yaml`.
 
 ### Code Review Job Variables
 
-#### `context_model`
+These variables are used by `teim-code-review-base` in `zuul.d/jobs.yaml`.
+The Ansible roles default to Anthropic tier names (`haiku`, `sonnet`,
+`opus`), and the Zuul job overrides them with the concrete LiteLLM model
+aliases used in CI.
 
-- **Job**: openstack-ai-code-review-base
+#### `haiku_model`
+
+- **Job**: `teim-code-review-base`
 - **Type**: String (LiteLLM model identifier)
-- **Current Value**: `litellm-homelab/glm-4.5-air`
-- **Purpose**: Specifies which model to use for context extraction
-- **Use Case**: Fast analysis of code changes for context
+- **Current Value**: `glm-4.7-flash`
+- **Purpose**: Maps Claude's Haiku tier to the fast CI model
 - **Override**: Can be overridden in child jobs or via Zuul variables
-- **Example Override**:
 
-  ```yaml
-  - job:
-      name: my-custom-review
-      parent: openstack-ai-code-review
-      vars:
-        context_model: "litellm-homelab/glm-4.5-turbo"
-  ```
+#### `sonnet_model`
+
+- **Job**: `teim-code-review-base`
+- **Type**: String (LiteLLM model identifier)
+- **Current Value**: `glm-4.7`
+- **Purpose**: Maps Claude's Sonnet tier to the balanced CI model
+- **Override**: Can be overridden in child jobs or via Zuul variables
+
+#### `opus_model`
+
+- **Job**: `teim-code-review-base`
+- **Type**: String (LiteLLM model identifier)
+- **Current Value**: `glm-5.1`
+- **Purpose**: Sets `ANTHROPIC_DEFAULT_OPUS_MODEL` for plugin-installed
+  agents that inherit the Opus tier
+- **Override**: Change this in Zuul when moving the default high-capability
+  model to a new backend alias
 
 #### `review_model`
 
-- **Job**: openstack-ai-code-review-base
+- **Job**: `teim-code-review-base`
 - **Type**: String (LiteLLM model identifier)
-- **Current Value**: `litellm-homelab/glm-4.6`
-- **Purpose**: Specifies which model to use for generating code review feedback
-- **Use Case**: Comprehensive code analysis and review generation
-- **Override**: Can be overridden in child jobs or via Zuul variables
-- **Performance Note**: More capable models may take longer but provide better reviews
+- **Current Value**: `glm-5.1`
+- **Purpose**: Model used for the direct `teim-review-agent` invocation in
+  the `ai_code_review` role
+- **Override**: Change this in Zuul when moving the reviewer to a new backend
+  alias
 
-#### `litellm_base_url`
+#### `anthropic_api_url`
 
-- **Job**: openstack-ai-code-review-base
+- **Job**: `teim-code-review-base`
 - **Type**: String (URL)
-- **Current Value**: `http://litellm.zuul-system.svc.cluster.local:4000/v1`
-- **Purpose**: Endpoint for the LiteLLM proxy that routes model requests
+- **Current Value**: `http://litellm.zuul-system.svc.cluster.local:4000`
+- **Purpose**: Anthropic-compatible LiteLLM endpoint used by Claude CLI
 - **Scope**: Internal Zuul cluster service, not accessible externally
-- **Routing**: Handles load balancing and model routing
-- **Note**: Do not modify without infrastructure team coordination
 
-#### `litellm_api_key`
+#### `anthropic_auth_token`
 
-- **Job**: openstack-ai-code-review-base
+- **Job**: `teim-code-review-base`
 - **Type**: String (API Key)
 - **Current Value**: `sk-1234`
-- **Purpose**: Authentication key for LiteLLM proxy access
-- **Security**: Not sensitive (internal homelab key, isolated environment)
-- **Usage**: Automatically passed to OpenCode by Zuul
-- **Note**: Do not modify without infrastructure team coordination
-
-#### `opencode_binary`
-
-- **Job**: openstack-ai-code-review-base
-- **Type**: String (binary path)
-- **Current Value**: `opencode`
-- **Purpose**: Path to OpenCode binary (pre-installed on nodeset)
-- **Pre-installation**: Included in debian-opencode-single-node-pod nodeset
-- **Usage**: Internal variable for Zuul playbooks
-
-#### `opencode_config_dir`
-
-- **Job**: openstack-ai-code-review-base
-- **Type**: String (directory path)
-- **Current Value**: `{{ ansible_user_dir }}/.config/opencode`
-- **Purpose**: Directory where OpenCode stores configuration and agents
-- **Usage**: Zuul playbooks copy agent definitions here
-- **Related**: `agents_source_dir`, `agents_target_dir`
+- **Purpose**: Authentication token for the internal LiteLLM proxy
+- **Security**: Internal homelab token only; production should use Zuul
+  secrets
 
 ### Output and Collection Variables
 
 #### `review_output_dir`
 
-- **Job**: openstack-ai-code-review-base
+- **Job**: `teim-code-review-base`
 - **Type**: String (directory path)
 - **Current Value**: `{{ ansible_user_dir }}/logs/code-review`
 - **Purpose**: Directory where code review output files are written
@@ -112,7 +104,7 @@ These variables are set and used in Zuul CI jobs defined in `zuul.d/jobs.yaml`.
 
 #### `extensions_to_txt`
 
-- **Job**: openstack-ai-code-review-base
+- **Job**: `teim-code-review-base`
 - **Type**: Dictionary/Map
 - **Current Value**: `{conf: true, log: true, localrc: true, stackenv: true, auto: true}`
 - **Purpose**: Specifies which file extensions to convert to `.txt` in artifacts
@@ -128,28 +120,26 @@ These variables are set and used in Zuul CI jobs defined in `zuul.d/jobs.yaml`.
 
 #### `style_guide_project`
 
-- **Job**: openstack-ai-code-review-base
+- **Job**: `teim-code-review-base`
 - **Type**: String (directory path)
 - **Value**: Zuul project source directory
 - **Computed As**: `{{ zuul.projects['github.com/SeanMooney/openstack-ai-style-guide'].src_dir }}`
 - **Purpose**: Locates the style guide project in Zuul workspace
 - **Usage**: Used to locate agents and configuration files
 
-#### `agents_source_dir`
+#### `style_guide_quick_rules`
 
-- **Job**: openstack-ai-code-review-base
-- **Type**: String (directory path)
-- **Computed As**: `{{ ansible_user_dir }}/{{ style_guide_project }}/agents`
-- **Purpose**: Source location of agent configuration files
-- **Contents**: OpenCode agent definitions (JSON files)
+- **Job**: `teim-code-review-base`
+- **Type**: String (file path)
+- **Current Value**: `{{ style_guide_project }}/docs/quick-rules.md`
+- **Purpose**: Quick reference passed into the review workflow
 
-#### `agents_target_dir`
+#### `style_guide_comprehensive`
 
-- **Job**: openstack-ai-code-review-base
-- **Type**: String (directory path)
-- **Computed As**: `{{ opencode_config_dir }}/agent`
-- **Purpose**: Destination where agent configurations are copied
-- **Usage**: OpenCode reads agents from this location
+- **Job**: `teim-code-review-base`
+- **Type**: String (file path)
+- **Current Value**: `{{ style_guide_project }}/docs/comprehensive-guide.md`
+- **Purpose**: Detailed style guide passed into the review workflow
 
 ## Pre-commit Hook Environment Variables
 
@@ -247,9 +237,9 @@ These variables are provided by Zuul itself and used in job definitions:
 ```yaml
 - job:
     name: custom-job
-    parent: openstack-ai-code-review
+    parent: teim-code-review
     vars:
-      review_model: "litellm-homelab/glm-4.7"
+      review_model: "glm-4.7"
       timeout: 1800
 ```
 
@@ -258,7 +248,7 @@ These variables are provided by Zuul itself and used in job definitions:
 ```yaml
 - job:
     name: my-project-review
-    parent: openstack-ai-code-review
+    parent: teim-code-review
     vars:
       review_model: "your-custom-model"
 ```
@@ -267,5 +257,5 @@ These variables are provided by Zuul itself and used in job definitions:
 
 - **Zuul Configuration**: See `docs/zuul-configuration.md` for job-specific details
 - **Pre-commit Setup**: See `CONTRIBUTING.md` for local pre-commit configuration
-- **Code Review**: See `tools/README.md` for OpenCode configuration
+- **Claude Code Plugin**: See `README.md` for plugin installation and review workflow setup
 - **Build and Testing**: See `tox.ini` for testing environment configuration

@@ -8,10 +8,10 @@ ai_review_setup_claude_binary: claude
 ai_review_setup_claude_config_dir: "{{ ansible_user_dir }}/.claude"
 
 # Model mappings (can be overridden by job variables)
-# Using z.ai GLM models via LiteLLM anthropic endpoint
-ai_review_setup_haiku_model: "glm-4.7-flash"
-ai_review_setup_sonnet_model: "glm-4.7"
-ai_review_setup_opus_model: "glm-5-turbo"
+# Default to Anthropic tier aliases so CI can select provider-specific models.
+ai_review_setup_haiku_model: "haiku"
+ai_review_setup_sonnet_model: "sonnet"
+ai_review_setup_opus_model: "opus"
 
 # Output directory for review results
 ai_review_setup_review_output_dir: "{{ ansible_user_dir }}/logs/code-review"

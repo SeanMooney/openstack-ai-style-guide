@@ -1,0 +1,20 @@
+{
+  "name": "openstack-ai-style-guide",
+  "interface": {
+    "displayName": "OpenStack AI Style Guide"
+  },
+  "plugins": [
+    {
+      "name": "teim-review",
+      "source": {
+        "source": "local",
+        "path": "../../plugins/teim-review"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Developer Tools"
+    }
+  ]
+}

@@ -14,6 +14,8 @@
 
 import json
 import pathlib
+import sys
+from unittest import mock
 
 import fixtures
 from testtools import matchers
@@ -73,11 +75,12 @@ class TestRenderHtml(test.NoDBTestCase):
                 'suggestions': [],
             },
             'positive_observations': [
-                {'category': 'Code Quality', 'observation': 'Good structure'}
+                {'category': 'Recognition', 'observation': 'Good structure'}
             ],
+            'out_of_patch_observations': [],
             'summary': {
-                'assessment': 'Needs improvements',
-                'priority_focus': 'Security',
+                'assessment': 'Needs work',
+                'priority_focus': 'Address the security finding before merge',
                 'detailed_summary': 'Multiple security issues found',
             },
         }
@@ -198,3 +201,47 @@ class TestRenderHtml(test.NoDBTestCase):
         self.assertThat(html_content, matchers.Contains('Out-of-Patch Observations'))
         self.assertThat(html_content, matchers.Contains('nova/compute/manager.py:42'))
         self.assertThat(html_content, matchers.Contains('Potential resource leak'))
+
+    def test_main_defaults_optional_sections_for_legacy_payloads(self):
+        """CLI rendering should stay compatible with legacy payloads."""
+        tempdir = pathlib.Path(self.useFixture(fixtures.TempDir()).path)
+        json_file = tempdir / 'legacy-review.json'
+        html_file = tempdir / 'legacy-review.html'
+        review_data = self._create_sample_review()
+        review_data.pop('statistics_html_only')
+        review_data.pop('out_of_patch_observations')
+        review_data.pop('positive_observations')
+        json_file.write_text(json.dumps(review_data))
+
+        with mock.patch.object(
+            sys,
+            'argv',
+            ['render_html_from_json.py', str(json_file), str(html_file)],
+        ):
+            self.render_html.main()
+
+        self.assertThat(html_file.exists(), matchers.Equals(True))
+        self.assertThat(
+            html_file.read_text(), matchers.Contains('Code Review Report')
+        )
+
+    def test_main_rejects_non_object_json(self):
+        """CLI rendering should fail cleanly on non-object JSON."""
+        tempdir = pathlib.Path(self.useFixture(fixtures.TempDir()).path)
+        for payload_name, payload in (
+            ('invalid-review-list.json', '[]'),
+            ('invalid-review-null.json', 'null'),
+        ):
+            json_file = tempdir / payload_name
+            html_file = tempdir / f'{payload_name}.html'
+            json_file.write_text(payload)
+
+            with mock.patch.object(
+                sys,
+                'argv',
+                ['render_html_from_json.py', str(json_file), str(html_file)],
+            ):
+                error = self.assertRaises(SystemExit, self.render_html.main)
+
+            self.assertThat(error.code, matchers.Equals(1))
+            self.assertThat(html_file.exists(), matchers.Equals(False))

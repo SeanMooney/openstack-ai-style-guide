@@ -23,6 +23,21 @@ so no manifest fields are needed.
 **Do not flag** the absence of ``agents_dir``/``skills_dir`` as a missing
 configuration issue.
 
+Shared Review Core
+------------------
+
+``prompts/teim-review-core.md`` is the provider-neutral source of truth for the
+review workflow. Claude, Codex, and Cursor files adapt that shared core into
+their native delivery surfaces.
+
+It is expected that ``agents/teim-review-agent.md``,
+``skills/teim-review/SKILL.md``, ``.cursor/rules/teim-review.mdc``, and
+``plugins/teim-review/skills/teim-review/SKILL.md`` reference the shared core instead of
+repeating every workflow step inline.
+
+**Do not flag** shared-core references as missing detail or incomplete
+documentation.
+
 Ansible: Jinja2 Variable Cross-References in ``defaults/main.yaml``
 --------------------------------------------------------------------
 

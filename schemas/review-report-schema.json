@@ -4,7 +4,15 @@
   "title": "AI Code Review Report",
   "description": "Schema for AI-generated code review reports in OpenStack projects",
   "type": "object",
-  "required": ["context", "statistics", "statistics_html_only", "issues", "summary"],
+  "required": [
+    "context",
+    "statistics",
+    "statistics_html_only",
+    "issues",
+    "out_of_patch_observations",
+    "positive_observations",
+    "summary"
+  ],
   "properties": {
     "context": {
       "type": "object",
@@ -238,121 +246,226 @@
           "description": "File path and line number (format: path/to/file.py:123 or path/to/file.py:123-456)",
           "pattern": "^[^:]+:\\d+(-\\d+)?$"
         }
-      }
+      },
+      "additionalProperties": false
     },
     "criticalIssue": {
-      "allOf": [
-        {"$ref": "#/$defs/baseIssue"},
-        {
-          "type": "object",
-          "required": ["risk", "remediation_priority", "why_matters", "recommendation"],
-          "properties": {
-            "risk": {
-              "type": "string",
-              "description": "Security risk, data loss, system crash, etc.",
-              "minLength": 10,
-              "maxLength": 300
-            },
-            "remediation_priority": {
-              "type": "string",
-              "description": "Urgency level for fixing this issue",
-              "enum": ["Immediate", "Before merge", "Next sprint", "Backlog"]
-            },
-            "why_matters": {
-              "type": "string",
-              "description": "Explanation of business/technical impact",
-              "minLength": 10,
-              "maxLength": 300
-            },
-            "recommendation": {
-              "type": "string",
-              "description": "Specific, actionable steps to fix",
-              "minLength": 10,
-              "maxLength": 500
-            }
-          }
+      "type": "object",
+      "required": [
+        "description",
+        "confidence",
+        "reporting_mode",
+        "location",
+        "risk",
+        "remediation_priority",
+        "why_matters",
+        "recommendation"
+      ],
+      "properties": {
+        "description": {
+          "type": "string",
+          "description": "Clear description of the issue",
+          "minLength": 10,
+          "maxLength": 300
+        },
+        "confidence": {
+          "type": "number",
+          "description": "Confidence score (0.60-1.0). Per-severity routing thresholds determine reporting_mode.",
+          "minimum": 0.6,
+          "maximum": 1.0
+        },
+        "reporting_mode": {
+          "type": "string",
+          "description": "Routing decision: inline = post as Gerrit comment; html_only = HTML report only",
+          "enum": ["inline", "html_only"]
+        },
+        "location": {
+          "type": "string",
+          "description": "File path and line number (format: path/to/file.py:123 or path/to/file.py:123-456)",
+          "pattern": "^[^:]+:\\d+(-\\d+)?$"
+        },
+        "risk": {
+          "type": "string",
+          "description": "Security risk, data loss, system crash, etc.",
+          "minLength": 10,
+          "maxLength": 300
+        },
+        "remediation_priority": {
+          "type": "string",
+          "description": "Urgency level for fixing this issue",
+          "enum": ["Immediate", "Before merge", "Next sprint", "Backlog"]
+        },
+        "why_matters": {
+          "type": "string",
+          "description": "Explanation of business/technical impact",
+          "minLength": 10,
+          "maxLength": 300
+        },
+        "recommendation": {
+          "type": "string",
+          "description": "Specific, actionable steps to fix",
+          "minLength": 10,
+          "maxLength": 500
         }
-      ]
+      },
+      "additionalProperties": false
     },
     "highIssue": {
-      "allOf": [
-        {"$ref": "#/$defs/baseIssue"},
-        {
-          "type": "object",
-          "required": ["risk", "remediation_priority", "why_matters", "recommendation"],
-          "properties": {
-            "risk": {
-              "type": "string",
-              "description": "Performance degradation, resource leak, incorrect behavior",
-              "minLength": 10,
-              "maxLength": 300
-            },
-            "remediation_priority": {
-              "type": "string",
-              "description": "Urgency level for fixing this issue",
-              "enum": ["Immediate", "Before merge", "Next sprint", "Backlog"]
-            },
-            "why_matters": {
-              "type": "string",
-              "description": "Explanation of business/technical impact",
-              "minLength": 10,
-              "maxLength": 300
-            },
-            "recommendation": {
-              "type": "string",
-              "description": "Specific, actionable steps to fix",
-              "minLength": 10,
-              "maxLength": 500
-            }
-          }
+      "type": "object",
+      "required": [
+        "description",
+        "confidence",
+        "reporting_mode",
+        "location",
+        "risk",
+        "remediation_priority",
+        "why_matters",
+        "recommendation"
+      ],
+      "properties": {
+        "description": {
+          "type": "string",
+          "description": "Clear description of the issue",
+          "minLength": 10,
+          "maxLength": 300
+        },
+        "confidence": {
+          "type": "number",
+          "description": "Confidence score (0.60-1.0). Per-severity routing thresholds determine reporting_mode.",
+          "minimum": 0.6,
+          "maximum": 1.0
+        },
+        "reporting_mode": {
+          "type": "string",
+          "description": "Routing decision: inline = post as Gerrit comment; html_only = HTML report only",
+          "enum": ["inline", "html_only"]
+        },
+        "location": {
+          "type": "string",
+          "description": "File path and line number (format: path/to/file.py:123 or path/to/file.py:123-456)",
+          "pattern": "^[^:]+:\\d+(-\\d+)?$"
+        },
+        "risk": {
+          "type": "string",
+          "description": "Performance degradation, resource leak, incorrect behavior",
+          "minLength": 10,
+          "maxLength": 300
+        },
+        "remediation_priority": {
+          "type": "string",
+          "description": "Urgency level for fixing this issue",
+          "enum": ["Immediate", "Before merge", "Next sprint", "Backlog"]
+        },
+        "why_matters": {
+          "type": "string",
+          "description": "Explanation of business/technical impact",
+          "minLength": 10,
+          "maxLength": 300
+        },
+        "recommendation": {
+          "type": "string",
+          "description": "Specific, actionable steps to fix",
+          "minLength": 10,
+          "maxLength": 500
         }
-      ]
+      },
+      "additionalProperties": false
     },
     "warningIssue": {
-      "allOf": [
-        {"$ref": "#/$defs/baseIssue"},
-        {
-          "type": "object",
-          "required": ["impact", "suggestion"],
-          "properties": {
-            "impact": {
-              "type": "string",
-              "description": "What could go wrong if not addressed",
-              "minLength": 10,
-              "maxLength": 300
-            },
-            "suggestion": {
-              "type": "string",
-              "description": "How to improve the code",
-              "minLength": 10,
-              "maxLength": 500
-            }
-          }
+      "type": "object",
+      "required": [
+        "description",
+        "confidence",
+        "reporting_mode",
+        "location",
+        "impact",
+        "suggestion"
+      ],
+      "properties": {
+        "description": {
+          "type": "string",
+          "description": "Clear description of the issue",
+          "minLength": 10,
+          "maxLength": 300
+        },
+        "confidence": {
+          "type": "number",
+          "description": "Confidence score (0.60-1.0). Per-severity routing thresholds determine reporting_mode.",
+          "minimum": 0.6,
+          "maximum": 1.0
+        },
+        "reporting_mode": {
+          "type": "string",
+          "description": "Routing decision: inline = post as Gerrit comment; html_only = HTML report only",
+          "enum": ["inline", "html_only"]
+        },
+        "location": {
+          "type": "string",
+          "description": "File path and line number (format: path/to/file.py:123 or path/to/file.py:123-456)",
+          "pattern": "^[^:]+:\\d+(-\\d+)?$"
+        },
+        "impact": {
+          "type": "string",
+          "description": "What could go wrong if not addressed",
+          "minLength": 10,
+          "maxLength": 300
+        },
+        "suggestion": {
+          "type": "string",
+          "description": "How to improve the code",
+          "minLength": 10,
+          "maxLength": 500
         }
-      ]
+      },
+      "additionalProperties": false
     },
     "suggestionIssue": {
-      "allOf": [
-        {"$ref": "#/$defs/baseIssue"},
-        {
-          "type": "object",
-          "required": ["benefit", "recommendation"],
-          "properties": {
-            "benefit": {
-              "type": "string",
-              "description": "Improvement this suggestion would provide",
-              "minLength": 10,
-              "maxLength": 300
-            },
-            "recommendation": {
-              "type": "string",
-              "description": "Specific guidance on implementing the improvement",
-              "minLength": 10,
-              "maxLength": 500
-            }
-          }
+      "type": "object",
+      "required": [
+        "description",
+        "confidence",
+        "reporting_mode",
+        "location",
+        "benefit",
+        "recommendation"
+      ],
+      "properties": {
+        "description": {
+          "type": "string",
+          "description": "Clear description of the issue",
+          "minLength": 10,
+          "maxLength": 300
+        },
+        "confidence": {
+          "type": "number",
+          "description": "Confidence score (0.60-1.0). Per-severity routing thresholds determine reporting_mode.",
+          "minimum": 0.6,
+          "maximum": 1.0
+        },
+        "reporting_mode": {
+          "type": "string",
+          "description": "Routing decision: inline = post as Gerrit comment; html_only = HTML report only",
+          "enum": ["inline", "html_only"]
+        },
+        "location": {
+          "type": "string",
+          "description": "File path and line number (format: path/to/file.py:123 or path/to/file.py:123-456)",
+          "pattern": "^[^:]+:\\d+(-\\d+)?$"
+        },
+        "benefit": {
+          "type": "string",
+          "description": "Improvement this suggestion would provide",
+          "minLength": 10,
+          "maxLength": 300
+        },
+        "recommendation": {
+          "type": "string",
+          "description": "Specific guidance on implementing the improvement",
+          "minLength": 10,
+          "maxLength": 500
         }
-      ]
+      },
+      "additionalProperties": false
     }
   }
 }

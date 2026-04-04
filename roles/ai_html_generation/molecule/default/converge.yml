@@ -40,15 +40,23 @@
               "suggestions": 1,
               "total": 7
             },
+            "statistics_html_only": {
+              "critical": 0,
+              "high": 0,
+              "warnings": 0,
+              "suggestions": 0,
+              "total": 0
+            },
             "issues": {
               "critical": [
                 {
                   "description": "Security vulnerability",
                   "confidence": 0.95,
+                  "reporting_mode": "inline",
                   "location": "roles/ai_code_review/tasks/main.yaml:25",
-                  "risk": "High",
+                  "risk": "Unauthorized access remains possible",
                   "remediation_priority": "Immediate",
-                  "why_matters": "Allows unauthorized access",
+                  "why_matters": "The change could allow unauthorized access",
                   "recommendation": "Add authentication check"
                 }
               ],
@@ -56,15 +64,16 @@
               "warnings": [],
               "suggestions": []
             },
+            "out_of_patch_observations": [],
             "positive_observations": [
               {
-                "category": "Code Quality",
+                "category": "Recognition",
                 "observation": "Good structure"
               }
             ],
             "summary": {
-              "assessment": "Needs improvements",
-              "priority_focus": "Security",
+              "assessment": "Needs work",
+              "priority_focus": "Address the security finding before merge",
               "detailed_summary": "Multiple security issues found"
             }
           }

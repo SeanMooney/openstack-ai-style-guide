@@ -1,6 +1,11 @@
-# OpenStack AI Code Generation Checklists
+# Legacy Checklists
 
-Quick reference checklists for validating AI-generated OpenStack code at various stages of development.
+This directory contains legacy checklist material from the earlier
+style-guide-first version of the repository.
+
+These checklists are retained for reference, but they are not authoritative for
+the active review workflow. Review behavior is owned by `agents/`,
+`skills/`, and `schemas/review-report-schema.json`.
 
 ## Available Checklists
 

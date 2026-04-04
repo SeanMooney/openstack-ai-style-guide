@@ -1,4 +1,11 @@
-# OpenStack Code Templates
+# Archived Code Templates
+
+This directory is retained as archived support material from the repository's
+earlier style-guide-focused layout.
+
+These templates are not the primary review knowledge surface and are not part
+of the active runtime guidance contract. They remain here for reference until
+they are either migrated into the newer knowledge model or removed.
 
 This directory contains templates for generating OpenStack-compliant code with proper licensing, formatting, and structure.
 

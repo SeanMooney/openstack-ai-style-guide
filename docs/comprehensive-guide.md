@@ -1,9 +1,9 @@
-# OpenStack Python Comprehensive Style Guide for AI Code Generation
+# Comprehensive Review Knowledge for the OpenStack AI Review System
 
-> **Comprehensive Guide**: Detailed explanations and examples for AI tools generating OpenStack-compliant Python code.
-> **For quick reference**: See the [OpenStack Python Quick Rules for AI](quick-version)
-> **For working templates**: See [docs/templates/](templates/) for ready-to-use code patterns
-> **For validation workflows**: See [docs/checklists/](checklists/) for pre-submit and review procedures
+> Compatibility input for the current review workflow.
+> This document provides deeper background used by the current review prompts.
+> It is supporting knowledge, not the authoritative runtime contract.
+> For the active architecture see [review-system-overview.md](review-system-overview.md).
 
 ## Overview for AI Assistants
 

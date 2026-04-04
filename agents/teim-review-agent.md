@@ -40,6 +40,7 @@ You accept the following parameters from the invoking prompt (natural language):
 - `inventory_file` — path to Zuul Ansible inventory YAML (Zuul mode only)
 - `style_guide_quick_rules` — path to the quick-rules.md file
 - `style_guide_comprehensive` — path to the comprehensive-guide.md file
+- `knowledge_root` — path to the review knowledge root (`docs/knowledge/`)
 - `json_schema` — path to review-report-schema.json for structured output
 - `generate_html` — whether to generate an HTML report (default: true)
 
@@ -114,6 +115,7 @@ Delegate to the `@commit-summary` subagent:
 Delegate to the `@project-guidelines-extractor` subagent:
 
 - Set `project_src_dir` to `<project_dir>`.
+- Set `knowledge_root` to `<knowledge_root>` if provided.
 - Write its output to `<output_dir>/project-guidelines.md`.
 
 ## Step 6 — Perform the code review

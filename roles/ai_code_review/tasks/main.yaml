@@ -4,21 +4,22 @@
 # Claude invocation. Context extraction, commit summary, project guidelines
 # extraction, and code review are all orchestrated by the agent.
 
-- name: Verify prerequisite files exist
+- name: Verify prerequisite paths exist
   ansible.builtin.stat:
     path: "{{ item }}"
-  register: ai_code_review_prereq_files
+  register: ai_code_review_prereq_paths
   loop:
     - "{{ ai_code_review_style_guide_quick_rules }}"
     - "{{ ai_code_review_style_guide_comprehensive }}"
+    - "{{ ai_code_review_knowledge_root }}"
     - "{{ ai_code_review_json_schema }}"
     - "{{ ai_code_review_inventory_file }}"
 
-- name: Fail if prerequisite files missing
+- name: Fail if prerequisite paths are missing
   ansible.builtin.fail:
-    msg: "Missing prerequisite file: {{ item.item }}"
+    msg: "Missing prerequisite path: {{ item.item }}"
   when: not item.stat.exists
-  loop: "{{ ai_code_review_prereq_files.results }}"
+  loop: "{{ ai_code_review_prereq_paths.results }}"
 
 - name: Create teim-review orchestration prompt
   ansible.builtin.set_fact:
@@ -30,6 +31,7 @@
       project_dir: {{ ai_code_review_project_src_dir }}
       style_guide_quick_rules: {{ ai_code_review_style_guide_quick_rules }}
       style_guide_comprehensive: {{ ai_code_review_style_guide_comprehensive }}
+      knowledge_root: {{ ai_code_review_knowledge_root }}
       json_schema: {{ ai_code_review_json_schema }}
       tools_dir: {{ ai_code_review_style_guide_project }}/tools
       generate_html: false

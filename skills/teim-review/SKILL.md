@@ -10,6 +10,10 @@ disable-model-invocation: false
 
 Use the @teim-review-agent subagent to perform a complete code review.
 
+The authoritative shared workflow is
+`prompts/teim-review-core.md`. This skill is the Claude-native adapter for that
+workflow.
+
 - **Output directory**: `.teim-review/` (relative to the current working
   directory)
 - **Project directory**: current working directory
@@ -21,3 +25,5 @@ Use the @teim-review-agent subagent to perform a complete code review.
 - **Knowledge root**: use `./docs/knowledge/` from the current repo for
   overlays and example-backed review context
 - **JSON schema**: `schemas/review-report-schema.json` (relative to the plugin root)
+- **Semantic profiles**: `config/tool-profiles.json` defines shared `fast` and
+  `deep` aliases across tools

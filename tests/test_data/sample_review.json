@@ -11,15 +11,23 @@
     "suggestions": 1,
     "total": 4
   },
+  "statistics_html_only": {
+    "critical": 0,
+    "high": 0,
+    "warnings": 0,
+    "suggestions": 0,
+    "total": 0
+  },
   "issues": {
     "critical": [
       {
         "description": "Security issue",
         "confidence": 0.9,
+        "reporting_mode": "inline",
         "location": "roles/ai_code_review/tasks/main.yaml:50",
-        "risk": "High",
+        "risk": "Unauthorized access remains possible",
         "remediation_priority": "Immediate",
-        "why_matters": "Allows unauthorized access",
+        "why_matters": "The change could allow unauthorized access",
         "recommendation": "Add authentication"
       }
     ],
@@ -28,8 +36,9 @@
       {
         "description": "Line too long",
         "confidence": 1.0,
+        "reporting_mode": "inline",
         "location": "roles/ai_code_review/tasks/main.yaml:75",
-        "impact": "Readability",
+        "impact": "Long lines make the task harder to review and maintain",
         "suggestion": "Break into multiple lines"
       }
     ],
@@ -37,21 +46,23 @@
       {
         "description": "Use autospec=True",
         "confidence": 0.8,
+        "reporting_mode": "inline",
         "location": "roles/ai_code_review/tasks/main.yaml:100",
-        "benefit": "Better mock safety",
+        "benefit": "This improves mock safety and catches interface drift",
         "recommendation": "Add autospec=True parameter"
       }
     ]
   },
+  "out_of_patch_observations": [],
   "positive_observations": [
     {
-      "category": "Structure",
+      "category": "Architecture",
       "observation": "Good task organization"
     }
   ],
   "summary": {
-    "assessment": "Needs improvements",
-    "priority_focus": "Security",
+    "assessment": "Needs work",
+    "priority_focus": "Address the critical security finding first",
     "detailed_summary": "One critical security issue found"
   }
 }

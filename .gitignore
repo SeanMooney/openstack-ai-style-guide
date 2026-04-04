@@ -83,3 +83,6 @@ yarn-error.log*
 
 # teim-review local output directory
 .teim-review/
+
+# Codex local artifact
+.codex

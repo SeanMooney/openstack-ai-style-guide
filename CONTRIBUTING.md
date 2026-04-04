@@ -4,6 +4,7 @@ This repository is maintained as an AI review system for OpenStack-oriented
 projects. Contributions should improve one of these areas:
 
 - review behavior in `agents/` and `skills/`
+- Codex plugin packaging in `plugins/` and `.agents/plugins/`
 - structured output contracts in `schemas/`
 - CI/runtime wiring in `roles/`, `playbooks/`, and `zuul.d/`
 - helper transforms in `tools/`
@@ -28,19 +29,23 @@ projects. Contributions should improve one of these areas:
 Use this precedence order when making changes:
 
 1. `schemas/review-report-schema.json`
-2. `agents/`
-3. `skills/`
+2. `prompts/teim-review-core.md` and `config/tool-profiles.json`
+3. `agents/`, `skills/`, `.claude-plugin/`, `.cursor/rules/`, and `plugins/`
 4. `roles/`, `playbooks/`, `zuul.d/`, `tools/`
 5. `docs/` and `references/`
 
 If behavior changes, encode it in the schema or agent prompts first.
+
+The mirrored files under `plugins/teim-review/references/` must stay aligned
+with the shared sources they package for Codex installs.
 
 ## Compatibility Rules
 
 This repository currently preserves these entrypoints:
 
 - `teim-review@openstack-ai-style-guide`
-- `/teim-review`
+- Claude: `/teim-review`
+- Codex: `$teim-review`
 - `agents/teim-review-agent.md`
 - `schemas/review-report-schema.json`
 - `teim-code-review`

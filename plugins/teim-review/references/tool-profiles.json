@@ -1,0 +1,34 @@
+{
+  "profiles": {
+    "fast": {
+      "description": "Lower-cost, lower-latency extraction and review path.",
+      "claude": {
+        "context_model": "haiku",
+        "review_model": "inherit"
+      },
+      "codex": {
+        "context_model": "gpt-5.4-mini",
+        "interactive_review_model": "inherit"
+      },
+      "cursor": {
+        "model": "Auto",
+        "notes": "Use Auto when available; otherwise pick the lightest coding model in your workspace."
+      }
+    },
+    "deep": {
+      "description": "Highest-quality review path for deeper analysis.",
+      "claude": {
+        "context_model": "haiku",
+        "review_model": "inherit"
+      },
+      "codex": {
+        "context_model": "gpt-5.4-mini",
+        "interactive_review_model": "inherit"
+      },
+      "cursor": {
+        "model": "o3",
+        "notes": "Prefer o3 when present; otherwise use the strongest coding model available in Cursor."
+      }
+    }
+  }
+}

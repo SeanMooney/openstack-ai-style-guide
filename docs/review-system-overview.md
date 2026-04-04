@@ -10,8 +10,10 @@ OpenStack-style changes. It is not primarily a generic style guide anymore.
 
 ## Core Runtime Contracts
 
-- **Interactive entrypoint**: `/teim-review`
+- **Claude interactive entrypoint**: `/teim-review`
+- **Codex interactive entrypoint**: `$teim-review`
 - **Primary orchestrator**: `agents/teim-review-agent.md`
+- **Shared workflow core**: `prompts/teim-review-core.md`
 - **Review rubric**: `agents/code-review-agent.md`
 - **Structured output**: `schemas/review-report-schema.json`
 - **CI entrypoint**: `zuul.d/jobs.yaml` job `teim-code-review`
@@ -20,9 +22,14 @@ OpenStack-style changes. It is not primarily a generic style guide anymore.
 
 ### Local mode
 
-- User installs the plugin from the local marketplace.
-- `/teim-review` invokes `teim-review-agent`.
-- The agent detects local git context and writes output to `.teim-review/`.
+- Claude users install the plugin from the local marketplace and run
+  `/teim-review`.
+- Codex users discover the installed skill with `/skills`, invoke it with
+  `$teim-review`.
+- Cursor users consume `.cursor/rules/teim-review.mdc` and the repository's
+  Custom Mode template.
+- Every adapter follows `prompts/teim-review-core.md` and writes output to
+  `.teim-review/`.
 
 ### Zuul mode
 
@@ -37,8 +44,10 @@ OpenStack-style changes. It is not primarily a generic style guide anymore.
 
 ### Authoritative
 
-- `agents/` owns review intent, orchestration, and reviewer behavior.
-- `skills/` owns interactive invocation shape.
+- `prompts/` owns provider-neutral orchestration behavior.
+- `config/` owns semantic tool profile mappings such as `fast` and `deep`.
+- `agents/`, `skills/`, `.claude-plugin/`, `.cursor/rules/`, and
+  `plugins/teim-review/` own tool-native adapter packaging.
 - `schemas/` owns report shape and downstream compatibility.
 
 ### Canonical external knowledge

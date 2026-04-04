@@ -52,12 +52,80 @@ class TestRepoContracts(test.NoDBTestCase):
         )
         self.assertThat(listed_plugin['source'], matchers.Equals('./'))
 
+    def test_codex_plugin_and_marketplace_metadata_stay_aligned(self):
+        """Codex plugin metadata should match the repo marketplace entry."""
+        plugin = self._read_json('plugins/teim-review/.codex-plugin/plugin.json')
+        marketplace = self._read_json('.agents/plugins/marketplace.json')
+
+        self.assertThat(plugin['name'], matchers.Equals('teim-review'))
+        self.assertThat(plugin['skills'], matchers.Equals('./skills/'))
+        self.assertThat(
+            marketplace['plugins'][0]['name'], matchers.Equals(plugin['name'])
+        )
+        self.assertThat(
+            marketplace['plugins'][0]['source']['path'],
+            matchers.Equals('../../plugins/teim-review'),
+        )
+        resolved_path = (
+            self.repo_root
+            / '.agents'
+            / 'plugins'
+            / marketplace['plugins'][0]['source']['path']
+        ).resolve()
+        self.assertThat(
+            resolved_path,
+            matchers.Equals((self.repo_root / 'plugins' / 'teim-review').resolve()),
+        )
+
+    def test_shared_core_and_tool_profiles_exist(self):
+        """The shared workflow and semantic profiles are stable contracts."""
+        prompt = self._read_text('prompts/teim-review-core.md')
+        profiles = self._read_json('config/tool-profiles.json')
+
+        self.assertThat(
+            prompt,
+            matchers.Contains('authoritative provider-neutral review workflow'),
+        )
+        self.assertThat(
+            profiles['profiles']['fast']['codex']['context_model'],
+            matchers.Equals('gpt-5.4-mini'),
+        )
+        self.assertThat(
+            profiles['profiles']['fast']['codex']['interactive_review_model'],
+            matchers.Equals('inherit'),
+        )
+        self.assertThat(
+            profiles['profiles']['deep']['codex']['interactive_review_model'],
+            matchers.Equals('inherit'),
+        )
+        self.assertThat(
+            profiles['profiles']['deep']['claude']['review_model'],
+            matchers.Equals('inherit'),
+        )
+
+    def test_codex_plugin_references_mirror_shared_core_files(self):
+        """Codex plugin mirrors should stay aligned with shared sources."""
+        shared_prompt = self._read_text('prompts/teim-review-core.md')
+        plugin_prompt = self._read_text(
+            'plugins/teim-review/references/teim-review-core.md'
+        )
+        shared_profiles = self._read_json('config/tool-profiles.json')
+        plugin_profiles = self._read_json(
+            'plugins/teim-review/references/tool-profiles.json'
+        )
+
+        self.assertThat(plugin_prompt, matchers.Equals(shared_prompt))
+        self.assertThat(plugin_profiles, matchers.Equals(shared_profiles))
+
     def test_skill_points_at_teim_review_agent_and_schema(self):
         """The interactive entrypoint must keep its agent and schema contract."""
         skill = self._read_text('skills/teim-review/SKILL.md')
 
         self.assertThat(
             skill, matchers.Contains('Use the @teim-review-agent subagent')
+        )
+        self.assertThat(
+            skill, matchers.Contains('prompts/teim-review-core.md')
         )
         self.assertThat(
             skill,
@@ -71,9 +139,44 @@ class TestRepoContracts(test.NoDBTestCase):
         agent = self._read_text('agents/teim-review-agent.md')
 
         self.assertThat(agent, matchers.Contains('@code-review-agent'))
+        self.assertThat(
+            agent, matchers.Contains('prompts/teim-review-core.md')
+        )
         self.assertThat(agent, matchers.Contains('review-report.json'))
         self.assertThat(agent, matchers.Contains('project-guidelines.md'))
         self.assertThat(agent, matchers.Contains('knowledge_root'))
+
+    def test_codex_and_cursor_adapters_reference_shared_core(self):
+        """Codex and Cursor should stay thin adapters over the shared core."""
+        codex_skill = self._read_text(
+            'plugins/teim-review/skills/teim-review/SKILL.md'
+        )
+        cursor_rule = self._read_text('.cursor/rules/teim-review.mdc')
+        cursor_mode = self._read_text('cursor/teim-review-mode-template.json')
+        agents_doc = self._read_text('AGENTS.md')
+
+        self.assertThat(
+            codex_skill, matchers.Contains('references/teim-review-core.md')
+        )
+        self.assertThat(
+            cursor_rule, matchers.Contains('prompts/teim-review-core.md')
+        )
+        self.assertThat(cursor_mode, matchers.Contains('Teim Review'))
+        self.assertThat(agents_doc, matchers.Contains('plugins/teim-review/'))
+        self.assertThat(agents_doc, matchers.Contains('.cursor/rules/'))
+        self.assertThat(codex_skill, matchers.Contains('$teim-review'))
+        self.assertThat(codex_skill, matchers.Contains('/skills'))
+        self.assertThat(
+            codex_skill,
+            matchers.Not(matchers.Contains('scripts/teim-review-codex')),
+        )
+        self.assertThat(codex_skill, matchers.Not(matchers.Contains('@teim-review')))
+        self.assertThat(agents_doc, matchers.Not(matchers.Contains('@teim-review')))
+
+    def test_gitignore_ignores_codex_artifact(self):
+        """Local Codex run artifacts should not dirty the repository."""
+        gitignore = self._read_text('.gitignore')
+        self.assertThat(gitignore, matchers.Contains('.codex'))
 
     def test_zuul_job_and_playbook_keep_current_entrypoints(self):
         """Zuul and playbook wiring should continue to target the same flow."""
@@ -112,4 +215,9 @@ class TestRepoContracts(test.NoDBTestCase):
         self.assertTrue(quick_rules.exists())
         self.assertTrue(comprehensive.exists())
         self.assertThat(active_doc.read_text(), matchers.Contains('teim-review'))
+        self.assertThat(active_doc.read_text(), matchers.Contains('$teim-review'))
+        self.assertThat(
+            active_doc.read_text(),
+            matchers.Not(matchers.Contains('@teim-review')),
+        )
         self.assertThat(knowledge_doc.read_text(), matchers.Contains('overlays'))

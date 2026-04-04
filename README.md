@@ -3,8 +3,11 @@
 This repository packages the active pieces of an AI-assisted OpenStack review
 workflow:
 
+- shared provider-neutral review prompts and model profiles
 - Claude plugin and marketplace metadata
-- review agents and the `/teim-review` skill
+- Codex plugin and skill tooling
+- Cursor rules and custom mode template
+- review agents and tool-native interactive entrypoints
 - review report schema and helper transforms
 - Zuul jobs and Ansible roles that run the workflow in CI
 
@@ -25,17 +28,41 @@ The current production path is:
    project-guideline extraction, and structured review generation.
 5. Python helpers turn the JSON report into HTML and Zuul file comments.
 
-Local interactive usage follows the same model through `/teim-review`.
+Local interactive usage is now distributed through native tool adapters over
+the same shared review core.
 
 ## Primary Entry Points
 
 ### Local review
+
+#### Claude
 
 ```bash
 /plugin marketplace add /path/to/openstack-ai-style-guide
 /plugin install teim-review@openstack-ai-style-guide
 /teim-review
 ```
+
+#### Codex
+
+```bash
+npm install -g @openai/codex
+codex login
+scripts/install-codex-skill
+codex
+# restart Codex, then install teim-review from the Local Codex Plugins marketplace
+# use /skills to discover the installed skill, then run:
+$teim-review
+```
+
+Detailed installation, update, troubleshooting, and isolated validation steps
+live in `docs/codex.md`.
+
+#### Cursor
+
+- versioned project rules live in `.cursor/rules/`
+- `cursor/teim-review-mode-template.json` is the repository template for a
+  Custom Mode backed by the same shared review workflow
 
 Local output is written to `.teim-review/`:
 
@@ -54,7 +81,13 @@ The live job entrypoint is `teim-code-review`, defined in
 
 ```text
 openstack-ai-style-guide/
+├── prompts/              # Shared provider-neutral review workflow
+├── config/               # Shared semantic model profile mappings
 ├── .claude-plugin/        # Claude plugin and marketplace metadata
+├── .agents/plugins/       # Codex repo marketplace catalog
+├── .cursor/rules/         # Cursor-native project rules
+├── plugins/teim-review/   # Codex-native plugin bundle
+├── cursor/                # Cursor custom mode templates
 ├── agents/                # Review orchestration and specialist agents
 ├── skills/                # Interactive skill entrypoints
 ├── schemas/               # Structured output contracts
@@ -73,8 +106,10 @@ The repository now treats review knowledge in three layers:
 
 1. **Canonical external snapshots**: `references/`
 2. **Curated baseline and derived knowledge**: `docs/`
-3. **Runtime behavior and contracts**: `agents/`, `skills/`, and
+3. **Provider-neutral runtime behavior**: `prompts/`, `config/`, and
    `schemas/review-report-schema.json`
+4. **Tool-native adapters**: `agents/`, `skills/`, `.claude-plugin/`,
+   `.cursor/rules/`, and `plugins/teim-review/`
 
 `references/` holds canonical snapshots of external coding standards, policy,
 and review guidance. `docs/quick-rules.md` and
@@ -82,8 +117,10 @@ and review guidance. `docs/quick-rules.md` and
 references. `docs/knowledge/` is the starting point for internal overlays,
 examples, and future RAG-oriented review knowledge.
 
-Agents and the schema remain authoritative for review behavior, orchestration,
-and output contracts.
+`prompts/teim-review-core.md` and `schemas/review-report-schema.json` are
+authoritative for workflow behavior and output contracts. Tool-native adapter
+files translate that shared core into Claude, Codex, and Cursor delivery
+surfaces.
 
 See [docs/review-system-overview.md](docs/review-system-overview.md) for the
 runtime model and [docs/archive/README.md](docs/archive/README.md) for legacy
@@ -95,8 +132,10 @@ This restructuring pass preserves the current runtime contracts:
 
 - plugin name: `teim-review`
 - marketplace identity: `openstack-ai-style-guide`
-- skill entrypoint: `/teim-review`
+- Claude skill entrypoint: `/teim-review`
+- Codex skill entrypoint: `$teim-review`
 - orchestrator: `teim-review-agent`
+- shared workflow: `prompts/teim-review-core.md`
 - output schema: `schemas/review-report-schema.json`
 - local output directory: `.teim-review/`
 - Zuul jobs: `teim-code-review` and `openstack-ai-style-guide-lint`

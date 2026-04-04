@@ -1,0 +1,95 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+CODEX_HOME="${CODEX_HOME:-$HOME/.codex}"
+AGENTS_HOME="${AGENTS_HOME:-$HOME/.agents}"
+PLUGIN_ROOT="${CODEX_HOME}/plugins"
+TARGET="${PLUGIN_ROOT}/teim-review"
+SOURCE="$(CDPATH= cd -- "$(dirname -- "$0")/../plugins/teim-review" && pwd)"
+MARKETPLACE_ROOT="${AGENTS_HOME}/plugins"
+MARKETPLACE_FILE="${MARKETPLACE_ROOT}/marketplace.json"
+
+mkdir -p "${PLUGIN_ROOT}" "${MARKETPLACE_ROOT}"
+rm -rf "${TARGET}"
+cp -R "${SOURCE}" "${TARGET}"
+
+export MARKETPLACE_FILE TARGET
+python3 <<'PY'
+import json
+import os
+import sys
+from pathlib import Path
+
+
+marketplace_file = Path(os.environ['MARKETPLACE_FILE'])
+target = Path(os.environ['TARGET'])
+
+plugin_entry = {
+    'name': 'teim-review',
+    'source': {
+        'source': 'local',
+        'path': str(target),
+    },
+    'policy': {
+        'installation': 'AVAILABLE',
+        'authentication': 'ON_INSTALL',
+    },
+    'category': 'Developer Tools',
+}
+
+marketplace = {
+    'name': 'local-codex-plugins',
+    'interface': {
+        'displayName': 'Local Codex Plugins',
+    },
+    'plugins': [],
+}
+
+if marketplace_file.exists():
+    try:
+        with marketplace_file.open() as fh:
+            marketplace = json.load(fh)
+    except json.JSONDecodeError as exc:
+        print(
+            f'Existing marketplace file is invalid JSON: '
+            f'{marketplace_file}: {exc}',
+            file=sys.stderr,
+        )
+        print(
+            'Repair or remove the file and rerun scripts/install-codex-skill.',
+            file=sys.stderr,
+        )
+        sys.exit(1)
+
+    if not isinstance(marketplace, dict):
+        print(
+            f'Existing marketplace file must be a JSON object: '
+            f'{marketplace_file}',
+            file=sys.stderr,
+        )
+        sys.exit(1)
+
+plugins = marketplace.get('plugins', [])
+if 'plugins' in marketplace and not isinstance(plugins, list):
+    print(
+        f'Existing marketplace file has a non-list "plugins" field: '
+        f'{marketplace_file}',
+        file=sys.stderr,
+    )
+    sys.exit(1)
+
+marketplace['plugins'] = [
+    plugin
+    for plugin in plugins
+    if not isinstance(plugin, dict) or plugin.get('name') != 'teim-review'
+]
+marketplace['plugins'].append(plugin_entry)
+
+with marketplace_file.open('w') as fh:
+    json.dump(marketplace, fh, indent=2)
+    fh.write('\n')
+PY
+
+echo "Installed Codex plugin: ${TARGET}"
+echo "Updated personal marketplace: ${MARKETPLACE_FILE}"
+echo "Restart Codex, then install teim-review from the Local Codex Plugins marketplace."

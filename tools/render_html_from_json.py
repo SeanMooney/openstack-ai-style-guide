@@ -445,7 +445,11 @@ def extract_review_data(data: Dict[str, Any]) -> Dict[str, Any]:
     Returns:
         The review data dictionary
     """
-    if 'structured_output' in data and isinstance(data['structured_output'], dict):
+    if (
+        isinstance(data, dict)
+        and 'structured_output' in data
+        and isinstance(data['structured_output'], dict)
+    ):
         return data['structured_output']
     return data
 
@@ -868,6 +872,13 @@ def main():
     # Extract review data from Claude CLI wrapper if present
     review_data = extract_review_data(raw_data)
 
+    if not isinstance(review_data, dict):
+        print(
+            "Error: Invalid review data structure. Expected a JSON object.",
+            file=sys.stderr
+        )
+        sys.exit(1)
+
     # Check if structured_output was missing when expected
     if 'structured_output' in raw_data and not isinstance(raw_data['structured_output'], dict):
         print(
@@ -876,8 +887,14 @@ def main():
         )
         sys.exit(1)
 
-    # Validate required structure
-    required_keys = ['context', 'statistics', 'statistics_html_only', 'issues', 'summary']
+    # Preserve compatibility with older report payloads by defaulting
+    # renderer-only optional sections when they are absent.
+    review_data.setdefault('statistics_html_only', {})
+    review_data.setdefault('out_of_patch_observations', [])
+    review_data.setdefault('positive_observations', [])
+
+    # Validate the minimum structure needed for HTML generation.
+    required_keys = ['context', 'statistics', 'issues', 'summary']
     missing_keys = [key for key in required_keys if key not in review_data]
     if missing_keys:
         print(

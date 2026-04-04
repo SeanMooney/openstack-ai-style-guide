@@ -1,0 +1,22 @@
+{
+  "name": "Teim Review",
+  "description": "Template for a Cursor Custom Mode that runs the shared OpenStack review workflow.",
+  "model_profile": "deep",
+  "recommended_cursor_model": "o3",
+  "tools": [
+    "codebase",
+    "read_file",
+    "terminal",
+    "edit"
+  ],
+  "instructions": [
+    "Load .cursor/rules/teim-review.mdc.",
+    "Follow prompts/teim-review-core.md as the authoritative review workflow.",
+    "Write artifacts into .teim-review/.",
+    "Produce final JSON that matches schemas/review-report-schema.json."
+  ],
+  "notes": [
+    "This file is a repository template for Custom Mode setup, not a guaranteed import format.",
+    "Use model profile fast for lower-latency runs and deep for higher-quality review passes."
+  ]
+}

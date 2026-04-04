@@ -29,10 +29,41 @@ class ClaudeCLIResponse(fixtures.Fixture):
         super().__init__()
         if review_data is None:
             review_data = {
-                'context': {},
-                'statistics': {'total': 0},
-                'issues': {},
-                'summary': {},
+                'context': {
+                    'change': 'Fixture review output',
+                    'scope': 'Default fixture scope for test helpers',
+                    'impact': 'Provides a schema-compatible default response',
+                },
+                'statistics': {
+                    'critical': 0,
+                    'high': 0,
+                    'warnings': 0,
+                    'suggestions': 0,
+                    'total': 0,
+                },
+                'statistics_html_only': {
+                    'critical': 0,
+                    'high': 0,
+                    'warnings': 0,
+                    'suggestions': 0,
+                    'total': 0,
+                },
+                'issues': {
+                    'critical': [],
+                    'high': [],
+                    'warnings': [],
+                    'suggestions': [],
+                },
+                'out_of_patch_observations': [],
+                'positive_observations': [],
+                'summary': {
+                    'assessment': 'Ready',
+                    'priority_focus': 'No review action required for default fixture',
+                    'detailed_summary': (
+                        'Default fixture response includes the full review '
+                        'schema shape for tests that only need a valid stub.'
+                    ),
+                },
             }
         self.review_data = review_data
 

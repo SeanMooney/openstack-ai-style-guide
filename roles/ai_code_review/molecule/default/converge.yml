@@ -40,9 +40,15 @@
             "structured_output": {
               "context": {"change": "12345", "scope": "Test", "impact": "Test impact"},
               "statistics": {"critical": 0, "high": 0, "warnings": 0, "suggestions": 0, "total": 0},
+              "statistics_html_only": {"critical": 0, "high": 0, "warnings": 0, "suggestions": 0, "total": 0},
               "issues": {"critical": [], "high": [], "warnings": [], "suggestions": []},
+              "out_of_patch_observations": [],
               "positive_observations": [],
-              "summary": {"assessment": "Ready", "priority_focus": "None", "detailed_summary": "Test review"}
+              "summary": {
+                "assessment": "Ready",
+                "priority_focus": "No blocking review findings remain",
+                "detailed_summary": "Test review output exercises the full top-level schema contract."
+              }
             }
           }
           EOF
@@ -86,7 +92,10 @@
             "properties": {
               "context": {"type": "object"},
               "statistics": {"type": "object"},
+              "statistics_html_only": {"type": "object"},
               "issues": {"type": "object"},
+              "out_of_patch_observations": {"type": "array"},
+              "positive_observations": {"type": "array"},
               "summary": {"type": "object"}
             }
           }

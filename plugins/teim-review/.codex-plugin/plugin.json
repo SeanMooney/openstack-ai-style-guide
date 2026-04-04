@@ -1,0 +1,29 @@
+{
+  "name": "teim-review",
+  "version": "1.0.0",
+  "description": "OpenStack code review workflows and helpers for Codex.",
+  "author": {
+    "name": "Sean Mooney",
+    "email": "sean@seanmooney.info",
+    "url": "https://seanmooney.info"
+  },
+  "repository": "https://opendev.org/openstack/openstack-ai-style-guide",
+  "license": "Apache-2.0",
+  "keywords": [
+    "openstack",
+    "review",
+    "codex"
+  ],
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "Teim Review",
+    "shortDescription": "OpenStack review workflows for Codex",
+    "longDescription": "Install shared OpenStack review skills and workflows into Codex.",
+    "developerName": "Sean Mooney",
+    "category": "Developer Tools",
+    "capabilities": [
+      "Read",
+      "Write"
+    ]
+  }
+}

@@ -13,12 +13,15 @@ contracts:
    policy
 2. `docs/quick-rules.md`, `docs/comprehensive-guide.md`, and `docs/knowledge/`
    for curated baseline and derived internal review knowledge
-3. `schemas/review-report-schema.json`, `agents/`, and `skills/` for runtime
-   behavior and report contracts
-4. `roles/`, `playbooks/`, `zuul.d/`, and `tools/` for execution glue
+3. `prompts/teim-review-core.md`, `config/tool-profiles.json`, and
+   `schemas/review-report-schema.json` for provider-neutral runtime behavior
+   and report contracts
+4. `agents/`, `skills/`, `.claude-plugin/`, `.cursor/rules/`, and
+   `plugins/teim-review/` for tool-native adapters
+5. `roles/`, `playbooks/`, `zuul.d/`, and `tools/` for execution glue
 
 Do not update README or supporting docs to introduce runtime behavior that is
-not encoded in the schema, agents, skills, or workflow glue.
+not encoded in the shared core, schema, adapters, or workflow glue.
 
 ## Runtime Contracts
 
@@ -29,6 +32,8 @@ tests in the same commit:
 - marketplace identity `openstack-ai-style-guide`
 - skill path `skills/teim-review/SKILL.md`
 - orchestrator `agents/teim-review-agent.md`
+- shared workflow `prompts/teim-review-core.md`
+- semantic profiles `config/tool-profiles.json`
 - review schema `schemas/review-report-schema.json`
 - local output directory `.teim-review/`
 - Zuul jobs `teim-code-review` and `openstack-ai-style-guide-lint`
@@ -36,16 +41,21 @@ tests in the same commit:
 ## Review-System Layout
 
 ```text
-.claude-plugin/  plugin metadata and marketplace catalog
-agents/          operational review intent and orchestration
-skills/          interactive entrypoints
-schemas/         structured output contracts
-tools/           report transforms and validators
-roles/           Ansible implementation units
-playbooks/       workflow orchestration
-zuul.d/          CI job definitions
-docs/            active docs plus legacy support content
-references/      canonical external standards snapshots
+.agents/plugins/  Codex repo marketplace catalog
+.cursor/rules/    Cursor-native project rules
+.claude-plugin/   plugin metadata and marketplace catalog
+config/           semantic model profile aliases
+plugins/          Codex-native plugin bundles
+prompts/          provider-neutral review workflow
+agents/           operational review intent and orchestration
+skills/           interactive entrypoints
+schemas/          structured output contracts
+tools/            report transforms and validators
+roles/            Ansible implementation units
+playbooks/        workflow orchestration
+zuul.d/           CI job definitions
+docs/             active docs plus legacy support content
+references/       canonical external standards snapshots
 ```
 
 ## Knowledge Areas
@@ -63,6 +73,28 @@ references/      canonical external standards snapshots
 
 `.claude-plugin/plugin.json` intentionally omits explicit `agents_dir` and
 `skills_dir` fields because Claude Code auto-discovers the default layout.
+
+### Shared core first
+
+When adding support for a new AI tool, put reusable workflow behavior in
+`prompts/teim-review-core.md` first, then add a thin tool adapter. Do not fork
+review logic across Claude, Codex, and Cursor files unless the difference is
+truly tool-specific.
+
+### Tool-native adapters
+
+- Claude distribution uses `.claude-plugin/`, `agents/`, and `skills/`.
+- Codex distribution uses `.agents/plugins/` and `plugins/teim-review/`.
+  Codex interactive invocation is `$teim-review`.
+- Cursor distribution uses `.cursor/rules/` and `cursor/`.
+
+### Codex plugin mirrors
+
+`plugins/teim-review/references/` contains install-safe mirrored copies of the
+shared core files that the Codex plugin skill can read after installation. The
+authoritative sources remain `prompts/teim-review-core.md` and
+`config/tool-profiles.json`. If either source changes, update the mirrored
+plugin references and tests in the same change.
 
 ### Ruff formatting
 

@@ -45,8 +45,8 @@
       # set in ~/.claude/settings.json by ai_review_setup.
       haiku_model: "glm-4.7-flash"
       sonnet_model: "glm-4.7"
-      opus_model: "glm-5-turbo"
-      review_model: "glm-5-turbo"
+      opus_model: "glm-5.1"
+      review_model: "glm-5.1"
 
       # Anthropic-compatible endpoint served by LiteLLM
       anthropic_api_url: "http://litellm.zuul-system.svc.cluster.local:4000"

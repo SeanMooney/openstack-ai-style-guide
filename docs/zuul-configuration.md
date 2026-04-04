@@ -4,10 +4,11 @@ This document explains the Zuul CI/CD configuration for the OpenStack AI Style G
 
 ## Overview
 
-The repository uses Zuul for continuous integration and automated code review. Two main jobs are configured:
+The repository uses Zuul for continuous integration and automated code review.
+Two main jobs are configured:
 
 1. **openstack-ai-style-guide-lint** - Linting checks using pre-commit hooks
-2. **openstack-ai-code-review** - AI-assisted code review using OpenCode
+2. **teim-code-review** - AI-assisted code review using Claude Code via LiteLLM
 
 ## Linting Job Configuration
 
@@ -102,43 +103,56 @@ The linting job runs the following checks via pre-commit hooks:
 
 ```yaml
 - job:
-    name: openstack-ai-code-review-base
+    name: teim-code-review-base
     abstract: true
-    nodeset: debian-opencode-single-node-pod
+    nodeset: debian-claude-code-single-node-pod
     vars:
-      context_model: "litellm-homelab/glm-4.5-air"
-      review_model: "litellm-homelab/glm-4.6"
-      litellm_base_url: "http://litellm.zuul-system.svc.cluster.local:4000/v1"
+      haiku_model: "glm-4.7-flash"
+      sonnet_model: "glm-4.7"
+      opus_model: "glm-5.1"
+      review_model: "glm-5.1"
+      anthropic_api_url: "http://litellm.zuul-system.svc.cluster.local:4000"
 ```
 
 ### Configuration Parameters
 
 #### Model Selection
 
-- **`context_model`**: Model used for extracting and understanding code context
-  - Default: `litellm-homelab/glm-4.5-air`
-  - Purpose: Fast context extraction
+- **`haiku_model`**: Remaps the Claude Haiku tier in CI
+  - Default: `glm-4.7-flash`
+  - Purpose: Fast extraction and lightweight agent work
   - Override: Set in child jobs or via job variables
 
-- **`review_model`**: Model used for generating code review feedback
-  - Default: `litellm-homelab/glm-4.6`
-  - Purpose: Comprehensive code analysis and suggestions
+- **`sonnet_model`**: Remaps the Claude Sonnet tier in CI
+  - Default: `glm-4.7`
+  - Purpose: Balanced general-purpose agent work
   - Override: Set in child jobs or via job variables
+
+- **`opus_model`**: Remaps the Claude Opus tier in CI
+  - Default: `glm-5.1`
+  - Purpose: Controls inherited `model: opus` behavior through
+    `ANTHROPIC_DEFAULT_OPUS_MODEL`
+  - Override: Update this in the Zuul job when changing the backend model
+
+- **`review_model`**: Model used for the top-level `teim-review-agent` run
+  - Default: `glm-5.1`
+  - Purpose: Comprehensive code analysis and review generation
+  - Override: Update this in the Zuul job when changing the reviewer backend
 
 #### LiteLLM Configuration
 
-- **`litellm_base_url`**: Proxy endpoint for model access
-  - Default: `http://litellm.zuul-system.svc.cluster.local:4000/v1`
-  - Purpose: Routes requests through secure LiteLLM proxy in Zuul cluster
+- **`anthropic_api_url`**: Proxy endpoint for model access
+  - Default: `http://litellm.zuul-system.svc.cluster.local:4000`
+  - Purpose: Routes Claude CLI requests through the LiteLLM proxy
   - Note: Internal homelab service, not accessible outside cluster
 
-- **`litellm_api_key`**: Authentication for LiteLLM proxy
+- **`anthropic_auth_token`**: Authentication for LiteLLM proxy
   - Default: `sk-1234` (internal key, not sensitive)
   - Note: Used only within isolated Zuul environment
 
 #### Timeout Configuration
 
-- **`timeout: 900`** (15 minutes)
+- **`timeout: 1800`** (30 minutes)
 - Purpose: Allows sufficient time for context extraction and review generation
 - Consideration: Should be roughly 2x the average execution time
 
@@ -164,9 +178,9 @@ You can override models in child jobs or via job variables:
 ```yaml
 - job:
     name: custom-review-job
-    parent: openstack-ai-code-review
+    parent: teim-code-review
     vars:
-      review_model: "litellm-homelab/glm-4.7"
+      review_model: "glm-5.1"
 ```
 
 ### Adding Additional Pre-commit Hooks
@@ -185,9 +199,9 @@ The repository uses Zuul job inheritance:
   - Handles environment setup
   - Executes tox environments
 
-- **openstack-ai-code-review** inherits from `openstack-ai-code-review-base`
+- **teim-code-review** inherits from `teim-code-review-base`
   - Base provides common configuration
-  - Child job specializes for OpenStack projects
+  - Child job runs the teim-review workflow with Claude Code
   - Can be inherited further for specific project types
 
 ## Troubleshooting
@@ -222,5 +236,5 @@ If the DCO hook fails:
 
 - **Pre-commit Hooks**: See `CONTRIBUTING.md` for detailed pre-commit instructions
 - **Environment Variables**: See `docs/environment-variables.md` for Zuul job variables
-- **Code Review Setup**: See `tools/README.md` for OpenCode configuration
+- **Claude Code Plugin**: See `README.md` for plugin installation and review workflow setup
 - **Linting Rules**: See `docs/quick-rules.md` and `docs/comprehensive-guide.md`

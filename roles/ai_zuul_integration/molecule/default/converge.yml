@@ -79,6 +79,7 @@
               "suggestions": []
             },
             "positive_observations": [],
+            "patch_level_observations": [],
             "out_of_patch_observations": [],
             "summary": {
               "assessment": "Needs work",
@@ -92,6 +93,13 @@
       ansible.builtin.copy:
         dest: "{{ ai_zuul_integration_review_output_dir }}/review-report.html"
         content: "<html><body>Test HTML report</body></html>"
+        mode: '0644'
+
+    - name: Create changed file allowlist
+      ansible.builtin.copy:
+        dest: "{{ ai_zuul_integration_review_output_dir }}/changed-files.txt"
+        content: |
+          roles/ai_code_review/tasks/main.yaml
         mode: '0644'
 
     - name: Copy Zuul integration scripts to expected location

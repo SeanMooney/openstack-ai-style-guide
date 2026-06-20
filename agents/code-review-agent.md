@@ -335,6 +335,16 @@ Issues found in **unmodified code** (code present in the repo but not changed by
 - These appear only in the HTML report, not as Gerrit inline comments
 - Use language like: "Not in this patch — consider a follow-up"
 
+#### Patch-level findings
+
+If an issue is in scope for the current change but cannot be safely anchored to
+a changed file:
+
+- Add it to `patch_level_observations`
+- Keep the text concise because it is summarized in the Zuul change comment
+- Prefer an inline issue on the changed file whenever there is a reasonable
+  changed location to anchor the finding
+
 #### High-signal-only principle
 
 Only report an issue if **at least one** of the following is true:
@@ -462,6 +472,13 @@ Generate a JSON object with this exact structure (all fields are required unless
       "suggestion": "What to do in a follow-up patch"
     }
   ],
+  "patch_level_observations": [
+    {
+      "description": "In-scope issue without a safe changed-line anchor",
+      "impact": "Why this matters for the current change",
+      "recommendation": "What should be done"
+    }
+  ],
   "summary": {
     "assessment": "Ready with minor fixes",
     "priority_focus": "What should be addressed before merge",
@@ -472,7 +489,8 @@ Generate a JSON object with this exact structure (all fields are required unless
 
 **`statistics` counts inline findings only** (where `reporting_mode == "inline"`).
 **`statistics_html_only` counts html_only findings only** (where `reporting_mode == "html_only"`).
-`out_of_patch_observations` are NOT counted in either statistics object.
+`out_of_patch_observations` and `patch_level_observations` are NOT counted in
+either statistics object.
 
 **Note on AI Attribution Issues**: Only report missing AI attribution as Critical if
 you have explicit evidence (e.g., commit message says "used AI" but lacks
@@ -636,8 +654,12 @@ including it in the final report.
 
 For each issue, verify:
 
-1. **Is it in the diff?** Check that the location is a line added or modified in this patch.
-   If not, move it to `out_of_patch_observations` (see Section 4).
+1. **Is it in the patch?** Check that the location is a changed file in this
+   patch. If changed code affects an unmodified file, anchor the issue on the
+   changed file and describe the downstream impact. If the issue is pre-existing
+   and unrelated to this patch, move it to `out_of_patch_observations`. If it is
+   in scope but cannot be safely anchored to a changed file, move it to
+   `patch_level_observations`.
 2. **Is it a real bug or a clear rule violation?** Re-read the relevant code and the rule
    you're citing. Can you quote the exact rule from HACKING.rst / CLAUDE.md / AGENTS.md?
    If you're guessing, drop it.
@@ -661,7 +683,8 @@ Before writing your report file, validate the JSON structure compliance:
 
 - [ ] Output conforms to review-report-schema.json
 - [ ] All required top-level fields present: context, statistics, statistics_html_only,
-      issues, summary
+      issues, patch_level_observations, out_of_patch_observations,
+      positive_observations, summary
 - [ ] Context has: change, scope, impact
 - [ ] `statistics` has: critical, high, warnings, suggestions, total
       — counts **inline** issues only (reporting_mode == "inline")
@@ -670,7 +693,8 @@ Before writing your report file, validate the JSON structure compliance:
 - [ ] `statistics.total` equals sum of inline critical + high + warnings + suggestions
 - [ ] `statistics_html_only.total` equals sum of html_only critical + high + warnings +
       suggestions
-- [ ] `out_of_patch_observations` are NOT counted in either statistics object
+- [ ] `out_of_patch_observations` and `patch_level_observations` are NOT counted
+      in either statistics object
 - [ ] Issues has arrays for: critical, high, warnings, suggestions
 
 **Issue Structure** (Critical for downstream processing):

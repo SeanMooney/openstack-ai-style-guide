@@ -51,14 +51,22 @@ class TestValidateZuulSchema(test.NoDBTestCase):
         self.assertThat(message, matchers.Contains('Missing required key: zuul'))
 
     def test_missing_file_comments_key(self):
-        """Test validation fails without file_comments."""
+        """Test validation fails without file_comments or warnings."""
         invalid_data = {'zuul': {}}
 
         is_valid, message = self.validate_schema.validate_schema(invalid_data)
         self.assertFalse(is_valid)
         self.assertThat(
-            message, matchers.Contains('Missing required key: zuul.file_comments')
+            message, matchers.Contains('Missing both zuul.file_comments')
         )
+
+    def test_valid_warnings_schema(self):
+        """Warnings-only Zuul return data is valid."""
+        valid_data = {'zuul': {'warnings': ['Patch-level finding']}}
+
+        is_valid, message = self.validate_schema.validate_schema(valid_data)
+        self.assertTrue(is_valid)
+        self.assertThat(message, matchers.Equals('Schema validation passed'))
 
     def test_invalid_comment_level(self):
         """Test validation rejects invalid comment level."""

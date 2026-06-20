@@ -54,6 +54,7 @@ class ClaudeCLIResponse(fixtures.Fixture):
                     'warnings': [],
                     'suggestions': [],
                 },
+                'patch_level_observations': [],
                 'out_of_patch_observations': [],
                 'positive_observations': [],
                 'summary': {

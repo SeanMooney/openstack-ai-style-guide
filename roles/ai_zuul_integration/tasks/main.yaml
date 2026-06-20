@@ -32,6 +32,7 @@
     {{ ansible_user_dir }}/generate_zuul_comments.py
     {{ ai_zuul_integration_review_report_file }}
     -o {{ ai_zuul_integration_zuul_comments_file }}
+    --changed-files {{ ai_zuul_integration_changed_files_file }}
     --summary
     --validate
   register: ai_zuul_integration_comments_generation
@@ -73,7 +74,10 @@
     data: "{{ ai_zuul_integration_return_data }}"
   when: >-
     ai_zuul_integration_return_data is defined and
-    ai_zuul_integration_return_data.zuul.file_comments | length > 0
+    (
+      ai_zuul_integration_return_data.zuul.file_comments | default({}) | length > 0 or
+      ai_zuul_integration_return_data.zuul.warnings | default([]) | length > 0
+    )
 
 - name: Register HTML report as Zuul artifact
   zuul_return:

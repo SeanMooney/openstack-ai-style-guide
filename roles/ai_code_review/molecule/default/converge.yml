@@ -42,6 +42,7 @@
               "statistics": {"critical": 0, "high": 0, "warnings": 0, "suggestions": 0, "total": 0},
               "statistics_html_only": {"critical": 0, "high": 0, "warnings": 0, "suggestions": 0, "total": 0},
               "issues": {"critical": [], "high": [], "warnings": [], "suggestions": []},
+              "patch_level_observations": [],
               "out_of_patch_observations": [],
               "positive_observations": [],
               "summary": {
@@ -94,6 +95,7 @@
               "statistics": {"type": "object"},
               "statistics_html_only": {"type": "object"},
               "issues": {"type": "object"},
+              "patch_level_observations": {"type": "array"},
               "out_of_patch_observations": {"type": "array"},
               "positive_observations": {"type": "array"},
               "summary": {"type": "object"}

@@ -19,6 +19,12 @@ workflow.
 - **Project directory**: current working directory
 - **Context detection**: check whether `ZUUL_CHANGE` is set; if so, operate
   in Zuul CI mode; otherwise use local git context
+- **Changed files**: generate `.teim-review/changed-files.txt` by invoking the
+  bundled deterministic helper
+  `skills/teim-review/scripts/detect_changed_files.py`. In Zuul mode use the
+  helper default; in local uncommitted review pass `--uncommitted-only`; when a
+  base branch is selected pass `--base-ref`; pass `--allow-root-commit` only
+  when intentionally treating all tracked files as changed.
 - **Generate HTML**: yes — write `.teim-review/review-report.html`
 - **Style guide**: use `./docs/quick-rules.md` and
   `./docs/comprehensive-guide.md` from the current repo

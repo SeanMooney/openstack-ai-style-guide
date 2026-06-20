@@ -7,7 +7,7 @@
     "email": "sean@seanmooney.info",
     "url": "https://seanmooney.info"
   },
-  "repository": "https://opendev.org/openstack/openstack-ai-style-guide",
+  "repository": "https://github.com/SeanMooney/openstack-ai-style-guide",
   "license": "Apache-2.0",
   "keywords": [
     "openstack",

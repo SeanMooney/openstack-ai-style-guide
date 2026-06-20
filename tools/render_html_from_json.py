@@ -68,6 +68,7 @@ def render_html_template(review_data: Dict[str, Any]) -> str:
     statistics_html_only = review_data.get('statistics_html_only', {})
     issues = review_data.get('issues', {})
     positive_observations = review_data.get('positive_observations', [])
+    patch_level = review_data.get('patch_level_observations', [])
     out_of_patch = review_data.get('out_of_patch_observations', [])
     summary = review_data.get('summary', {})
 
@@ -76,6 +77,7 @@ def render_html_template(review_data: Dict[str, Any]) -> str:
     stats_html = render_statistics_section(statistics, statistics_html_only)
     issues_html = render_all_issues(issues)
     positive_html = render_positive_observations(positive_observations)
+    patch_level_html = render_patch_level_observations(patch_level)
     out_of_patch_html = render_out_of_patch_observations(out_of_patch)
     summary_html = render_summary_section(summary, statistics)
 
@@ -99,6 +101,7 @@ def render_html_template(review_data: Dict[str, Any]) -> str:
         {context_html}
         {issues_html}
         {positive_html}
+        {patch_level_html}
         {out_of_patch_html}
         {summary_html}
     </div>
@@ -386,6 +389,34 @@ def render_out_of_patch_observations(observations: List[Dict[str, str]]) -> str:
 <p>These findings are in unmodified code and are not blocking. Consider addressing them in a
 follow-up patch.</p>
 <div class="out-of-patch-observation">
+<ul>
+{''.join(obs_html)}
+</ul>
+</div>
+</section>
+"""
+
+
+def render_patch_level_observations(observations: List[Dict[str, str]]) -> str:
+    """Render in-scope findings that cannot be anchored to a changed file."""
+    if not observations:
+        return ''
+
+    obs_html = []
+    for obs in observations:
+        description = escape_html(obs.get('description', ''))
+        impact = escape_html(obs.get('impact', ''))
+        recommendation = escape_html(obs.get('recommendation', ''))
+        obs_html.append(
+            f'<li>{description}<br><strong>Impact:</strong> {impact}'
+            f'<br><em>Recommendation: {recommendation}</em></li>'
+        )
+
+    return f"""<section role="region" aria-label="Patch-level observations">
+<h2>Patch-Level Observations</h2>
+<p>These findings are in scope for this change but could not be safely anchored
+to a changed file line. They are also summarized in the Zuul change comment.</p>
+<div class="patch-level-observation">
 <ul>
 {''.join(obs_html)}
 </ul>
@@ -761,6 +792,16 @@ strong {
     color: #b0bec5;
 }
 
+/* Patch-Level Observations */
+.patch-level-observation {
+    background-color: #252525;
+    border-left: 4px solid #ffab40;
+    padding: 15px;
+    margin-bottom: 15px;
+    border-radius: 4px;
+    color: #f5f5f5;
+}
+
 /* Responsive */
 @media (max-width: 768px) {
     .stats-container {
@@ -888,8 +929,16 @@ def main():
         sys.exit(1)
 
     # Preserve compatibility with older report payloads by defaulting
-    # renderer-only optional sections when they are absent.
-    review_data.setdefault('statistics_html_only', {})
+    # renderer-only optional sections when they are absent. Use a populated
+    # statistics_html_only default so legacy reports render explicit zeros.
+    review_data.setdefault('statistics_html_only', {
+        'critical': 0,
+        'high': 0,
+        'warnings': 0,
+        'suggestions': 0,
+        'total': 0,
+    })
+    review_data.setdefault('patch_level_observations', [])
     review_data.setdefault('out_of_patch_observations', [])
     review_data.setdefault('positive_observations', [])
 

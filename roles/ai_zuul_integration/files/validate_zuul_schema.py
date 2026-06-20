@@ -37,15 +37,22 @@ def validate_schema(data: dict) -> tuple[bool, str]:
     if 'zuul' not in data:
         return False, "Missing required key: zuul"
 
-    if 'file_comments' not in data['zuul']:
-        return False, "Missing required key: zuul.file_comments"
+    if 'file_comments' not in data['zuul'] and 'warnings' not in data['zuul']:
+        return False, "Missing both zuul.file_comments and zuul.warnings"
 
-    file_comments = data['zuul']['file_comments']
+    file_comments = data['zuul'].get('file_comments', {})
     if not isinstance(file_comments, dict):
         return (
             False,
             f"file_comments must be a dict, got {type(file_comments).__name__}"
         )
+
+    warnings = data['zuul'].get('warnings', [])
+    if not isinstance(warnings, list):
+        return False, f"warnings must be a list, got {type(warnings).__name__}"
+    for i, warning in enumerate(warnings):
+        if not isinstance(warning, str):
+            return False, f"Warning {i} must be a string"
 
     # Validate each file's comments
     valid_levels = {'info', 'warning', 'error'}

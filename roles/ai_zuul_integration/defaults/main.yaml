@@ -10,6 +10,7 @@ ai_zuul_integration_html_report_file: "{{ ai_zuul_integration_review_output_dir 
 
 # Output file (Zuul comments JSON)
 ai_zuul_integration_zuul_comments_file: "{{ ai_zuul_integration_review_output_dir }}/zuul-return-data.json"
+ai_zuul_integration_changed_files_file: "{{ ai_zuul_integration_review_output_dir }}/changed-files.txt"
 
 # Review output directory
 ai_zuul_integration_review_output_dir: "{{ ansible_user_dir }}/logs/code-review"

@@ -8,7 +8,8 @@
       },
       "codex": {
         "context_model": "gpt-5.4-mini",
-        "interactive_review_model": "inherit"
+        "interactive_review_model": "inherit",
+        "notes": "Codex interactive review quality is controlled by the current session model."
       },
       "cursor": {
         "model": "Auto",
@@ -23,7 +24,8 @@
       },
       "codex": {
         "context_model": "gpt-5.4-mini",
-        "interactive_review_model": "inherit"
+        "interactive_review_model": "inherit",
+        "notes": "Codex interactive review quality is controlled by the current session model, so the deep profile inherits it."
       },
       "cursor": {
         "model": "o3",

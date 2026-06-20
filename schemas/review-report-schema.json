@@ -9,6 +9,7 @@
     "statistics",
     "statistics_html_only",
     "issues",
+    "patch_level_observations",
     "out_of_patch_observations",
     "positive_observations",
     "summary"
@@ -170,6 +171,35 @@
         "additionalProperties": false
       }
     },
+    "patch_level_observations": {
+      "type": "array",
+      "description": "Important in-scope findings that cannot be safely anchored to a changed file — appear in HTML and Zuul summary warnings",
+      "items": {
+        "type": "object",
+        "required": ["description", "impact", "recommendation"],
+        "properties": {
+          "description": {
+            "type": "string",
+            "description": "Description of the in-scope finding",
+            "minLength": 10,
+            "maxLength": 300
+          },
+          "impact": {
+            "type": "string",
+            "description": "Why the finding matters for this change",
+            "minLength": 10,
+            "maxLength": 300
+          },
+          "recommendation": {
+            "type": "string",
+            "description": "What should be done before merge or in follow-up",
+            "minLength": 10,
+            "maxLength": 500
+          }
+        },
+        "additionalProperties": false
+      }
+    },
     "positive_observations": {
       "type": "array",
       "description": "Positive observations about the code quality",
@@ -220,35 +250,6 @@
   },
   "additionalProperties": false,
   "$defs": {
-    "baseIssue": {
-      "type": "object",
-      "required": ["description", "confidence", "reporting_mode", "location"],
-      "properties": {
-        "description": {
-          "type": "string",
-          "description": "Clear description of the issue",
-          "minLength": 10,
-          "maxLength": 300
-        },
-        "confidence": {
-          "type": "number",
-          "description": "Confidence score (0.60-1.0). Per-severity routing thresholds determine reporting_mode.",
-          "minimum": 0.6,
-          "maximum": 1.0
-        },
-        "reporting_mode": {
-          "type": "string",
-          "description": "Routing decision: inline = post as Gerrit comment; html_only = HTML report only",
-          "enum": ["inline", "html_only"]
-        },
-        "location": {
-          "type": "string",
-          "description": "File path and line number (format: path/to/file.py:123 or path/to/file.py:123-456)",
-          "pattern": "^[^:]+:\\d+(-\\d+)?$"
-        }
-      },
-      "additionalProperties": false
-    },
     "criticalIssue": {
       "type": "object",
       "required": [

@@ -23,6 +23,7 @@ ai_code_review_json_schema: >-
 
 # Output file
 ai_code_review_report_file: "{{ ai_code_review_output_dir }}/review-report.json"
+ai_code_review_changed_files_file: "{{ ai_code_review_output_dir }}/changed-files.txt"
 
 # Review output directory
 ai_code_review_output_dir: "{{ ansible_user_dir }}/logs/code-review"

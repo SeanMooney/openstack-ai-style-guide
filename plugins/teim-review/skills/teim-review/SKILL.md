@@ -20,8 +20,15 @@ workflow.
   - `.teim-review/zuul-context.md`
   - `.teim-review/commit-summary.md`
   - `.teim-review/project-guidelines.md`
+  - `.teim-review/changed-files.txt`
   - `.teim-review/review-report.json`
   - `.teim-review/review-report.html`
+- Generate `.teim-review/changed-files.txt` with the bundled deterministic
+  helper at `scripts/detect_changed_files.py` before producing the final review.
+  In Zuul mode use the helper default; in local uncommitted review pass
+  `--uncommitted-only`; when a base branch is selected pass `--base-ref`; pass
+  `--allow-root-commit` only when intentionally treating all tracked files as
+  changed.
 
 ## Interactive Codex Path
 
@@ -31,6 +38,5 @@ workflow.
   than downgrading it to the lightweight context model.
 - Write all outputs into `.teim-review/`.
 - Use this installed plugin for the interactive `$teim-review` flow only.
-- If you want to inspect or modify the shared workflow implementation, work
-  from a checkout of the repository rather than assuming the installed plugin
-  bundle ships repo-local helper scripts.
+- The installed skill ships helper scripts under its own `scripts/` directory;
+  use those for deterministic local artifacts.

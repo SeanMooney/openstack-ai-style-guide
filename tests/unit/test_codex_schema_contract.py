@@ -76,3 +76,27 @@ class TestCodexSchemaContract(test.NoDBTestCase):
 
         walk(schema)
         self.assertThat(mismatches, matchers.Equals([]))
+
+    def test_base_issue_definition_removed(self):
+        """Issue definitions should not retain an orphaned baseIssue def."""
+        schema = self._load_schema()
+        self.assertThat(schema['$defs'], matchers.Not(matchers.Contains('baseIssue')))
+
+    def test_issue_base_fields_stay_aligned(self):
+        """Duplicated issue base fields should not drift between severities."""
+        schema = self._load_schema()
+        defs = schema['$defs']
+        base_fields = ['description', 'confidence', 'reporting_mode', 'location']
+        reference = {
+            field: defs['criticalIssue']['properties'][field]
+            for field in base_fields
+        }
+
+        for issue_type in [
+            'highIssue',
+            'warningIssue',
+            'suggestionIssue',
+        ]:
+            properties = defs[issue_type]['properties']
+            for field, expected in reference.items():
+                self.assertThat(properties[field], matchers.Equals(expected))

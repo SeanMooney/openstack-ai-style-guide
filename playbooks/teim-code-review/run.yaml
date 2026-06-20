@@ -37,6 +37,15 @@
         dest: "{{ review_output_dir }}/inventory.yaml"
         mode: '0644'
 
+    - name: Generate changed file list for review scope
+      ansible.builtin.command:
+        cmd: >-
+          python3
+          {{ style_guide_project }}/skills/teim-review/scripts/detect_changed_files.py
+          {{ ansible_user_dir }}/{{ zuul.project.src_dir }}
+          --output {{ changed_files_file }}
+      changed_when: false
+
     - name: Run AI review setup (install teim-review plugin)
       ansible.builtin.include_role:
         name: ai_review_setup
@@ -61,6 +70,7 @@
         ai_code_review_style_guide_quick_rules: "{{ style_guide_quick_rules }}"
         ai_code_review_style_guide_comprehensive: "{{ style_guide_comprehensive }}"
         ai_code_review_report_file: "{{ review_report_file }}"
+        ai_code_review_changed_files_file: "{{ changed_files_file }}"
         ai_code_review_output_dir: "{{ review_output_dir }}"
         ai_code_review_project_src_dir: "{{ ansible_user_dir }}/{{ zuul.project.src_dir }}"
         ai_code_review_claude_binary: "{{ claude_binary }}"
@@ -85,6 +95,7 @@
         ai_zuul_integration_review_report_file: "{{ review_report_file }}"
         ai_zuul_integration_html_report_file: "{{ html_report_file }}"
         ai_zuul_integration_zuul_comments_file: "{{ zuul_comments_file }}"
+        ai_zuul_integration_changed_files_file: "{{ changed_files_file }}"
         ai_zuul_integration_review_output_dir: "{{ review_output_dir }}"
 
   post_tasks:

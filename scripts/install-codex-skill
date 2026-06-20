@@ -10,6 +10,10 @@ MARKETPLACE_ROOT="${AGENTS_HOME}/plugins"
 MARKETPLACE_FILE="${MARKETPLACE_ROOT}/marketplace.json"
 
 mkdir -p "${PLUGIN_ROOT}" "${MARKETPLACE_ROOT}"
+if [[ "$(basename -- "${TARGET}")" != "teim-review" ]]; then
+    echo "Refusing to remove unexpected plugin target: ${TARGET}" >&2
+    exit 1
+fi
 rm -rf "${TARGET}"
 cp -R "${SOURCE}" "${TARGET}"
 

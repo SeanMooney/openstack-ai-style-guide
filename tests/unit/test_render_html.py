@@ -77,6 +77,7 @@ class TestRenderHtml(test.NoDBTestCase):
             'positive_observations': [
                 {'category': 'Recognition', 'observation': 'Good structure'}
             ],
+            'patch_level_observations': [],
             'out_of_patch_observations': [],
             'summary': {
                 'assessment': 'Needs work',
@@ -202,6 +203,20 @@ class TestRenderHtml(test.NoDBTestCase):
         self.assertThat(html_content, matchers.Contains('nova/compute/manager.py:42'))
         self.assertThat(html_content, matchers.Contains('Potential resource leak'))
 
+    def test_render_patch_level_observations_normal(self):
+        """Patch-level observations render with impact and recommendation."""
+        observations = [
+            {
+                'description': 'The change alters behavior without a clear anchor',
+                'impact': 'Operators may see different scheduling decisions',
+                'recommendation': 'Add a focused release note before merge',
+            }
+        ]
+        html = self.render_html.render_patch_level_observations(observations)
+        self.assertThat(html, matchers.Contains('Patch-Level Observations'))
+        self.assertThat(html, matchers.Contains('different scheduling decisions'))
+        self.assertThat(html, matchers.Contains('release note before merge'))
+
     def test_main_defaults_optional_sections_for_legacy_payloads(self):
         """CLI rendering should stay compatible with legacy payloads."""
         tempdir = pathlib.Path(self.useFixture(fixtures.TempDir()).path)
@@ -209,6 +224,7 @@ class TestRenderHtml(test.NoDBTestCase):
         html_file = tempdir / 'legacy-review.html'
         review_data = self._create_sample_review()
         review_data.pop('statistics_html_only')
+        review_data.pop('patch_level_observations')
         review_data.pop('out_of_patch_observations')
         review_data.pop('positive_observations')
         json_file.write_text(json.dumps(review_data))

@@ -24,7 +24,7 @@ import json
 import re
 import sys
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Optional, Set, Tuple
 
 
 def parse_location(location: str) -> Tuple[Optional[str], Optional[int]]:
@@ -153,11 +153,37 @@ def map_severity_to_level(severity: str) -> str:
     return severity_map.get(severity.lower(), 'info')
 
 
-def extract_file_comments(review_data: Dict[str, Any]) -> Dict[str, List[Dict[str, Any]]]:
+def load_changed_files(filepath: Optional[Path]) -> Optional[Set[str]]:
+    """Load an optional allowlist of changed files.
+
+    Args:
+        filepath: Path to a newline-delimited changed file list
+
+    Returns:
+        A set of normalized file paths, or None when no file was supplied
+    """
+    if filepath is None:
+        return None
+
+    changed_files = set()
+    for line in filepath.read_text(encoding='utf-8').splitlines():
+        line = line.strip()
+        if line:
+            # Keep normalization as defense-in-depth for legacy producers that
+            # may include workspace or Zuul checkout path prefixes.
+            changed_files.add(normalize_file_path(line))
+    return changed_files
+
+
+def extract_file_comments(
+    review_data: Dict[str, Any],
+    changed_files: Optional[Set[str]] = None,
+) -> Dict[str, List[Dict[str, Any]]]:
     """Extract file comments from review JSON data.
 
     Args:
         review_data: Parsed JSON review report
+        changed_files: Optional allowlist of files that may receive comments
 
     Returns:
         Dictionary mapping file paths to lists of comments
@@ -182,6 +208,8 @@ def extract_file_comments(review_data: Dict[str, Any]) -> Dict[str, List[Dict[st
             file_path, line_number = parse_location(location)
             if not file_path or not line_number:
                 continue  # Skip invalid locations
+            if changed_files is not None and file_path not in changed_files:
+                continue
 
             # Format message
             message = format_issue_message(issue, severity_label)
@@ -202,32 +230,60 @@ def extract_file_comments(review_data: Dict[str, Any]) -> Dict[str, List[Dict[st
     return file_comments
 
 
-def generate_zuul_return_data(review_data: Dict[str, Any]) -> Dict[str, Any]:
+def extract_warnings(review_data: Dict[str, Any]) -> List[str]:
+    """Extract patch-level observations as Zuul summary warnings."""
+    warnings = []
+    for observation in review_data.get('patch_level_observations', []):
+        description = observation.get('description', '').strip()
+        impact = observation.get('impact', '').strip()
+        recommendation = observation.get('recommendation', '').strip()
+        if not description:
+            continue
+
+        warning = description
+        if impact:
+            warning += f" Impact: {impact}"
+        if recommendation:
+            warning += f" Recommendation: {recommendation}"
+        warnings.append(warning)
+    return warnings
+
+
+def generate_zuul_return_data(
+    review_data: Dict[str, Any],
+    changed_files: Optional[Set[str]] = None,
+) -> Dict[str, Any]:
     """Generate complete zuul_return data structure.
 
     Args:
         review_data: Parsed JSON review report
+        changed_files: Optional allowlist of files that may receive comments
 
     Returns:
         Zuul return data dictionary
     """
-    file_comments = extract_file_comments(review_data)
+    file_comments = extract_file_comments(review_data, changed_files)
+    warnings = extract_warnings(review_data)
+    zuul_data: Dict[str, Any] = {'file_comments': file_comments}
+    if warnings:
+        zuul_data['warnings'] = warnings
 
-    return {
-        'zuul': {
-            'file_comments': file_comments
-        }
-    }
+    return {'zuul': zuul_data}
 
 
-def print_summary(file_comments: Dict[str, List[Dict[str, Any]]]) -> None:
+def print_summary(
+    file_comments: Dict[str, List[Dict[str, Any]]],
+    warnings: Optional[List[str]] = None,
+) -> None:
     """Print summary of extracted comments to stderr.
 
     Args:
         file_comments: Dictionary of file comments
+        warnings: Patch-level warnings
     """
     total_comments = sum(len(comments) for comments in file_comments.values())
     print(f"Extracted {total_comments} comments across {len(file_comments)} files", file=sys.stderr)
+    print(f"Extracted {len(warnings or [])} patch-level warnings", file=sys.stderr)
 
     # Count by level
     level_counts = {'error': 0, 'warning': 0, 'info': 0}
@@ -258,14 +314,26 @@ def validate_zuul_schema(data: Dict[str, Any]) -> bool:
         print("Error: Missing 'zuul' key in return data", file=sys.stderr)
         return False
 
-    if 'file_comments' not in data['zuul']:
-        print("Error: Missing 'file_comments' key in zuul data", file=sys.stderr)
+    if 'file_comments' not in data['zuul'] and 'warnings' not in data['zuul']:
+        print(
+            "Error: Missing both 'file_comments' and 'warnings' in zuul data",
+            file=sys.stderr,
+        )
         return False
 
-    file_comments = data['zuul']['file_comments']
+    file_comments = data['zuul'].get('file_comments', {})
     if not isinstance(file_comments, dict):
         print("Error: 'file_comments' must be a dictionary", file=sys.stderr)
         return False
+
+    warnings = data['zuul'].get('warnings', [])
+    if not isinstance(warnings, list):
+        print("Error: 'warnings' must be a list", file=sys.stderr)
+        return False
+    for idx, warning in enumerate(warnings):
+        if not isinstance(warning, str):
+            print(f"Error: Warning {idx} must be a string", file=sys.stderr)
+            return False
 
     # Check each file's comments
     for file_path, comments in file_comments.items():
@@ -384,6 +452,11 @@ def main():
         help="Output file for Zuul return JSON (default: stdout)"
     )
     parser.add_argument(
+        "--changed-files",
+        type=Path,
+        help="Optional newline-delimited list of files eligible for inline comments"
+    )
+    parser.add_argument(
         "--summary",
         action="store_true",
         help="Print summary of extracted comments to stderr"
@@ -426,8 +499,18 @@ def main():
     if args.verbose:
         print(f"Loaded review data from {args.json_file}", file=sys.stderr)
 
+    # Load changed-file allowlist when supplied.
+    try:
+        changed_files = load_changed_files(args.changed_files)
+    except FileNotFoundError:
+        print(
+            f"Error: changed files list not found: {args.changed_files}",
+            file=sys.stderr,
+        )
+        sys.exit(1)
+
     # Generate Zuul return data
-    zuul_data = generate_zuul_return_data(review_data)
+    zuul_data = generate_zuul_return_data(review_data, changed_files)
 
     # Validate schema
     if args.validate:
@@ -439,7 +522,10 @@ def main():
 
     # Print summary if requested
     if args.summary:
-        print_summary(zuul_data['zuul']['file_comments'])
+        print_summary(
+            zuul_data['zuul'].get('file_comments', {}),
+            zuul_data['zuul'].get('warnings', []),
+        )
 
     # Output JSON
     json_str = json.dumps(zuul_data, indent=2)

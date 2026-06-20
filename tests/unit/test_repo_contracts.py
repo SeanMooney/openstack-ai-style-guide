@@ -113,9 +113,20 @@ class TestRepoContracts(test.NoDBTestCase):
         plugin_profiles = self._read_json(
             'plugins/teim-review/references/tool-profiles.json'
         )
+        shared_changed_files_helper = self._read_text(
+            'skills/teim-review/scripts/detect_changed_files.py'
+        )
+        plugin_changed_files_helper = self._read_text(
+            'plugins/teim-review/skills/teim-review/scripts/'
+            'detect_changed_files.py'
+        )
 
         self.assertThat(plugin_prompt, matchers.Equals(shared_prompt))
         self.assertThat(plugin_profiles, matchers.Equals(shared_profiles))
+        self.assertThat(
+            plugin_changed_files_helper,
+            matchers.Equals(shared_changed_files_helper),
+        )
 
     def test_skill_points_at_teim_review_agent_and_schema(self):
         """The interactive entrypoint must keep its agent and schema contract."""
@@ -131,6 +142,7 @@ class TestRepoContracts(test.NoDBTestCase):
             skill,
             matchers.Contains('schemas/review-report-schema.json'),
         )
+        self.assertThat(skill, matchers.Contains('scripts/detect_changed_files.py'))
         self.assertThat(skill, matchers.Contains('.teim-review/'))
         self.assertThat(skill, matchers.Contains('./docs/knowledge/'))
 
@@ -167,6 +179,9 @@ class TestRepoContracts(test.NoDBTestCase):
         self.assertThat(codex_skill, matchers.Contains('$teim-review'))
         self.assertThat(codex_skill, matchers.Contains('/skills'))
         self.assertThat(
+            codex_skill, matchers.Contains('scripts/detect_changed_files.py')
+        )
+        self.assertThat(
             codex_skill,
             matchers.Not(matchers.Contains('scripts/teim-review-codex')),
         )
@@ -194,6 +209,12 @@ class TestRepoContracts(test.NoDBTestCase):
         self.assertThat(playbook, matchers.Contains('name: ai_html_generation'))
         self.assertThat(
             playbook, matchers.Contains('name: ai_zuul_integration')
+        )
+        self.assertThat(
+            playbook,
+            matchers.Contains(
+                'skills/teim-review/scripts/detect_changed_files.py'
+            ),
         )
         self.assertThat(
             setup_role,

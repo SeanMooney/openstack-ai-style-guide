@@ -61,6 +61,8 @@ Output is written to `.teim-review/`:
 - `deep`: `gpt-5.4-mini` for context-style extraction tasks
 - interactive Codex skill runs should keep the final review in the current
   session model
+- Codex profiles intentionally share the same context model today because the
+  active Codex session model controls the final review pass.
 - `$teim-review` is the supported Codex-native interactive entrypoint for this
   repository
 

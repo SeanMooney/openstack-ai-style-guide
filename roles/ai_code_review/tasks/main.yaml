@@ -29,6 +29,7 @@
       inventory_file: {{ ai_code_review_inventory_file }}
       output_dir: {{ ai_code_review_output_dir }}
       project_dir: {{ ai_code_review_project_src_dir }}
+      changed_files_file: {{ ai_code_review_changed_files_file }}
       style_guide_quick_rules: {{ ai_code_review_style_guide_quick_rules }}
       style_guide_comprehensive: {{ ai_code_review_style_guide_comprehensive }}
       knowledge_root: {{ ai_code_review_knowledge_root }}
@@ -38,7 +39,12 @@
 
       Write the structured JSON review report to
       {{ ai_code_review_report_file }}.
-      Out-of-patch findings go in out_of_patch_observations, not in issues.
+      Inline issue locations must be files listed in changed_files_file.
+      If changed code affects unmodified code, anchor the issue on the changed
+      file and describe the unmodified impact in the issue text.
+      Pre-existing out-of-patch findings go in out_of_patch_observations.
+      In-scope findings that cannot be safely anchored to a changed file go in
+      patch_level_observations.
 
 - name: Execute code review with Claude via teim-review-agent
   ansible.builtin.include_role:

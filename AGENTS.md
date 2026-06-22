@@ -36,7 +36,7 @@ tests in the same commit:
 - semantic profiles `config/tool-profiles.json`
 - review schema `schemas/review-report-schema.json`
 - local output directory `.teim-review/`
-- Zuul jobs `teim-code-review` and `openstack-ai-style-guide-lint`
+- Zuul job `teim-code-review`
 
 ## Review-System Layout
 

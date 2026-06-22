@@ -202,7 +202,8 @@ class TestRepoContracts(test.NoDBTestCase):
 
         self.assertThat(jobs, matchers.Contains('name: teim-code-review'))
         self.assertThat(
-            jobs, matchers.Contains('name: openstack-ai-style-guide-lint')
+            jobs,
+            matchers.Contains('name: openstack-ai-style-guide-lint'),
         )
         self.assertThat(playbook, matchers.Contains('name: ai_review_setup'))
         self.assertThat(playbook, matchers.Contains('name: ai_code_review'))

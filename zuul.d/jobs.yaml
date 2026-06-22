@@ -4,18 +4,16 @@
     parent: tox-linters
     description: |
       Run linting checks for OpenStack AI Style Guide using tox.
-      Uses the linters environment which runs pre-commit with --show-diff-on-failure.
-      Requires Python 3.13 for Debian opencode node compatibility.
+      Uses the linters environment which runs pre-commit with
+      --show-diff-on-failure.
+      Runs on the same Debian Claude Code nodeset used by the review job.
       See docs/zuul-configuration.md for information on customizing this job.
     timeout: 900
-    nodeset: debian-opencode-single-node-pod
+    nodeset: debian-claude-code-single-node-pod
     vars:
       tox_envlist: linters
-      # Python version is pinned to 3.13 for compatibility with the debian-opencode
-      # nodeset used in this Zuul CI environment. The debian-opencode nodes are
-      # pre-configured with Python 3.13 and OpenCode tools. If you need to use
-      # a different Python version, you may need to use a different nodeset or
-      # configure the job variables. See docs/zuul-configuration.md for details.
+      # Python version is pinned to match the Claude Code nodeset used in
+      # this Zuul CI environment.
       python_version: "3.13"
 
 - job:
@@ -43,10 +41,10 @@
       # Model selection (can be overridden by child jobs)
       # These are remapped to GLM models via ANTHROPIC_DEFAULT_*_MODEL env vars
       # set in ~/.claude/settings.json by ai_review_setup.
-      haiku_model: "glm-4.7-flash"
-      sonnet_model: "glm-4.7"
-      opus_model: "glm-5.1"
-      review_model: "glm-5.1"
+      haiku_model: "glm-4.7"
+      sonnet_model: "glm-5-turbo"
+      opus_model: "glm-5.2"
+      review_model: "opus"
 
       # Anthropic-compatible endpoint served by LiteLLM
       anthropic_api_url: "http://litellm.zuul-system.svc.cluster.local:4000"
@@ -56,14 +54,18 @@
       #   - Key has no upstream API access or billing implications
       #   - CI environment is isolated and trusted
       # IMPORTANT: Production deployments MUST use Zuul encrypted secrets.
-      # Do NOT copy this pattern to environments with external access or real API keys.
+      # Do NOT copy this pattern to environments with external access or real
+      # API keys.
       anthropic_auth_token: "sk-1234"
 
       # Style guide project location on the CI node (absolute path)
       style_guide_project: >-
-        {{ ansible_user_dir }}/{{ zuul.projects['github.com/SeanMooney/openstack-ai-style-guide'].src_dir }}
-      style_guide_quick_rules: "{{ style_guide_project }}/docs/quick-rules.md"
-      style_guide_comprehensive: "{{ style_guide_project }}/docs/comprehensive-guide.md"
+        {{ ansible_user_dir }}/{{ zuul.projects[
+        'github.com/SeanMooney/openstack-ai-style-guide'].src_dir }}
+      style_guide_quick_rules: >-
+        {{ style_guide_project }}/docs/quick-rules.md
+      style_guide_comprehensive: >-
+        {{ style_guide_project }}/docs/comprehensive-guide.md
 
       # Output configuration
       review_output_dir: "{{ ansible_user_dir }}/logs/code-review"

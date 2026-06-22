@@ -58,10 +58,11 @@ capability:
 - **`haiku`** — `zuul-context-extractor`, `commit-summary`,
   `project-guidelines-extractor`. These are lightweight extraction tasks.
   In CI, `ANTHROPIC_DEFAULT_HAIKU_MODEL` remaps this to the configured fast
-  model (e.g. `glm-4.7-flash`). Locally it resolves to the current
+  model (e.g. `glm-4.7`). Locally it resolves to the current
   `claude-haiku-*` release.
 - **`inherit`** — `code-review-agent` (and this orchestrator). These need
-  the most capable model available in the current session.
+  the reviewer model selected for the current session. In CI, the top-level
+  review invocation uses `opus`, which maps to the configured Opus backend.
 
 To use a more capable model for context extraction (e.g. when reviewing
 complex inventory files), set `ANTHROPIC_DEFAULT_HAIKU_MODEL` to the desired

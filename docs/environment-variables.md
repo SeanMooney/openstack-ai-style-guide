@@ -11,23 +11,24 @@ These variables are set and used in Zuul CI jobs defined in `zuul.d/jobs.yaml`.
 
 These variables are used by `teim-code-review-base` in `zuul.d/jobs.yaml`.
 The Ansible roles default to Anthropic tier names (`haiku`, `sonnet`,
-`opus`), and the Zuul job overrides them with the concrete LiteLLM model
-aliases used in CI.
+`opus`), and the Zuul job overrides them with semantic LiteLLM routing
+aliases. LiteLLM owns the concrete provider selection behind `fast` and
+`smart`.
 
 #### `haiku_model`
 
 - **Job**: `teim-code-review-base`
 - **Type**: String (LiteLLM model identifier)
-- **Current Value**: `glm-4.7`
-- **Purpose**: Maps Claude's Haiku tier to the fast CI model
+- **Current Value**: `fast`
+- **Purpose**: Maps Claude's Haiku tier to the fast LiteLLM routing group
 - **Override**: Can be overridden in child jobs or via Zuul variables
 
 #### `sonnet_model`
 
 - **Job**: `teim-code-review-base`
 - **Type**: String (LiteLLM model identifier)
-- **Current Value**: `glm-5-turbo`
-- **Purpose**: Maps Claude's Sonnet tier to the configured balanced model.
+- **Current Value**: `smart`
+- **Purpose**: Maps Claude's Sonnet tier to the high-capability LiteLLM group.
   The current review workflow does not assign work to Sonnet yet.
 - **Override**: Can be overridden in child jobs or via Zuul variables
 
@@ -35,21 +36,21 @@ aliases used in CI.
 
 - **Job**: `teim-code-review-base`
 - **Type**: String (LiteLLM model identifier)
-- **Current Value**: `glm-5.2`
+- **Current Value**: `smart`
 - **Purpose**: Sets `ANTHROPIC_DEFAULT_OPUS_MODEL` for plugin-installed
   agents that inherit the Opus tier
 - **Override**: Change this in Zuul when moving the default high-capability
-  model to a new backend alias
+  model to another LiteLLM routing alias
 
 #### `review_model`
 
 - **Job**: `teim-code-review-base`
-- **Type**: String (Claude model tier)
-- **Current Value**: `opus`
+- **Type**: String (LiteLLM model identifier)
+- **Current Value**: `smart`
 - **Purpose**: Model used for the direct `teim-review-agent` invocation in
-  the `ai_code_review` role. In CI, `opus` resolves to `glm-5.2`.
+  the `ai_code_review` role.
 - **Override**: Change this in Zuul when moving the reviewer to another
-  semantic model tier
+  LiteLLM routing alias
 
 #### `anthropic_api_url`
 
@@ -216,7 +217,7 @@ These variables are provided by Zuul itself and used in job definitions:
     name: custom-job
     parent: teim-code-review
     vars:
-      review_model: "opus"
+      review_model: "smart"
       timeout: 1800
 ```
 

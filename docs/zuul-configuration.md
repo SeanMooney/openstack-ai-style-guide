@@ -73,10 +73,10 @@ The linting job runs the configured pre-commit hooks, including:
     abstract: true
     nodeset: debian-claude-code-single-node-pod
     vars:
-      haiku_model: "glm-4.7"
-      sonnet_model: "glm-5-turbo"
-      opus_model: "glm-5.2"
-      review_model: "opus"
+      haiku_model: "fast"
+      sonnet_model: "smart"
+      opus_model: "smart"
+      review_model: "smart"
       anthropic_api_url: "http://litellm.zuul-system.svc.cluster.local:4000"
 ```
 
@@ -85,26 +85,28 @@ The linting job runs the configured pre-commit hooks, including:
 #### Model Selection
 
 - **`haiku_model`**: Remaps the Claude Haiku tier in CI
-  - Default: `glm-4.7`
+  - Default: `fast`
   - Purpose: Fast extraction and lightweight agent work
   - Override: Set in child jobs or via job variables
 
 - **`sonnet_model`**: Remaps the Claude Sonnet tier in CI
-  - Default: `glm-5-turbo`
-  - Purpose: Reserved for future balanced general-purpose agent work
+  - Default: `smart`
+  - Purpose: Reserved for future general-purpose agent work. It currently
+    shares `smart` with `opus_model` because there is no separate mid-tier
+    LiteLLM routing group.
   - Override: Set in child jobs or via job variables
 
 - **`opus_model`**: Remaps the Claude Opus tier in CI
-  - Default: `glm-5.2`
+  - Default: `smart`
   - Purpose: Controls inherited `model: opus` behavior through
     `ANTHROPIC_DEFAULT_OPUS_MODEL`
-  - Override: Update this in the Zuul job when changing the backend model
+  - Override: Update this in the Zuul job when changing the LiteLLM alias
 
 - **`review_model`**: Model used for the top-level `teim-review-agent` run
-  - Default: `opus`
-  - Purpose: Launches the orchestrator and detailed reviewer on the Opus tier,
-    which maps to `glm-5.2` in CI
-  - Override: Update this in the Zuul job when changing the reviewer tier
+  - Default: `smart`
+  - Purpose: Launches the orchestrator and detailed reviewer through the
+    high-capability LiteLLM routing group
+  - Override: Update this in the Zuul job when changing the reviewer alias
 
 #### LiteLLM Configuration
 
@@ -145,7 +147,7 @@ The linting job runs the configured pre-commit hooks, including:
     name: custom-review-job
     parent: teim-code-review
     vars:
-      review_model: "opus"
+      review_model: "smart"
 ```
 
 ### Overriding Model Selection
@@ -157,7 +159,7 @@ You can override models in child jobs or via job variables:
     name: custom-review-job
     parent: teim-code-review
     vars:
-      review_model: "opus"
+      review_model: "smart"
 ```
 
 ### Adding Additional Pre-commit Hooks

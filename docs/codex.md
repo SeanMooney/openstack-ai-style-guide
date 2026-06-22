@@ -57,12 +57,16 @@ Output is written to `.teim-review/`:
 
 ## Profiles
 
-- `fast`: `gpt-5.4-mini` for context-style extraction tasks
-- `deep`: `gpt-5.4-mini` for context-style extraction tasks
+- `fast`: lightweight profile for context-style extraction tasks
+- `deep`: high-capability profile for deeper review passes; it shares the
+  same context model as `fast` today
 - interactive Codex skill runs should keep the final review in the current
   session model
 - Codex profiles intentionally share the same context model today because the
-  active Codex session model controls the final review pass.
+  active Codex session model controls the final review pass. Unlike the
+  Claude CI path, Codex does not route these profile models through LiteLLM,
+  so `config/tool-profiles.json` intentionally keeps the concrete Codex
+  context model name.
 - `$teim-review` is the supported Codex-native interactive entrypoint for this
   repository
 

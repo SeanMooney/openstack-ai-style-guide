@@ -39,12 +39,11 @@
       claude_config_dir: "{{ ansible_user_dir }}/.claude"
 
       # Model selection (can be overridden by child jobs)
-      # These are remapped to GLM models via ANTHROPIC_DEFAULT_*_MODEL env vars
-      # set in ~/.claude/settings.json by ai_review_setup.
-      haiku_model: "glm-4.7"
-      sonnet_model: "glm-5-turbo"
-      opus_model: "glm-5.2"
-      review_model: "opus"
+      # LiteLLM owns provider selection behind the semantic fast/smart aliases.
+      haiku_model: "fast"
+      sonnet_model: "smart"
+      opus_model: "smart"
+      review_model: "smart"
 
       # Anthropic-compatible endpoint served by LiteLLM
       anthropic_api_url: "http://litellm.zuul-system.svc.cluster.local:4000"
@@ -86,4 +85,5 @@
     name: teim-code-review
     parent: teim-code-review-base
     description: |
-      AI-assisted code review using Claude Code with GLM models via LiteLLM.
+      AI-assisted code review using Claude Code with LiteLLM fast/smart
+      routing.

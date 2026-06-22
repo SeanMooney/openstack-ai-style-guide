@@ -138,7 +138,7 @@ This restructuring pass preserves the current runtime contracts:
 - shared workflow: `prompts/teim-review-core.md`
 - output schema: `schemas/review-report-schema.json`
 - local output directory: `.teim-review/`
-- Zuul jobs: `teim-code-review` and `openstack-ai-style-guide-lint`
+- Zuul job: `teim-code-review`
 
 ## Validation
 

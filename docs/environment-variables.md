@@ -7,30 +7,6 @@ project, particularly in Zuul CI/CD jobs and local development.
 
 These variables are set and used in Zuul CI jobs defined in `zuul.d/jobs.yaml`.
 
-### Linting Job Variables
-
-#### `tox_envlist`
-
-- **Job**: openstack-ai-style-guide-lint
-- **Type**: String
-- **Current Value**: `linters`
-- **Purpose**: Specifies which tox environment(s) to execute
-- **What it runs**: The `linters` environment in `tox.ini`, which executes:
-  - `pre-commit run --all-files --show-diff-on-failure`
-- **Usage**: Internal variable for tox, not typically overridden
-- **Related Config**: See `tox.ini` for environment definitions
-
-#### `python_version`
-
-- **Job**: openstack-ai-style-guide-lint
-- **Type**: String
-- **Current Value**: `3.13`
-- **Purpose**: Specifies Python version for tox environment
-- **Nodeset Constraint**: Must match Python version available on the nodeset
-- **Current Nodeset**: debian-opencode-single-node-pod (has Python 3.13)
-- **Override**: Only change if using a different nodeset with different Python
-- **Related Docs**: See `docs/zuul-configuration.md` for customization guide
-
 ### Code Review Job Variables
 
 These variables are used by `teim-code-review-base` in `zuul.d/jobs.yaml`.
@@ -42,7 +18,7 @@ aliases used in CI.
 
 - **Job**: `teim-code-review-base`
 - **Type**: String (LiteLLM model identifier)
-- **Current Value**: `glm-4.7-flash`
+- **Current Value**: `glm-4.7`
 - **Purpose**: Maps Claude's Haiku tier to the fast CI model
 - **Override**: Can be overridden in child jobs or via Zuul variables
 
@@ -50,15 +26,16 @@ aliases used in CI.
 
 - **Job**: `teim-code-review-base`
 - **Type**: String (LiteLLM model identifier)
-- **Current Value**: `glm-4.7`
-- **Purpose**: Maps Claude's Sonnet tier to the balanced CI model
+- **Current Value**: `glm-5-turbo`
+- **Purpose**: Maps Claude's Sonnet tier to the configured balanced model.
+  The current review workflow does not assign work to Sonnet yet.
 - **Override**: Can be overridden in child jobs or via Zuul variables
 
 #### `opus_model`
 
 - **Job**: `teim-code-review-base`
 - **Type**: String (LiteLLM model identifier)
-- **Current Value**: `glm-5.1`
+- **Current Value**: `glm-5.2`
 - **Purpose**: Sets `ANTHROPIC_DEFAULT_OPUS_MODEL` for plugin-installed
   agents that inherit the Opus tier
 - **Override**: Change this in Zuul when moving the default high-capability
@@ -67,12 +44,12 @@ aliases used in CI.
 #### `review_model`
 
 - **Job**: `teim-code-review-base`
-- **Type**: String (LiteLLM model identifier)
-- **Current Value**: `glm-5.1`
+- **Type**: String (Claude model tier)
+- **Current Value**: `opus`
 - **Purpose**: Model used for the direct `teim-review-agent` invocation in
-  the `ai_code_review` role
-- **Override**: Change this in Zuul when moving the reviewer to a new backend
-  alias
+  the `ai_code_review` role. In CI, `opus` resolves to `glm-5.2`.
+- **Override**: Change this in Zuul when moving the reviewer to another
+  semantic model tier
 
 #### `anthropic_api_url`
 
@@ -239,7 +216,7 @@ These variables are provided by Zuul itself and used in job definitions:
     name: custom-job
     parent: teim-code-review
     vars:
-      review_model: "glm-4.7"
+      review_model: "opus"
       timeout: 1800
 ```
 

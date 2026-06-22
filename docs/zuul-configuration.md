@@ -4,11 +4,11 @@ This document explains the Zuul CI/CD configuration for the OpenStack AI Style G
 
 ## Overview
 
-The repository uses Zuul for continuous integration and automated code review.
-Two main jobs are configured:
+The repository uses Zuul for automated code review and linting. Two main
+jobs are configured:
 
-1. **openstack-ai-style-guide-lint** - Linting checks using pre-commit hooks
-2. **teim-code-review** - AI-assisted code review using Claude Code via LiteLLM
+1. **teim-code-review** - AI-assisted code review using Claude Code via LiteLLM
+2. **openstack-ai-style-guide-lint** - Linting checks using pre-commit via tox
 
 ## Linting Job Configuration
 
@@ -21,7 +21,7 @@ Two main jobs are configured:
     name: openstack-ai-style-guide-lint
     parent: tox-linters
     timeout: 900
-    nodeset: debian-opencode-single-node-pod
+    nodeset: debian-claude-code-single-node-pod
     vars:
       tox_envlist: linters
       python_version: "3.13"
@@ -33,67 +33,33 @@ Two main jobs are configured:
 
 - **Duration**: 15 minutes
 - **Purpose**: Maximum time allowed for linting to complete
-- **Notes**: Set to approximately double the average runtime
-- **Override**: Modify in `zuul.d/jobs.yaml` only if you've measured sustained increased execution time
+- **Override**: Modify in `zuul.d/jobs.yaml` only after measuring sustained
+  increased runtime
 
-#### `nodeset: debian-opencode-single-node-pod`
+#### `nodeset: debian-claude-code-single-node-pod`
 
-- **Purpose**: Specifies the type of CI node to use
-- **Pre-installed**: Python 3.13, OpenCode tools, development utilities
-- **Constraints**: Limited to Python 3.13 due to node pre-configuration
-- **Alternative**: Contact infrastructure team to add different nodesets if needed
-
-#### `python_version: "3.13"`
-
-- **Requirement**: Hard-coded for debian-opencode nodeset compatibility
-- **Rationale**: The debian-opencode nodes are pre-built with Python 3.13 and OpenCode
-- **Flexibility Options**:
-  - Use a different nodeset (requires infrastructure changes)
-  - Create a child job with different version and nodeset
-  - Contact the OpenStack infrastructure team to request a new nodeset
+- **Purpose**: Specifies the CI node used for the tox lint job
+- **Pre-installed**: Python 3.13 and development utilities
+- **Constraint**: The lint job pins `python_version` to match the node image
 
 #### `tox_envlist: linters`
 
-- **Purpose**: Specifies which tox environment to run
+- **Purpose**: Selects the tox environment to run
 - **What it does**: Executes `pre-commit run --all-files --show-diff-on-failure`
-- **Configuration**: See `tox.ini` and `.pre-commit-config.yaml` for hook details
+- **Configuration**: See `tox.ini` and `.pre-commit-config.yaml` for hook
+  details
 
 ### What the Linting Job Checks
 
-The linting job runs the following checks via pre-commit hooks:
+The linting job runs the configured pre-commit hooks, including:
 
-1. **Code Quality** (ruff)
-   - PEP 8 compliance
-   - Line length (79 characters max)
-   - Import organization
-   - Python best practices
-   - Auto-fixes formatting issues
-
-2. **Security** (bandit)
-   - Common security vulnerabilities
-   - Dangerous code patterns
-   - Configuration issues
-
-3. **License Headers**
-   - Apache 2.0 license in all Python files
-   - Proper header format
-
-4. **DCO Sign-off**
-   - Signed-off-by line in commit message
-   - Email consistency between git config and sign-off
-   - Ensures compliance with OpenInfra Foundation policy
-
-5. **Documentation** (markdownlint)
-   - Markdown formatting
-   - Link validity
-   - Code block formatting
-
-6. **File Quality**
-   - Trailing whitespace
-   - Line endings (UNIX LF)
-   - JSON/YAML syntax
-   - Merge conflicts
-   - Private keys detection
+1. **Code Quality** - ruff checks and formatting policy
+2. **Security** - bandit checks for common Python security issues
+3. **License Headers** - Apache 2.0 header checks for Python files
+4. **DCO Sign-off** - commit sign-off validation
+5. **Documentation** - markdownlint checks
+6. **File Quality** - whitespace, line endings, YAML/JSON syntax, merge
+   conflict markers, and private key detection
 
 ## Code Review Job Configuration
 
@@ -107,10 +73,10 @@ The linting job runs the following checks via pre-commit hooks:
     abstract: true
     nodeset: debian-claude-code-single-node-pod
     vars:
-      haiku_model: "glm-4.7-flash"
-      sonnet_model: "glm-4.7"
-      opus_model: "glm-5.1"
-      review_model: "glm-5.1"
+      haiku_model: "glm-4.7"
+      sonnet_model: "glm-5-turbo"
+      opus_model: "glm-5.2"
+      review_model: "opus"
       anthropic_api_url: "http://litellm.zuul-system.svc.cluster.local:4000"
 ```
 
@@ -119,25 +85,26 @@ The linting job runs the following checks via pre-commit hooks:
 #### Model Selection
 
 - **`haiku_model`**: Remaps the Claude Haiku tier in CI
-  - Default: `glm-4.7-flash`
+  - Default: `glm-4.7`
   - Purpose: Fast extraction and lightweight agent work
   - Override: Set in child jobs or via job variables
 
 - **`sonnet_model`**: Remaps the Claude Sonnet tier in CI
-  - Default: `glm-4.7`
-  - Purpose: Balanced general-purpose agent work
+  - Default: `glm-5-turbo`
+  - Purpose: Reserved for future balanced general-purpose agent work
   - Override: Set in child jobs or via job variables
 
 - **`opus_model`**: Remaps the Claude Opus tier in CI
-  - Default: `glm-5.1`
+  - Default: `glm-5.2`
   - Purpose: Controls inherited `model: opus` behavior through
     `ANTHROPIC_DEFAULT_OPUS_MODEL`
   - Override: Update this in the Zuul job when changing the backend model
 
 - **`review_model`**: Model used for the top-level `teim-review-agent` run
-  - Default: `glm-5.1`
-  - Purpose: Comprehensive code analysis and review generation
-  - Override: Update this in the Zuul job when changing the reviewer backend
+  - Default: `opus`
+  - Purpose: Launches the orchestrator and detailed reviewer on the Opus tier,
+    which maps to `glm-5.2` in CI
+  - Override: Update this in the Zuul job when changing the reviewer tier
 
 #### LiteLLM Configuration
 
@@ -158,7 +125,7 @@ The linting job runs the following checks via pre-commit hooks:
 
 ## Customizing Jobs
 
-### Creating a Child Job with Different Python Version
+### Creating a Child Lint Job
 
 ```yaml
 - job:
@@ -171,6 +138,16 @@ The linting job runs the following checks via pre-commit hooks:
 
 **Note**: Requires that `your-custom-nodeset` has Python 3.12 installed.
 
+### Creating a Child Review Job
+
+```yaml
+- job:
+    name: custom-review-job
+    parent: teim-code-review
+    vars:
+      review_model: "opus"
+```
+
 ### Overriding Model Selection
 
 You can override models in child jobs or via job variables:
@@ -180,7 +157,7 @@ You can override models in child jobs or via job variables:
     name: custom-review-job
     parent: teim-code-review
     vars:
-      review_model: "glm-5.1"
+      review_model: "opus"
 ```
 
 ### Adding Additional Pre-commit Hooks
@@ -195,9 +172,9 @@ You can override models in child jobs or via job variables:
 The repository uses Zuul job inheritance:
 
 - **openstack-ai-style-guide-lint** inherits from `tox-linters`
-  - Provides tox integration
-  - Handles environment setup
-  - Executes tox environments
+  - Parent job provides tox integration
+  - The child selects the `linters` tox environment
+  - Can be inherited for alternate nodesets or Python versions
 
 - **teim-code-review** inherits from `teim-code-review-base`
   - Base provides common configuration
@@ -206,22 +183,22 @@ The repository uses Zuul job inheritance:
 
 ## Troubleshooting
 
-### Job Timeout Issues
+### Lint Job Timeout Issues
 
 If the linting job frequently times out:
 
 1. Check recent performance trends in Zuul logs
 2. Profile the slowest hooks locally: `pre-commit run -a --show-diff-on-failure`
-3. Consider disabling slow hooks or optimizing the code
-4. Only increase timeout after confirming the measured execution time
+3. Consider optimizing slow hooks or increasing timeout based on measured data
 
-### Python Version Compatibility
+### Job Timeout Issues
 
-If you need a different Python version:
+If the review job frequently times out:
 
-1. **Check available nodesets**: Contact your Zuul administrator
-2. **Request new nodeset**: File an infrastructure request if needed
-3. **Workaround**: Create a child job with different nodeset specification
+1. Check recent performance trends in Zuul logs
+2. Review LiteLLM proxy and upstream model latency
+3. Consider reducing review scope or increasing timeout
+4. Only increase timeout after confirming measured execution time
 
 ### DCO Sign-off Failures
 

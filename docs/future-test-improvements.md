@@ -6,15 +6,14 @@ should be tracked for follow-up work.
 
 ## 1. Add a Zuul CI job for unit tests
 
-Currently `zuul.d/projects.yaml` only runs linting and code review.
-Add a job that runs `tox -e py3`:
+Currently `zuul.d/projects.yaml` runs code review and linting. Add a job
+that runs the unit tests:
 
 ```yaml
 - project:
     check:
       jobs:
         - teim-code-review
-        - openstack-ai-style-guide-lint
         - openstack-ai-style-guide-test  # new: tox -e py3
 ```
 

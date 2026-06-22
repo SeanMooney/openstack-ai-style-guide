@@ -5,7 +5,7 @@
 run_claude_code_prompt_text: ""
 
 # Model to use for this execution
-run_claude_code_model_name: "glm-4.5-air"
+run_claude_code_model_name: "haiku"
 
 # Expected output file path (Claude is instructed to write here, or
 # where structured output JSON will be saved)

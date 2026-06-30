@@ -175,15 +175,56 @@ def load_changed_files(filepath: Optional[Path]) -> Optional[Set[str]]:
     return changed_files
 
 
+def load_changed_lines(
+    filepath: Optional[Path],
+) -> Optional[Dict[str, List[List[int]]]]:
+    """Load an optional mapping of inter-patchset changed line ranges.
+
+    Args:
+        filepath: Path to a JSON file mapping file paths to lists of
+            [start, end] line ranges
+
+    Returns:
+        The parsed mapping, or None when no file was supplied
+    """
+    if filepath is None:
+        return None
+
+    try:
+        data = json.loads(filepath.read_text(encoding='utf-8'))
+    except FileNotFoundError:
+        print(
+            f"WARNING: changed-lines file not found: {filepath}",
+            file=sys.stderr,
+        )
+        return None
+    except json.JSONDecodeError as exc:
+        print(
+            f"WARNING: malformed changed-lines JSON: {exc}",
+            file=sys.stderr,
+        )
+        return None
+    if not isinstance(data, dict):
+        print(
+            f"WARNING: changed-lines JSON is not a dict: {type(data)}",
+            file=sys.stderr,
+        )
+        return None
+    return data
+
+
 def extract_file_comments(
     review_data: Dict[str, Any],
     changed_files: Optional[Set[str]] = None,
+    changed_lines: Optional[Dict[str, List[List[int]]]] = None,
 ) -> Dict[str, List[Dict[str, Any]]]:
     """Extract file comments from review JSON data.
 
     Args:
         review_data: Parsed JSON review report
         changed_files: Optional allowlist of files that may receive comments
+        changed_lines: Optional mapping of files to changed line ranges
+            for inter-patchset filtering
 
     Returns:
         Dictionary mapping file paths to lists of comments
@@ -210,6 +251,14 @@ def extract_file_comments(
                 continue  # Skip invalid locations
             if changed_files is not None and file_path not in changed_files:
                 continue
+            if changed_lines is not None:
+                if file_path not in changed_lines:
+                    continue
+                if not any(
+                    start <= line_number <= end
+                    for start, end in changed_lines[file_path]
+                ):
+                    continue
 
             # Format message
             message = format_issue_message(issue, severity_label)
@@ -252,17 +301,22 @@ def extract_warnings(review_data: Dict[str, Any]) -> List[str]:
 def generate_zuul_return_data(
     review_data: Dict[str, Any],
     changed_files: Optional[Set[str]] = None,
+    changed_lines: Optional[Dict[str, List[List[int]]]] = None,
 ) -> Dict[str, Any]:
     """Generate complete zuul_return data structure.
 
     Args:
         review_data: Parsed JSON review report
         changed_files: Optional allowlist of files that may receive comments
+        changed_lines: Optional mapping of files to changed line ranges
+            for inter-patchset filtering
 
     Returns:
         Zuul return data dictionary
     """
-    file_comments = extract_file_comments(review_data, changed_files)
+    file_comments = extract_file_comments(
+        review_data, changed_files, changed_lines
+    )
     warnings = extract_warnings(review_data)
     zuul_data: Dict[str, Any] = {'file_comments': file_comments}
     if warnings:
@@ -457,6 +511,12 @@ def main():
         help="Optional newline-delimited list of files eligible for inline comments"
     )
     parser.add_argument(
+        "--changed-lines",
+        type=Path,
+        help="Optional JSON mapping of files to changed line ranges for "
+             "inter-patchset filtering"
+    )
+    parser.add_argument(
         "--summary",
         action="store_true",
         help="Print summary of extracted comments to stderr"
@@ -509,8 +569,20 @@ def main():
         )
         sys.exit(1)
 
+    # Load inter-patchset changed-line ranges when supplied.
+    try:
+        changed_lines = load_changed_lines(args.changed_lines)
+    except FileNotFoundError:
+        print(
+            f"Error: changed lines file not found: {args.changed_lines}",
+            file=sys.stderr,
+        )
+        sys.exit(1)
+
     # Generate Zuul return data
-    zuul_data = generate_zuul_return_data(review_data, changed_files)
+    zuul_data = generate_zuul_return_data(
+        review_data, changed_files, changed_lines
+    )
 
     # Validate schema
     if args.validate:

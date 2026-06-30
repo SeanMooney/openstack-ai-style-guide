@@ -72,6 +72,7 @@
       html_report_file: "{{ review_output_dir }}/review-report.html"
       zuul_comments_file: "{{ review_output_dir }}/zuul-comments.json"
       changed_files_file: "{{ review_output_dir }}/changed-files.txt"
+      changed_lines_file: "{{ review_output_dir }}/changed-lines.json"
       venv_dir: "{{ ansible_user_dir }}/.venv"
 
       extensions_to_txt:

@@ -156,3 +156,106 @@ class TestGenerateZuulComments(test.NoDBTestCase):
         result = self.gen_comments.extract_file_comments(review_data)
         self.assertIn('nova/compute/manager.py', result)
         self.assertThat(result, matchers.Not(matchers.Contains('nova/virt/driver.py')))
+
+    def test_changed_lines_keeps_comment_on_changed_line(self):
+        """Comments on inter-patchset changed lines are kept."""
+        review_data = {
+            'issues': {
+                'critical': [],
+                'high': [],
+                'warnings': [
+                    self._make_issue(location='nova/compute/manager.py:42'),
+                ],
+                'suggestions': [],
+            }
+        }
+        changed_lines = {'nova/compute/manager.py': [[40, 45]]}
+        result = self.gen_comments.extract_file_comments(
+            review_data, changed_lines=changed_lines,
+        )
+        self.assertIn('nova/compute/manager.py', result)
+
+    def test_changed_lines_filters_comment_on_unchanged_line(self):
+        """Comments on lines outside inter-patchset ranges are filtered."""
+        review_data = {
+            'issues': {
+                'critical': [],
+                'high': [],
+                'warnings': [
+                    self._make_issue(location='nova/compute/manager.py:42'),
+                ],
+                'suggestions': [],
+            }
+        }
+        changed_lines = {'nova/compute/manager.py': [[10, 20]]}
+        result = self.gen_comments.extract_file_comments(
+            review_data, changed_lines=changed_lines,
+        )
+        self.assertThat(result, matchers.Equals({}))
+
+    def test_changed_lines_filters_file_not_in_mapping(self):
+        """Comments on files absent from changed_lines are filtered."""
+        review_data = {
+            'issues': {
+                'critical': [],
+                'high': [],
+                'warnings': [
+                    self._make_issue(location='nova/compute/manager.py:42'),
+                ],
+                'suggestions': [],
+            }
+        }
+        changed_lines = {'nova/virt/driver.py': [[1, 100]]}
+        result = self.gen_comments.extract_file_comments(
+            review_data, changed_lines=changed_lines,
+        )
+        self.assertThat(result, matchers.Equals({}))
+
+    def test_changed_lines_none_keeps_all(self):
+        """When changed_lines is None (PS1), all comments are kept."""
+        review_data = {
+            'issues': {
+                'critical': [],
+                'high': [],
+                'warnings': [
+                    self._make_issue(location='nova/compute/manager.py:42'),
+                ],
+                'suggestions': [],
+            }
+        }
+        result = self.gen_comments.extract_file_comments(
+            review_data, changed_lines=None,
+        )
+        self.assertIn('nova/compute/manager.py', result)
+
+    def test_load_changed_lines_file_not_found(self):
+        """Missing file returns None instead of raising."""
+        from pathlib import Path
+        result = self.gen_comments.load_changed_lines(
+            Path('/nonexistent/changed-lines.json'),
+        )
+        self.assertIsNone(result)
+
+    def test_load_changed_lines_malformed_json(self):
+        """Malformed JSON returns None instead of raising."""
+        import tempfile
+        from pathlib import Path
+        with tempfile.NamedTemporaryFile(
+            mode='w', suffix='.json', delete=False,
+        ) as f:
+            f.write('not valid json{{{')
+            f.flush()
+            result = self.gen_comments.load_changed_lines(Path(f.name))
+        self.assertIsNone(result)
+
+    def test_load_changed_lines_wrong_type(self):
+        """Non-dict JSON returns None instead of raising."""
+        import tempfile
+        from pathlib import Path
+        with tempfile.NamedTemporaryFile(
+            mode='w', suffix='.json', delete=False,
+        ) as f:
+            f.write('["not", "a", "dict"]')
+            f.flush()
+            result = self.gen_comments.load_changed_lines(Path(f.name))
+        self.assertIsNone(result)

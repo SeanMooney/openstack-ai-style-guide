@@ -33,6 +33,9 @@
     {{ ai_zuul_integration_review_report_file }}
     -o {{ ai_zuul_integration_zuul_comments_file }}
     --changed-files {{ ai_zuul_integration_changed_files_file }}
+    {% if ai_zuul_integration_changed_lines_file is defined %}
+    --changed-lines {{ ai_zuul_integration_changed_lines_file }}
+    {% endif %}
     --summary
     --validate
   register: ai_zuul_integration_comments_generation

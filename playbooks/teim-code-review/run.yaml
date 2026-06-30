@@ -46,6 +46,35 @@
           --output {{ changed_files_file }}
       changed_when: false
 
+    # noqa: command-instead-of-module -- ansible.builtin.git does not support fetching a single Gerrit ref
+    - name: Fetch previous patchset for incremental review
+      ansible.builtin.command:
+        cmd: >-
+          git -C {{ ansible_user_dir }}/{{ zuul.project.src_dir }}
+          fetch origin
+          refs/changes/{{ '%02d' | format(zuul.change | int % 100) }}/{{ zuul.change }}/{{ zuul.patchset | int - 1 }}
+      changed_when: false
+      ignore_errors: true
+      register: fetch_previous_result
+      when: zuul.patchset | int > 1
+
+    - name: Detect inter-patchset changed lines for incremental review
+      ansible.builtin.command:
+        cmd: >-
+          python3
+          {{ style_guide_project }}/skills/teim-review/scripts/detect_changed_lines.py
+          {{ ansible_user_dir }}/{{ zuul.project.src_dir }}
+          --ref1 FETCH_HEAD
+          --ref2 HEAD
+          --output {{ changed_lines_file }}
+      changed_when: false
+      ignore_errors: true
+      register: detect_lines_result
+      when:
+        - zuul.patchset | int > 1
+        - fetch_previous_result is defined
+        - fetch_previous_result.rc == 0
+
     - name: Run AI review setup (install teim-review plugin)
       ansible.builtin.include_role:
         name: ai_review_setup
@@ -96,6 +125,7 @@
         ai_zuul_integration_html_report_file: "{{ html_report_file }}"
         ai_zuul_integration_zuul_comments_file: "{{ zuul_comments_file }}"
         ai_zuul_integration_changed_files_file: "{{ changed_files_file }}"
+        ai_zuul_integration_changed_lines_file: "{{ changed_lines_file if (detect_lines_result is defined and detect_lines_result.rc == 0) else omit }}"
         ai_zuul_integration_review_output_dir: "{{ review_output_dir }}"
 
   post_tasks:

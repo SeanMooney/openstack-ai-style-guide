@@ -26,10 +26,18 @@ workflow.
   base branch is selected pass `--base-ref`; pass `--allow-root-commit` only
   when intentionally treating all tracked files as changed.
 - **Generate HTML**: yes — write `.teim-review/review-report.html`
+- **Intermediate review artifacts**: write `.teim-review/candidate-findings.json`
+  and `.teim-review/validated-findings.json` before producing the final report
+- **Deterministic validation**: normalize the raw structured report into
+  `.teim-review/review-report.json` and write diagnostics to
+  `.teim-review/review-validation.json` when the normalizer is available
 - **Style guide**: use `./docs/quick-rules.md` and
   `./docs/comprehensive-guide.md` from the current repo
+- **Finding policy**: use `./prompts/teim-review-finding-policy.md`
 - **Knowledge root**: use `./docs/knowledge/` from the current repo for
   overlays and example-backed review context
 - **JSON schema**: `schemas/review-report-schema.json` (relative to the plugin root)
+- **Intermediate schemas**: `schemas/candidate-findings-schema.json` and
+  `schemas/validated-findings-schema.json`
 - **Semantic profiles**: `config/tool-profiles.json` defines shared `fast` and
   `deep` aliases across tools

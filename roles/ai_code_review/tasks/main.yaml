@@ -11,8 +11,11 @@
   loop:
     - "{{ ai_code_review_style_guide_quick_rules }}"
     - "{{ ai_code_review_style_guide_comprehensive }}"
+    - "{{ ai_code_review_finding_policy }}"
     - "{{ ai_code_review_knowledge_root }}"
     - "{{ ai_code_review_json_schema }}"
+    - "{{ ai_code_review_candidate_findings_schema }}"
+    - "{{ ai_code_review_validated_findings_schema }}"
     - "{{ ai_code_review_inventory_file }}"
 
 - name: Fail if prerequisite paths are missing
@@ -30,21 +33,23 @@
       output_dir: {{ ai_code_review_output_dir }}
       project_dir: {{ ai_code_review_project_src_dir }}
       changed_files_file: {{ ai_code_review_changed_files_file }}
+      candidate_findings_schema: {{ ai_code_review_candidate_findings_schema }}
+      validated_findings_schema: {{ ai_code_review_validated_findings_schema }}
+      candidate_findings_file: {{ ai_code_review_candidate_findings_file }}
+      validated_findings_file: {{ ai_code_review_validated_findings_file }}
+      review_validation_file: {{ ai_code_review_validation_file }}
       style_guide_quick_rules: {{ ai_code_review_style_guide_quick_rules }}
       style_guide_comprehensive: {{ ai_code_review_style_guide_comprehensive }}
+      finding_policy: {{ ai_code_review_finding_policy }}
       knowledge_root: {{ ai_code_review_knowledge_root }}
       json_schema: {{ ai_code_review_json_schema }}
       tools_dir: {{ ai_code_review_style_guide_project }}/tools
       generate_html: false
 
-      Write the structured JSON review report to
-      {{ ai_code_review_report_file }}.
-      Inline issue locations must be files listed in changed_files_file.
-      If changed code affects unmodified code, anchor the issue on the changed
-      file and describe the unmodified impact in the issue text.
-      Pre-existing out-of-patch findings go in out_of_patch_observations.
-      In-scope findings that cannot be safely anchored to a changed file go in
-      patch_level_observations.
+      Return a structured JSON review report conforming to json_schema. Also
+      write the same raw report to {{ ai_code_review_raw_report_file }}.
+      The deterministic normalizer will calculate routing, statistics, and
+      publication safety after this Claude invocation.
 
 - name: Execute code review with Claude via teim-review-agent
   ansible.builtin.include_role:
@@ -52,7 +57,7 @@
   vars:
     run_claude_code_prompt_text: "{{ ai_code_review_review_prompt }}"
     run_claude_code_model_name: "{{ ai_code_review_model }}"
-    run_claude_code_output_file: "{{ ai_code_review_report_file }}"
+    run_claude_code_output_file: "{{ ai_code_review_raw_report_file }}"
     run_claude_code_json_schema: "{{ ai_code_review_json_schema }}"
     run_claude_code_output_format: "json"
     run_claude_code_command_name: "code review"

@@ -10,6 +10,7 @@ model selection, but they must not redefine review behavior.
 - `output_dir`: directory for generated review artifacts
 - `style_guide_quick_rules`: `docs/quick-rules.md`
 - `style_guide_comprehensive`: `docs/comprehensive-guide.md`
+- `finding_policy`: `prompts/teim-review-finding-policy.md`
 - `knowledge_root`: `docs/knowledge/`
 - `json_schema`: `schemas/review-report-schema.json`
 - `tools_dir`: `tools/`
@@ -28,6 +29,10 @@ Write all review artifacts into `output_dir`:
 - `commit-summary.md`
 - `project-guidelines.md`
 - `changed-files.txt` when a tool adapter can provide patch scope
+- `candidate-findings.json`
+- `validated-findings.json`
+- `review-report.raw.json` when a tool adapter captures raw structured output
+- `review-validation.json` when deterministic normalization runs
 - `review-report.json`
 - `review-report.html` when HTML generation is enabled
 
@@ -55,20 +60,27 @@ Write all review artifacts into `output_dir`:
 6. Generate `project-guidelines.md`:
    - Read `AGENTS.md`, `HACKING.rst`, `CLAUDE.md` when present.
    - Apply `docs/knowledge/` overlays and examples when relevant.
-7. Review the code in `project_dir` using:
+7. Generate candidate findings with the code review agent using:
    - `zuul-context.md`
    - `commit-summary.md`
    - `project-guidelines.md`
    - `changed-files.txt`
    - `style_guide_quick_rules`
    - `style_guide_comprehensive`
-8. Produce a structured review report that:
+   - `finding_policy`
+8. Validate candidate findings with the finding validation agent using the same
+   context. The validation pass assigns severity and confidence, drops weak
+   candidates, and writes `validated-findings.json`.
+9. Produce a structured review report that conforms to
+   `review-report-schema.json` and:
    - anchors inline issue locations only to files in the current patch
    - describes cross-file impacts on the changed file that caused the behavior
    - separates pre-existing out-of-patch observations from in-scope findings
    - prioritizes behavioral, maintainability, and security issues
    - avoids style-only noise that is already enforced mechanically
-9. When HTML generation is requested, render `review-report.html` from the
+10. Run deterministic normalization when available to recalculate routing and
+    statistics, filter unsafe inline comments, and write `review-validation.json`.
+11. When HTML generation is requested, render `review-report.html` from the
    structured JSON report via `tools/render_html_from_json.py`.
 
 ## Review Policy

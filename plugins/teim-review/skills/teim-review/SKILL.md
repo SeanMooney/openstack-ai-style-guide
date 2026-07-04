@@ -21,6 +21,9 @@ workflow.
   - `.teim-review/commit-summary.md`
   - `.teim-review/project-guidelines.md`
   - `.teim-review/changed-files.txt`
+  - `.teim-review/candidate-findings.json`
+  - `.teim-review/validated-findings.json`
+  - `.teim-review/review-validation.json`
   - `.teim-review/review-report.json`
   - `.teim-review/review-report.html`
 - Generate `.teim-review/changed-files.txt` with the bundled deterministic

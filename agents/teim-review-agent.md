@@ -32,7 +32,9 @@ in the correct sequence and writing all outputs to the configured directory.
 
 The authoritative provider-neutral workflow lives in
 `prompts/teim-review-core.md`. This file is the Claude-native orchestration
-adapter for that shared core.
+adapter for that shared core. Your responsibility is orchestration only:
+invoke each specialist once, collect its artifact, and return the final
+structured review report requested by the caller.
 
 ## Parameters
 
@@ -46,6 +48,13 @@ You accept the following parameters from the invoking prompt (natural language):
 - `style_guide_comprehensive` — path to the comprehensive-guide.md file
 - `knowledge_root` — path to the review knowledge root (`docs/knowledge/`)
 - `json_schema` — path to review-report-schema.json for structured output
+- `finding_policy` — path to the shared finding policy
+  (`prompts/teim-review-finding-policy.md`)
+- `candidate_findings_schema` — path to candidate-findings-schema.json
+- `validated_findings_schema` — path to validated-findings-schema.json
+- `candidate_findings_file` — path for candidate findings
+- `validated_findings_file` — path for validated findings
+- `review_validation_file` — path for deterministic validation diagnostics
 - `generate_html` — whether to generate an HTML report (default: true)
 - `model_profile` — semantic profile alias (`fast` or `deep`) from
   `config/tool-profiles.json`
@@ -129,27 +138,76 @@ Delegate to the `@project-guidelines-extractor` subagent:
 - Set `knowledge_root` to `<knowledge_root>` if provided.
 - Write its output to `<output_dir>/project-guidelines.md`.
 
-## Step 6 — Perform the code review
+## Step 6 — Generate candidate findings
 
 Delegate to the `@code-review-agent` subagent with these `@file` references:
 
 - `@<output_dir>/zuul-context.md` — execution context
 - `@<output_dir>/commit-summary.md` — commit metadata
 - `@<output_dir>/project-guidelines.md` — project-specific rules (if present)
+- `@<output_dir>/changed-files.txt` — changed file scope when present
 - `@<style_guide_quick_rules>` — essential OpenStack standards
 - `@<style_guide_comprehensive>` — detailed guidance
+- `@<finding_policy>` — shared finding policy
 
 Instruct it to:
 
 - Review the change located in `<project_dir>`.
-- Generate a structured JSON report conforming to the review-report-schema.json.
-- Write the JSON output to `<output_dir>/review-report.json`.
-- Apply project-specific rules from project-guidelines.md as authoritative
-  overrides of generic OpenStack standards.
+- Generate candidate findings only.
+- Write candidate JSON to `<candidate_findings_file>` or
+  `<output_dir>/candidate-findings.json`.
+- Conform to `candidate_findings_schema` when provided.
+- Assign severity, confidence, and anchor kind from the shared finding policy.
+- Do not assign reporting mode, statistics, or publication behavior.
 
-## Step 7 — Generate HTML report (optional)
+## Step 7 — Validate findings
 
-If `generate_html` is true (the default), run the HTML renderer:
+Delegate to the `@finding-validation-agent` subagent with these inputs:
+
+- `@<candidate_findings_file>` — candidate findings
+- `@<output_dir>/zuul-context.md` — execution context
+- `@<output_dir>/commit-summary.md` — commit metadata
+- `@<output_dir>/project-guidelines.md` — project-specific rules
+- `@<output_dir>/changed-files.txt` — changed file scope when present
+- `@<style_guide_quick_rules>` — essential OpenStack standards
+- `@<style_guide_comprehensive>` — detailed guidance
+- `@<finding_policy>` — shared finding policy
+
+Instruct it to:
+
+- Validate the candidate findings.
+- Assign final severity and confidence.
+- Write validated JSON to `<validated_findings_file>` or
+  `<output_dir>/validated-findings.json`.
+- Conform to `validated_findings_schema` when provided.
+- Do not assign `reporting_mode`, statistics, or publication behavior.
+
+## Step 8 — Return final structured review report
+
+Using the validated findings, produce the final structured output requested by
+the invoking Claude CLI call. This output must conform to
+`review-report-schema.json`.
+
+Also write the same final report to `<output_dir>/review-report.raw.json` when
+the path is available. The deterministic normalization step will recalculate
+`reporting_mode` and statistics before downstream HTML or Zuul publication.
+
+## Step 9 — Generate HTML report (optional)
+
+If `generate_html` is true (the default), first run deterministic
+normalization when the tool is available:
+
+```bash
+python3 <tools_dir>/normalize_review_report.py \
+    --raw-report <output_dir>/review-report.raw.json \
+    --candidate-findings <candidate_findings_file> \
+    --validated-findings <validated_findings_file> \
+    --changed-files <output_dir>/changed-files.txt \
+    --output <output_dir>/review-report.json \
+    --diagnostics <review_validation_file>
+```
+
+Then run the HTML renderer:
 
 ```bash
 python3 <tools_dir>/render_html_from_json.py \
@@ -171,7 +229,7 @@ uv run <tools_dir>/render_html_from_json.py \
     -v
 ```
 
-## Step 8 — Report completion
+## Step 10 — Report completion
 
 After all steps complete, summarise the results:
 
@@ -179,6 +237,7 @@ After all steps complete, summarise the results:
 - List output files written and their sizes
 - Show the issue count breakdown from `review-report.json`
   (critical / high / warnings / suggestions)
+- Mention `review-validation.json` when deterministic normalization ran
 - If any step failed, describe the failure and whether review was still
   completed with partial context
 

@@ -152,11 +152,58 @@ class TestRepoContracts(test.NoDBTestCase):
 
         self.assertThat(agent, matchers.Contains('@code-review-agent'))
         self.assertThat(
+            agent, matchers.Contains('@finding-validation-agent')
+        )
+        self.assertThat(
             agent, matchers.Contains('prompts/teim-review-core.md')
+        )
+        self.assertThat(agent, matchers.Contains('candidate-findings.json'))
+        self.assertThat(agent, matchers.Contains('validated-findings.json'))
+        self.assertThat(agent, matchers.Contains('review-validation.json'))
+        self.assertThat(
+            agent, matchers.Contains('teim-review-finding-policy.md')
         )
         self.assertThat(agent, matchers.Contains('review-report.json'))
         self.assertThat(agent, matchers.Contains('project-guidelines.md'))
         self.assertThat(agent, matchers.Contains('knowledge_root'))
+
+    def test_review_agents_have_separate_responsibilities(self):
+        """Reviewer and validator prompts should stay narrowly scoped."""
+        reviewer = self._read_text('agents/code-review-agent.md')
+        validator = self._read_text('agents/finding-validation-agent.md')
+        policy = self._read_text('prompts/teim-review-finding-policy.md')
+
+        self.assertThat(
+            reviewer,
+            matchers.Contains('Your only job is to identify candidate'),
+        )
+        self.assertThat(
+            reviewer,
+            matchers.Contains('prompts/teim-review-finding-policy.md'),
+        )
+        self.assertThat(
+            reviewer,
+            matchers.Not(matchers.Contains('Generate HTML')),
+        )
+        self.assertThat(
+            reviewer,
+            matchers.Not(matchers.Contains('statistics.total')),
+        )
+        self.assertThat(
+            validator,
+            matchers.Contains('must not invent new'),
+        )
+        self.assertThat(
+            validator,
+            matchers.Not(matchers.Contains('Zuul comments')),
+        )
+        self.assertThat(
+            validator,
+            matchers.Contains('prompts/teim-review-finding-policy.md'),
+        )
+        self.assertThat(policy, matchers.Contains('High-Signal Rules'))
+        self.assertThat(policy, matchers.Contains('Security Decision Framework'))
+        self.assertThat(policy, matchers.Contains('Do not decide whether'))
 
     def test_codex_and_cursor_adapters_reference_shared_core(self):
         """Codex and Cursor should stay thin adapters over the shared core."""
@@ -226,6 +273,7 @@ class TestRepoContracts(test.NoDBTestCase):
             matchers.Contains('teim-review@openstack-ai-style-guide'),
         )
         self.assertThat(review_role, matchers.Contains('knowledge_root'))
+        self.assertThat(playbook, matchers.Contains('statistics_html_only'))
 
     def test_active_docs_and_archive_markers_exist(self):
         """Supporting docs should make active versus legacy material explicit."""

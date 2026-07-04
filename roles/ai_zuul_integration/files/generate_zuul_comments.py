@@ -58,6 +58,7 @@ def normalize_file_path(file_path: str) -> str:
     zuul_prefixes = [
         '/home/zuul/src/review.opendev.org/',
         '/home/zuul/src/opendev.org/',
+        '/home/zuul/src/github.com/',
         '/home/zuul/src/',
     ]
 

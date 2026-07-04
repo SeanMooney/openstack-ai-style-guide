@@ -13,6 +13,8 @@ ai_code_review_style_guide_quick_rules: >-
   {{ ai_code_review_style_guide_project }}/docs/quick-rules.md
 ai_code_review_style_guide_comprehensive: >-
   {{ ai_code_review_style_guide_project }}/docs/comprehensive-guide.md
+ai_code_review_finding_policy: >-
+  {{ ai_code_review_style_guide_project }}/prompts/teim-review-finding-policy.md
 ai_code_review_knowledge_root: >-
   {{ ai_code_review_style_guide_project }}/docs/knowledge
 
@@ -20,9 +22,21 @@ ai_code_review_knowledge_root: >-
 # This schema is passed to Claude CLI to ensure valid JSON generation
 ai_code_review_json_schema: >-
   {{ ai_code_review_style_guide_project }}/schemas/review-report-schema.json
+ai_code_review_candidate_findings_schema: >-
+  {{ ai_code_review_style_guide_project }}/schemas/candidate-findings-schema.json
+ai_code_review_validated_findings_schema: >-
+  {{ ai_code_review_style_guide_project }}/schemas/validated-findings-schema.json
 
-# Output file
+# Output files
 ai_code_review_report_file: "{{ ai_code_review_output_dir }}/review-report.json"
+ai_code_review_raw_report_file: >-
+  {{ ai_code_review_output_dir }}/review-report.raw.json
+ai_code_review_candidate_findings_file: >-
+  {{ ai_code_review_output_dir }}/candidate-findings.json
+ai_code_review_validated_findings_file: >-
+  {{ ai_code_review_output_dir }}/validated-findings.json
+ai_code_review_validation_file: >-
+  {{ ai_code_review_output_dir }}/review-validation.json
 ai_code_review_changed_files_file: "{{ ai_code_review_output_dir }}/changed-files.txt"
 
 # Review output directory

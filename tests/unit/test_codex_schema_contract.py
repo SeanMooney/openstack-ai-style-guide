@@ -24,14 +24,22 @@ class TestCodexSchemaContract(test.NoDBTestCase):
     """Ensure object nodes are explicit enough for Codex schema validation."""
 
     @staticmethod
-    def _load_schema():
+    def _load_schema(relative_path='schemas/review-report-schema.json'):
         schema_path = pathlib.Path(__file__).resolve().parents[2]
-        schema_path /= 'schemas/review-report-schema.json'
+        schema_path /= relative_path
         return json.loads(schema_path.read_text())
 
     def test_all_object_nodes_set_additional_properties_false(self):
         """Every schema object should be closed explicitly."""
-        schema = self._load_schema()
+        for schema_name in [
+            'schemas/review-report-schema.json',
+            'schemas/candidate-findings-schema.json',
+            'schemas/validated-findings-schema.json',
+        ]:
+            self._assert_object_nodes_closed(self._load_schema(schema_name))
+
+    def _assert_object_nodes_closed(self, schema):
+        """Every schema object should be closed explicitly."""
         missing = []
 
         def walk(node, path='root'):
@@ -51,8 +59,18 @@ class TestCodexSchemaContract(test.NoDBTestCase):
         self.assertThat(missing, matchers.Equals([]))
 
     def test_all_object_properties_are_required(self):
-        """Codex requires object required lists to cover every property."""
-        schema = self._load_schema()
+        """Schema objects require fields unless explicitly normalizer-owned."""
+        for schema_name in [
+            'schemas/review-report-schema.json',
+            'schemas/candidate-findings-schema.json',
+            'schemas/validated-findings-schema.json',
+        ]:
+            self._assert_object_properties_required(
+                self._load_schema(schema_name)
+            )
+
+    def _assert_object_properties_required(self, schema):
+        """Every non-optional object property should be listed as required."""
         mismatches = []
 
         def walk(node, path='root'):
@@ -60,12 +78,25 @@ class TestCodexSchemaContract(test.NoDBTestCase):
                 if node.get('type') == 'object' and 'properties' in node:
                     properties = set(node['properties'].keys())
                     required = set(node.get('required', []))
-                    if properties != required:
+                    optional = set()
+                    if path in {
+                        'root.$defs.criticalIssue',
+                        'root.$defs.highIssue',
+                        'root.$defs.warningIssue',
+                        'root.$defs.suggestionIssue',
+                    }:
+                        optional.add('reporting_mode')
+                    expected_required = properties - optional
+                    if expected_required != required:
                         mismatches.append(
                             {
                                 'path': path,
-                                'missing_required': sorted(properties - required),
-                                'extra_required': sorted(required - properties),
+                                'missing_required': sorted(
+                                    expected_required - required
+                                ),
+                                'extra_required': sorted(
+                                    required - expected_required
+                                ),
                             }
                         )
                 for key, value in node.items():
@@ -76,6 +107,25 @@ class TestCodexSchemaContract(test.NoDBTestCase):
 
         walk(schema)
         self.assertThat(mismatches, matchers.Equals([]))
+
+    def test_review_report_reporting_mode_is_normalizer_owned(self):
+        """Raw Claude output may omit routing before normalization."""
+        schema = self._load_schema()
+        for issue_type in [
+            'criticalIssue',
+            'highIssue',
+            'warningIssue',
+            'suggestionIssue',
+        ]:
+            issue_schema = schema['$defs'][issue_type]
+            self.assertThat(
+                issue_schema['properties'],
+                matchers.Contains('reporting_mode'),
+            )
+            self.assertThat(
+                issue_schema['required'],
+                matchers.Not(matchers.Contains('reporting_mode')),
+            )
 
     def test_base_issue_definition_removed(self):
         """Issue definitions should not retain an orphaned baseIssue def."""
@@ -100,3 +150,54 @@ class TestCodexSchemaContract(test.NoDBTestCase):
             properties = defs[issue_type]['properties']
             for field, expected in reference.items():
                 self.assertThat(properties[field], matchers.Equals(expected))
+
+    def test_intermediate_schemas_do_not_include_reporting_mode(self):
+        """Model handoff schemas should not own publication routing."""
+        for schema_name in [
+            'schemas/candidate-findings-schema.json',
+            'schemas/validated-findings-schema.json',
+        ]:
+            schema = self._load_schema(schema_name)
+            self.assertThat(
+                json.dumps(schema),
+                matchers.Not(matchers.Contains('reporting_mode')),
+            )
+
+    def test_candidate_findings_include_classification_fields(self):
+        """Candidate findings carry proposed severity, confidence, and anchor."""
+        schema = self._load_schema('schemas/candidate-findings-schema.json')
+        finding = schema['properties']['findings']['items']
+        required = set(finding['required'])
+        self.assertThat(required, matchers.Contains('severity'))
+        self.assertThat(required, matchers.Contains('confidence'))
+        self.assertThat(required, matchers.Contains('anchor_kind'))
+
+    def test_confidence_fields_allow_full_score_range(self):
+        """Schemas accept honest confidence before deterministic filtering."""
+        def collect_confidence_fields(schema):
+            confidence_fields = []
+
+            def walk(node):
+                if isinstance(node, dict):
+                    for key, value in node.items():
+                        if key == 'confidence' and isinstance(value, dict):
+                            confidence_fields.append(value)
+                        walk(value)
+                elif isinstance(node, list):
+                    for value in node:
+                        walk(value)
+
+            walk(schema)
+            return confidence_fields
+
+        for schema_name in [
+            'schemas/review-report-schema.json',
+            'schemas/candidate-findings-schema.json',
+            'schemas/validated-findings-schema.json',
+        ]:
+            schema = self._load_schema(schema_name)
+            confidence_fields = collect_confidence_fields(schema)
+            self.assertThat(confidence_fields, matchers.Not(matchers.Equals([])))
+            for field in confidence_fields:
+                self.assertThat(field.get('minimum'), matchers.Equals(0.0))
+                self.assertThat(field.get('maximum'), matchers.Equals(1.0))

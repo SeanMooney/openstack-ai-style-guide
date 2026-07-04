@@ -35,3 +35,12 @@ run_claude_code_json_schema: ""
 # Output format for Claude CLI (text, json, stream-json)
 # When using structured output with json_schema, this should be "json"
 run_claude_code_output_format: "text"
+
+# Optional Claude reasoning effort. Empty string omits the flag.
+run_claude_code_effort: ""
+
+# Run Claude in bare mode to skip non-essential CLI startup behavior.
+run_claude_code_bare: false
+
+# Optional plugin directory to load explicitly, useful with bare mode.
+run_claude_code_plugin_dir: ""

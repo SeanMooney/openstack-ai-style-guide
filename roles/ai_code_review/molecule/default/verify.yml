@@ -3,40 +3,40 @@
   hosts: all
   gather_facts: false
   tasks:
-    - name: Check if review report exists
+    - name: Check if raw validated findings exist
       ansible.builtin.stat:
-        path: /tmp/code-review-test/review-report.json
-      register: ai_code_review_review_report
+        path: /tmp/code-review-test/validated-findings.raw.json
+      register: ai_code_review_validated_findings
 
-    - name: Verify review report exists
+    - name: Verify raw validated findings exist
       ansible.builtin.assert:
         that:
-          - ai_code_review_review_report.stat.exists
-          - ai_code_review_review_report.stat.size > 0
-        fail_msg: "Review report was not created"
-        success_msg: "Review report created successfully"
+          - ai_code_review_validated_findings.stat.exists
+          - ai_code_review_validated_findings.stat.size > 0
+        fail_msg: "Validated findings were not created"
+        success_msg: "Validated findings created successfully"
 
-    - name: Read review report content
+    - name: Read raw validated findings content
       ansible.builtin.slurp:
-        src: /tmp/code-review-test/review-report.json
-      register: ai_code_review_report_content
+        src: /tmp/code-review-test/validated-findings.raw.json
+      register: ai_code_review_validated_content
 
-    - name: Verify review report contains valid JSON
+    - name: Verify raw validated findings contain valid JSON
       ansible.builtin.set_fact:
-        ai_code_review_parsed_json: "{{ (ai_code_review_report_content.content | b64decode | trim) | from_json }}"
+        ai_code_review_parsed_json: "{{ (ai_code_review_validated_content.content | b64decode | trim) | from_json }}"
 
     - name: Assert review report is valid JSON dict
       ansible.builtin.assert:
         that:
           - ai_code_review_parsed_json is mapping
-        fail_msg: "Review report does not contain valid JSON"
-        success_msg: "Review report contains valid JSON"
+        fail_msg: "Validated findings do not contain valid JSON"
+        success_msg: "Validated findings contain valid JSON"
 
     - name: Verify review report structure
       ansible.builtin.assert:
         that:
           - ai_code_review_parsed_json.structured_output is defined
           - ai_code_review_parsed_json.structured_output.context is defined
-          - ai_code_review_parsed_json.structured_output.statistics is defined
-        fail_msg: "Review report does not contain expected structure"
-        success_msg: "Review report contains expected structure"
+          - ai_code_review_parsed_json.structured_output.accepted_findings is defined
+        fail_msg: "Validated findings do not contain expected structure"
+        success_msg: "Validated findings contain expected structure"

@@ -42,6 +42,19 @@
   ansible.builtin.set_fact:
     run_claude_code_structured_mode: "{{ run_claude_code_json_schema | default('') != '' }}"
 
+- name: Build optional Claude CLI arguments
+  ansible.builtin.set_fact:
+    run_claude_code_optional_args: >-
+      {% if run_claude_code_effort | default('') != '' %}
+      --effort {{ run_claude_code_effort }}
+      {% endif %}
+      {% if run_claude_code_bare | default(false) | bool %}
+      --bare
+      {% endif %}
+      {% if run_claude_code_plugin_dir | default('') != '' %}
+      --plugin-dir "{{ run_claude_code_plugin_dir }}"
+      {% endif %}
+
 - name: Build Claude command (standard mode)
   ansible.builtin.set_fact:
     # NOTE: Tool permissions are intentionally broad for CI automation:
@@ -55,6 +68,7 @@
       --print "{{ run_claude_code_prompt_text | replace('"', '\\"') }}"
       --model "{{ run_claude_code_model_name }}"
       --output-format {{ run_claude_code_output_format | default('text') }}
+      {{ run_claude_code_optional_args }}
       --allowedTools "Bash,Read,Write,Edit,Grep,Glob"
       --permission-mode acceptEdits
   when: not run_claude_code_structured_mode
@@ -69,6 +83,7 @@
       --model "{{ run_claude_code_model_name }}"
       --output-format json
       --json-schema "$(cat '{{ run_claude_code_json_schema }}')"
+      {{ run_claude_code_optional_args }}
       --allowedTools "Bash,Read,Write,Edit,Grep,Glob"
       --permission-mode acceptEdits
   when: run_claude_code_structured_mode

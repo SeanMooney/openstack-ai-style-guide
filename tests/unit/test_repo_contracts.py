@@ -159,6 +159,7 @@ class TestRepoContracts(test.NoDBTestCase):
         )
         self.assertThat(agent, matchers.Contains('candidate-findings.json'))
         self.assertThat(agent, matchers.Contains('validated-findings.json'))
+        self.assertThat(agent, matchers.Contains('review-context.json'))
         self.assertThat(agent, matchers.Contains('review-validation.json'))
         self.assertThat(
             agent, matchers.Contains('teim-review-finding-policy.md')
@@ -166,6 +167,14 @@ class TestRepoContracts(test.NoDBTestCase):
         self.assertThat(agent, matchers.Contains('review-report.json'))
         self.assertThat(agent, matchers.Contains('project-guidelines.md'))
         self.assertThat(agent, matchers.Contains('knowledge_root'))
+        self.assertThat(
+            agent,
+            matchers.Contains('Do not invoke `@zuul-context-extractor`'),
+        )
+        self.assertThat(
+            agent,
+            matchers.Contains('Return the same validated findings object'),
+        )
 
     def test_review_agents_have_separate_responsibilities(self):
         """Reviewer and validator prompts should stay narrowly scoped."""
@@ -258,6 +267,12 @@ class TestRepoContracts(test.NoDBTestCase):
         self.assertThat(jobs, matchers.Contains('review_model: "smart"'))
         self.assertThat(playbook, matchers.Contains('name: ai_review_setup'))
         self.assertThat(playbook, matchers.Contains('name: ai_code_review'))
+        self.assertThat(
+            playbook, matchers.Contains('tools/build_review_report.py')
+        )
+        self.assertThat(
+            playbook, matchers.Contains('validated-findings.raw.json')
+        )
         self.assertThat(playbook, matchers.Contains('name: ai_html_generation'))
         self.assertThat(
             playbook, matchers.Contains('name: ai_zuul_integration')
@@ -273,7 +288,58 @@ class TestRepoContracts(test.NoDBTestCase):
             matchers.Contains('teim-review@openstack-ai-style-guide'),
         )
         self.assertThat(review_role, matchers.Contains('knowledge_root'))
+        self.assertThat(
+            review_role,
+            matchers.Contains('tools/prepare_review_artifacts.py'),
+        )
+        self.assertThat(
+            review_role,
+            matchers.Contains(
+                'run_claude_code_json_schema: '
+                '"{{ ai_code_review_validated_findings_schema }}"'
+            ),
+        )
+        self.assertThat(review_role, matchers.Contains('run_claude_code_effort'))
+        self.assertThat(review_role, matchers.Contains('run_claude_code_bare'))
         self.assertThat(playbook, matchers.Contains('statistics_html_only'))
+        self.assertThat(
+            playbook,
+            matchers.Contains('name: Record changed-lines availability'),
+        )
+        self.assertThat(
+            playbook,
+            matchers.Contains('changed_lines_available | default(false)'),
+        )
+        self.assertThat(
+            playbook,
+            matchers.Not(matchers.Contains('detect_lines_result.rc')),
+        )
+
+    def test_ci_review_path_has_single_claude_invocation(self):
+        """CI review keeps one Claude call and deterministic glue."""
+        review_role = self._read_text('roles/ai_code_review/tasks/main.yaml')
+        playbook = self._read_text('playbooks/teim-code-review/run.yaml')
+
+        self.assertThat(
+            review_role.count('name: run_claude_code'),
+            matchers.Equals(1),
+        )
+        self.assertThat(
+            review_role,
+            matchers.Not(matchers.Contains('@zuul-context-extractor')),
+        )
+        self.assertThat(
+            review_role,
+            matchers.Not(matchers.Contains('@commit-summary')),
+        )
+        self.assertThat(
+            review_role,
+            matchers.Not(matchers.Contains('@project-guidelines-extractor')),
+        )
+        self.assertThat(
+            playbook,
+            matchers.Contains('Build raw review report from validated findings'),
+        )
 
     def test_active_docs_and_archive_markers_exist(self):
         """Supporting docs should make active versus legacy material explicit."""

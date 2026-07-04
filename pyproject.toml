@@ -5,6 +5,9 @@ name = "openstack-ai-style-guide"
 version = "1.0.0"
 requires-python = ">=3.10"
 description = "OpenStack AI Style Guide and Testing Tools"
+dependencies = [
+    "PyYAML>=6.0",
+]
 
 [project.optional-dependencies]
 test = [

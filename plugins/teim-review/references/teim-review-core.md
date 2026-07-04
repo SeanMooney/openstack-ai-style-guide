@@ -13,6 +13,8 @@ model selection, but they must not redefine review behavior.
 - `finding_policy`: `prompts/teim-review-finding-policy.md`
 - `knowledge_root`: `docs/knowledge/`
 - `json_schema`: `schemas/review-report-schema.json`
+- `candidate_findings_schema`: `schemas/candidate-findings-schema.json`
+- `validated_findings_schema`: `schemas/validated-findings-schema.json`
 - `tools_dir`: `tools/`
 - Optional `changed_files_file`: newline-delimited files in the current patch
 - Optional `changed_files_helper`: bundled skill helper script used to generate
@@ -28,10 +30,13 @@ Write all review artifacts into `output_dir`:
 - `zuul-context.md`
 - `commit-summary.md`
 - `project-guidelines.md`
+- `review-context.json`
 - `changed-files.txt` when a tool adapter can provide patch scope
 - `candidate-findings.json`
 - `validated-findings.json`
-- `review-report.raw.json` when a tool adapter captures raw structured output
+- `validated-findings.raw.json` when a tool adapter captures raw structured
+  output from Claude
+- `review-report.raw.json` after deterministic report assembly
 - `review-validation.json` when deterministic normalization runs
 - `review-report.json`
 - `review-report.html` when HTML generation is enabled
@@ -51,16 +56,22 @@ Write all review artifacts into `output_dir`:
    - `base_branch`: pass `--base-ref <base_branch>`.
    - Root commits: pass `--allow-root-commit` only when all tracked files are
      intentionally in scope.
-4. Generate `zuul-context.md`:
+4. Generate prepared context artifacts deterministically:
    - Zuul mode: summarize the inventory and execution context.
    - Local mode: summarize repository path, branch, status, and review scope.
-5. Generate `commit-summary.md`:
+   - Write `zuul-context.md`, `commit-summary.md`,
+     `project-guidelines.md`, and `review-context.json`.
+   - Include explicit full-context paths for the source repo, quick rules,
+     comprehensive guide, finding policy, schemas, and knowledge root.
+5. Generate `commit-summary.md` deterministically:
    - Use the requested review scope when one is provided.
    - Otherwise summarize the most relevant recent local changes.
-6. Generate `project-guidelines.md`:
+6. Generate `project-guidelines.md` deterministically:
    - Read `AGENTS.md`, `HACKING.rst`, `CLAUDE.md` when present.
    - Apply `docs/knowledge/` overlays and examples when relevant.
-7. Generate candidate findings with the code review agent using:
+7. Invoke the review orchestrator once for model reasoning. It must not invoke
+   deterministic extraction subagents. It generates candidate findings with
+   the code review agent using:
    - `zuul-context.md`
    - `commit-summary.md`
    - `project-guidelines.md`
@@ -68,11 +79,12 @@ Write all review artifacts into `output_dir`:
    - `style_guide_quick_rules`
    - `style_guide_comprehensive`
    - `finding_policy`
-8. Validate candidate findings with the finding validation agent using the same
-   context. The validation pass assigns severity and confidence, drops weak
-   candidates, and writes `validated-findings.json`.
-9. Produce a structured review report that conforms to
-   `review-report-schema.json` and:
+8. The same orchestrator validates candidate findings with the finding
+   validation agent using the same context. The validation pass assigns
+   severity and confidence, drops weak candidates, writes
+   `validated-findings.json`, and returns structured output conforming to
+   `validated_findings_schema`.
+9. Build `review-report.raw.json` deterministically from validated findings:
    - anchors inline issue locations only to files in the current patch
    - describes cross-file impacts on the changed file that caused the behavior
    - separates pre-existing out-of-patch observations from in-scope findings

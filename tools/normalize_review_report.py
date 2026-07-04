@@ -201,10 +201,16 @@ def normalize_issues(
     changed_files: set[str] | None,
     changed_lines: dict[str, list[list[int]]] | None,
     diagnostics: dict[str, Any],
+    preserve_html_stats: bool = False,
 ) -> None:
     """Normalize issue routing and statistics in place."""
     inline_stats = dict(EMPTY_STATS)
-    html_stats = dict(EMPTY_STATS)
+    html_stats = dict(report.get('statistics_html_only', EMPTY_STATS))
+    if not preserve_html_stats:
+        html_stats = dict(EMPTY_STATS)
+    for name in (*SEVERITIES, 'total'):
+        if not isinstance(html_stats.get(name), int):
+            html_stats[name] = 0
     normalized = {severity: [] for severity in SEVERITIES}
 
     for severity in SEVERITIES:
@@ -298,6 +304,7 @@ def normalize_report(
     raw_report: Any,
     changed_files: set[str] | None = None,
     changed_lines: dict[str, list[list[int]]] | None = None,
+    preserve_html_stats: bool = False,
 ) -> tuple[dict[str, Any], dict[str, Any]]:
     """Normalize a structured review report."""
     diagnostics: dict[str, Any] = {
@@ -310,7 +317,13 @@ def normalize_report(
         'fatal_errors': [],
     }
     report = ensure_report_shape(raw_report, diagnostics)
-    normalize_issues(report, changed_files, changed_lines, diagnostics)
+    normalize_issues(
+        report,
+        changed_files,
+        changed_lines,
+        diagnostics,
+        preserve_html_stats=preserve_html_stats,
+    )
     return report, diagnostics
 
 
@@ -343,7 +356,12 @@ def main() -> int:
     changed_files = load_changed_files(args.changed_files)
     changed_lines = load_changed_lines(args.changed_lines)
     report, diagnostics = normalize_report(
-        raw_report, changed_files, changed_lines
+        raw_report,
+        changed_files,
+        changed_lines,
+        preserve_html_stats=(
+            args.validated_findings is not None and args.validated_findings.exists()
+        ),
     )
     load_optional_artifact(
         args.candidate_findings, 'candidate_findings', diagnostics

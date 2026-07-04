@@ -1,0 +1,152 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://opendev.org/openstack/openstack-ai-style-guide/schemas/validated-findings-schema.json",
+  "title": "Validated Review Findings",
+  "description": "Intermediate findings validated by finding-validation-agent",
+  "type": "object",
+  "required": ["context", "accepted_findings", "rejected_findings"],
+  "properties": {
+    "context": {
+      "type": "object",
+      "required": ["change", "scope", "review_basis"],
+      "properties": {
+        "change": {
+          "type": "string",
+          "minLength": 1
+        },
+        "scope": {
+          "type": "string",
+          "minLength": 1
+        },
+        "review_basis": {
+          "type": "string",
+          "minLength": 1
+        }
+      },
+      "additionalProperties": false
+    },
+    "accepted_findings": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/acceptedFinding"
+      }
+    },
+    "rejected_findings": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/rejectedFinding"
+      }
+    }
+  },
+  "additionalProperties": false,
+  "$defs": {
+    "acceptedFinding": {
+      "type": "object",
+      "required": [
+        "id",
+        "category",
+        "title",
+        "description",
+        "evidence",
+        "source_basis",
+        "relation_to_change",
+        "location",
+        "impact",
+        "recommendation",
+        "severity",
+        "confidence",
+        "anchor_kind",
+        "validation_rationale"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^CF-[0-9]{3,}$"
+        },
+        "category": {
+          "type": "string",
+          "minLength": 1
+        },
+        "title": {
+          "type": "string",
+          "minLength": 5,
+          "maxLength": 120
+        },
+        "description": {
+          "type": "string",
+          "minLength": 10,
+          "maxLength": 500
+        },
+        "evidence": {
+          "type": "string",
+          "minLength": 10,
+          "maxLength": 1000
+        },
+        "source_basis": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 500
+        },
+        "relation_to_change": {
+          "type": "string",
+          "minLength": 10,
+          "maxLength": 500
+        },
+        "location": {
+          "type": ["string", "null"],
+          "pattern": "^[^:]+:\\d+(-\\d+)?$"
+        },
+        "impact": {
+          "type": "string",
+          "minLength": 10,
+          "maxLength": 500
+        },
+        "recommendation": {
+          "type": "string",
+          "minLength": 10,
+          "maxLength": 500
+        },
+        "severity": {
+          "type": "string",
+          "enum": ["critical", "high", "warnings", "suggestions"]
+        },
+        "confidence": {
+          "type": "number",
+          "minimum": 0.0,
+          "maximum": 1.0
+        },
+        "anchor_kind": {
+          "type": "string",
+          "enum": ["changed_line", "patch_level", "out_of_patch"]
+        },
+        "validation_rationale": {
+          "type": "string",
+          "minLength": 10,
+          "maxLength": 500
+        }
+      },
+      "additionalProperties": false
+    },
+    "rejectedFinding": {
+      "type": "object",
+      "required": ["candidate_id", "reason", "validation_rationale"],
+      "properties": {
+        "candidate_id": {
+          "type": "string",
+          "pattern": "^CF-[0-9]{3,}$"
+        },
+        "reason": {
+          "type": "string",
+          "minLength": 5,
+          "maxLength": 200
+        },
+        "validation_rationale": {
+          "type": "string",
+          "minLength": 10,
+          "maxLength": 500
+        }
+      },
+      "additionalProperties": false
+    }
+  }
+}

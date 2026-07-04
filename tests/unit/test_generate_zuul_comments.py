@@ -91,6 +91,29 @@ class TestGenerateZuulComments(test.NoDBTestCase):
             result, matchers.Not(matchers.Contains('nova/virt/driver.py'))
         )
 
+    def test_github_workspace_path_matches_changed_file(self):
+        """GitHub Zuul checkout paths normalize to repo-relative paths."""
+        review_data = {
+            'issues': {
+                'critical': [],
+                'high': [],
+                'warnings': [
+                    self._make_issue(
+                        location=(
+                            '/home/zuul/src/github.com/SeanMooney/'
+                            'openstack-ai-style-guide/nova/compute/manager.py:42'
+                        ),
+                    ),
+                ],
+                'suggestions': [],
+            }
+        }
+        result = self.gen_comments.extract_file_comments(
+            review_data,
+            changed_files={'nova/compute/manager.py'},
+        )
+        self.assertIn('nova/compute/manager.py', result)
+
     def test_generate_zuul_return_data_includes_patch_level_warnings(self):
         """Patch-level observations become Zuul summary warnings."""
         review_data = {

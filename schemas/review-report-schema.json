@@ -255,7 +255,6 @@
       "required": [
         "description",
         "confidence",
-        "reporting_mode",
         "location",
         "risk",
         "remediation_priority",
@@ -271,8 +270,8 @@
         },
         "confidence": {
           "type": "number",
-          "description": "Confidence score (0.60-1.0). Per-severity routing thresholds determine reporting_mode.",
-          "minimum": 0.6,
+          "description": "Confidence score (0.0-1.0). Per-severity thresholds determine whether the normalizer keeps or routes the finding.",
+          "minimum": 0.0,
           "maximum": 1.0
         },
         "reporting_mode": {
@@ -316,7 +315,6 @@
       "required": [
         "description",
         "confidence",
-        "reporting_mode",
         "location",
         "risk",
         "remediation_priority",
@@ -332,8 +330,8 @@
         },
         "confidence": {
           "type": "number",
-          "description": "Confidence score (0.60-1.0). Per-severity routing thresholds determine reporting_mode.",
-          "minimum": 0.6,
+          "description": "Confidence score (0.0-1.0). Per-severity thresholds determine whether the normalizer keeps or routes the finding.",
+          "minimum": 0.0,
           "maximum": 1.0
         },
         "reporting_mode": {
@@ -377,7 +375,6 @@
       "required": [
         "description",
         "confidence",
-        "reporting_mode",
         "location",
         "impact",
         "suggestion"
@@ -391,8 +388,8 @@
         },
         "confidence": {
           "type": "number",
-          "description": "Confidence score (0.60-1.0). Per-severity routing thresholds determine reporting_mode.",
-          "minimum": 0.6,
+          "description": "Confidence score (0.0-1.0). Per-severity thresholds determine whether the normalizer keeps or routes the finding.",
+          "minimum": 0.0,
           "maximum": 1.0
         },
         "reporting_mode": {
@@ -425,7 +422,6 @@
       "required": [
         "description",
         "confidence",
-        "reporting_mode",
         "location",
         "benefit",
         "recommendation"
@@ -439,8 +435,8 @@
         },
         "confidence": {
           "type": "number",
-          "description": "Confidence score (0.60-1.0). Per-severity routing thresholds determine reporting_mode.",
-          "minimum": 0.6,
+          "description": "Confidence score (0.0-1.0). Per-severity thresholds determine whether the normalizer keeps or routes the finding.",
+          "minimum": 0.0,
           "maximum": 1.0
         },
         "reporting_mode": {

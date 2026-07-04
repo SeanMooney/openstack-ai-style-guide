@@ -1,0 +1,114 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://opendev.org/openstack/openstack-ai-style-guide/schemas/candidate-findings-schema.json",
+  "title": "Candidate Review Findings",
+  "description": "Intermediate candidate findings produced by code-review-agent",
+  "type": "object",
+  "required": ["context", "findings"],
+  "properties": {
+    "context": {
+      "type": "object",
+      "required": ["change", "scope", "review_basis"],
+      "properties": {
+        "change": {
+          "type": "string",
+          "minLength": 1
+        },
+        "scope": {
+          "type": "string",
+          "minLength": 1
+        },
+        "review_basis": {
+          "type": "string",
+          "minLength": 1
+        }
+      },
+      "additionalProperties": false
+    },
+    "findings": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "id",
+          "category",
+          "title",
+          "description",
+          "evidence",
+          "source_basis",
+          "relation_to_change",
+          "location",
+          "impact",
+          "recommendation",
+          "severity",
+          "confidence",
+          "anchor_kind"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "pattern": "^CF-[0-9]{3,}$"
+          },
+          "category": {
+            "type": "string",
+            "minLength": 1
+          },
+          "title": {
+            "type": "string",
+            "minLength": 5,
+            "maxLength": 120
+          },
+          "description": {
+            "type": "string",
+            "minLength": 10,
+            "maxLength": 500
+          },
+          "evidence": {
+            "type": "string",
+            "minLength": 10,
+            "maxLength": 1000
+          },
+          "source_basis": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 500
+          },
+          "relation_to_change": {
+            "type": "string",
+            "minLength": 10,
+            "maxLength": 500
+          },
+          "location": {
+            "type": ["string", "null"],
+            "pattern": "^[^:]+:\\d+(-\\d+)?$"
+          },
+          "impact": {
+            "type": "string",
+            "minLength": 10,
+            "maxLength": 500
+          },
+          "recommendation": {
+            "type": "string",
+            "minLength": 10,
+            "maxLength": 500
+          },
+          "severity": {
+            "type": "string",
+            "enum": ["critical", "high", "warnings", "suggestions"]
+          },
+          "confidence": {
+            "type": "number",
+            "minimum": 0.0,
+            "maximum": 1.0
+          },
+          "anchor_kind": {
+            "type": "string",
+            "enum": ["changed_line", "patch_level", "out_of_patch"]
+          }
+        },
+        "additionalProperties": false
+      }
+    }
+  },
+  "additionalProperties": false
+}

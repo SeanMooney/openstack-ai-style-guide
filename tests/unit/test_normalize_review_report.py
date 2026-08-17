@@ -102,6 +102,21 @@ class TestNormalizeReviewReport(test.NoDBTestCase):
         )
         self.assertThat(diagnostics['repairs'], matchers.Not(matchers.Equals([])))
 
+    def test_confidence_is_rounded_before_routing(self):
+        """Routing and persisted JSON use the same confidence value."""
+        report = self._report()
+        report['issues']['warnings'][0]['confidence'] = 0.7996
+
+        normalized, _diagnostics = self.normalizer.normalize_report(
+            report,
+            changed_files={'nova/compute/manager.py'},
+            changed_lines=None,
+        )
+
+        issue = normalized['issues']['warnings'][0]
+        self.assertThat(issue['confidence'], matchers.Equals(0.8))
+        self.assertThat(issue['reporting_mode'], matchers.Equals('inline'))
+
     def test_github_workspace_path_matches_changed_file(self):
         """GitHub Zuul checkout paths normalize to repo-relative paths."""
         report = self._report()
@@ -161,7 +176,7 @@ class TestNormalizeReviewReport(test.NoDBTestCase):
                 'confidence': 0.65,
                 'reporting_mode': 'inline',
                 'location': 'nova/compute/manager.py:42',
-                'benefit': 'Slightly clearer local code structure',
+                'impact': 'Slightly clearer local code structure',
                 'recommendation': 'Rename the local variable for clarity',
             }
         ]

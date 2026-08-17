@@ -63,6 +63,46 @@ class TestGenerateZuulComments(test.NoDBTestCase):
         self.assertThat(len(result), matchers.GreaterThan(0))
         self.assertIn('nova/compute/manager.py', result)
 
+    def test_inline_comment_preserves_complete_finding_text(self):
+        """Inline formatting must retain long content and newlines."""
+        issue = self._make_issue()
+        issue['description'] = (
+            'Detailed description\n'
+            + ('d' * 600)
+            + ' DESCRIPTION-END'
+        )
+        issue['impact'] = 'Detailed impact\n' + ('i' * 600) + ' IMPACT-END'
+        issue['suggestion'] = (
+            'Detailed suggestion\n'
+            + ('s' * 1100)
+            + ' SUGGESTION-END'
+        )
+        review_data = {
+            'issues': {
+                'critical': [],
+                'high': [],
+                'warnings': [issue],
+                'suggestions': [],
+            }
+        }
+
+        result = self.gen_comments.extract_file_comments(review_data)
+        message = result['nova/compute/manager.py'][0]['message']
+
+        self.assertThat(message, matchers.Contains('DESCRIPTION-END'))
+        self.assertThat(message, matchers.Contains('IMPACT-END'))
+        self.assertThat(message, matchers.Contains('SUGGESTION-END'))
+        self.assertThat(message, matchers.Contains('Detailed description\n'))
+
+    def test_inline_comment_uses_stored_confidence_precision(self):
+        """Zuul comments display the JSON number without rounding it."""
+        issue = self._make_issue()
+        issue['confidence'] = 0.125
+
+        message = self.gen_comments.format_issue_message(issue, 'warning')
+
+        self.assertThat(message, matchers.Contains('Confidence**: 0.125'))
+
     def test_extract_file_comments_filters_unchanged_files(self):
         """Inline comments outside the changed file allowlist are dropped."""
         review_data = {

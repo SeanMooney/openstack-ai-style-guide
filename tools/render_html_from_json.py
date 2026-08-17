@@ -262,6 +262,7 @@ def render_issue_card(issue: Dict[str, Any], severity: str, number: int, total: 
     """
     description = escape_html(issue.get('description', 'No description'))
     confidence = issue.get('confidence', 0.0)
+    confidence_text = json.dumps(confidence, allow_nan=False)
     location = escape_html(issue.get('location', 'Unknown'))
 
     # Severity badge and icon
@@ -277,17 +278,15 @@ def render_issue_card(issue: Dict[str, Any], severity: str, number: int, total: 
     details_parts = [f'<p><strong>Location</strong>: <code>{location}</code></p>']
 
     if severity in ['critical', 'high']:
-        if 'risk' in issue:
-            details_parts.append(f'<p><strong>Risk</strong>: {escape_html(issue["risk"])}</p>')
+        if 'impact' in issue:
+            details_parts.append(
+                f'<p><strong>Impact</strong>: '
+                f'{escape_html(issue["impact"])}</p>'
+            )
         if 'remediation_priority' in issue:
             details_parts.append(
                 f'<p><strong>Remediation Priority</strong>: '
                 f'{escape_html(issue["remediation_priority"])}</p>'
-            )
-        if 'why_matters' in issue:
-            details_parts.append(
-                f'<p><strong>Why This Matters</strong>: '
-                f'{escape_html(issue["why_matters"])}</p>'
             )
         if 'recommendation' in issue:
             details_parts.append(
@@ -306,9 +305,10 @@ def render_issue_card(issue: Dict[str, Any], severity: str, number: int, total: 
             )
 
     elif severity == 'suggestion':
-        if 'benefit' in issue:
+        if 'impact' in issue:
             details_parts.append(
-                f'<p><strong>Benefit</strong>: {escape_html(issue["benefit"])}</p>'
+                f'<p><strong>Impact</strong>: '
+                f'{escape_html(issue["impact"])}</p>'
             )
         if 'recommendation' in issue:
             details_parts.append(
@@ -338,7 +338,7 @@ def render_issue_card(issue: Dict[str, Any], severity: str, number: int, total: 
         {html_only_badge}
         <span class="issue-number">{number} of {total}</span>
         <span class="issue-description">{description}</span>
-        <span class="confidence">Confidence: {confidence:.1f}</span>
+        <span class="confidence">Confidence: {confidence_text}</span>
     </summary>
     <div class="issue-details">
         {details_html}

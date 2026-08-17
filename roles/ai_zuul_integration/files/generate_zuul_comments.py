@@ -95,24 +95,25 @@ def format_issue_message(issue: Dict[str, Any], severity: str) -> str:
     """
     description = issue.get('description', 'No description')
     confidence = issue.get('confidence', 0.0)
+    confidence_text = json.dumps(confidence, allow_nan=False)
 
     # Start with description
     parts = [description, ""]
 
     # Add severity and confidence
-    parts.append(f"**Severity**: {severity.upper()} | **Confidence**: {confidence:.1f}")
+    parts.append(
+        f"**Severity**: {severity.upper()} | "
+        f"**Confidence**: {confidence_text}"
+    )
     parts.append("")
 
     # Add severity-specific fields
     if severity in ['critical', 'high']:
-        if 'risk' in issue:
-            parts.append(f"**Risk**: {issue['risk']}")
+        if 'impact' in issue:
+            parts.append(f"**Impact**: {issue['impact']}")
             parts.append("")
         if 'remediation_priority' in issue:
             parts.append(f"**Priority**: {issue['remediation_priority']}")
-        if 'why_matters' in issue:
-            parts.append(f"**Why This Matters**: {issue['why_matters']}")
-            parts.append("")
         if 'recommendation' in issue:
             parts.append("**Recommendation**:")
             parts.append(issue['recommendation'])
@@ -126,8 +127,8 @@ def format_issue_message(issue: Dict[str, Any], severity: str) -> str:
             parts.append(issue['suggestion'])
 
     elif severity == 'suggestion':
-        if 'benefit' in issue:
-            parts.append(f"**Benefit**: {issue['benefit']}")
+        if 'impact' in issue:
+            parts.append(f"**Impact**: {issue['impact']}")
             parts.append("")
         if 'recommendation' in issue:
             parts.append("**Recommendation**:")

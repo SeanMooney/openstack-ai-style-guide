@@ -228,7 +228,8 @@ def normalize_issues(
                     {'id': finding_id, 'reason': 'missing numeric confidence'}
                 )
                 continue
-            confidence = float(confidence)
+            confidence = round(float(confidence), 3)
+            issue['confidence'] = confidence
             if confidence < KEEP_THRESHOLDS[severity]:
                 diagnostics['dropped_findings'].append(
                     {

@@ -69,28 +69,23 @@
         },
         "title": {
           "type": "string",
-          "minLength": 5,
-          "maxLength": 120
+          "minLength": 5
         },
         "description": {
           "type": "string",
-          "minLength": 10,
-          "maxLength": 500
+          "minLength": 10
         },
         "evidence": {
           "type": "string",
-          "minLength": 10,
-          "maxLength": 1000
+          "minLength": 10
         },
         "source_basis": {
           "type": "string",
-          "minLength": 1,
-          "maxLength": 500
+          "minLength": 1
         },
         "relation_to_change": {
           "type": "string",
-          "minLength": 10,
-          "maxLength": 500
+          "minLength": 10
         },
         "location": {
           "type": ["string", "null"],
@@ -98,13 +93,11 @@
         },
         "impact": {
           "type": "string",
-          "minLength": 10,
-          "maxLength": 500
+          "minLength": 10
         },
         "recommendation": {
           "type": "string",
-          "minLength": 10,
-          "maxLength": 500
+          "minLength": 10
         },
         "severity": {
           "type": "string",
@@ -121,8 +114,7 @@
         },
         "validation_rationale": {
           "type": "string",
-          "minLength": 10,
-          "maxLength": 500
+          "minLength": 10
         }
       },
       "additionalProperties": false
@@ -137,13 +129,11 @@
         },
         "reason": {
           "type": "string",
-          "minLength": 5,
-          "maxLength": 200
+          "minLength": 5
         },
         "validation_rationale": {
           "type": "string",
-          "minLength": 10,
-          "maxLength": 500
+          "minLength": 10
         }
       },
       "additionalProperties": false

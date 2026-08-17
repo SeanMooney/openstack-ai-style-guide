@@ -40,45 +40,36 @@ def empty_stats() -> dict[str, int]:
     return stats
 
 
-def truncate(value: str, limit: int) -> str:
-    """Trim a string to a schema-safe length."""
-    value = ' '.join(str(value).split())
-    if len(value) <= limit:
-        return value
-    return value[: limit - 3].rstrip() + '...'
-
-
 def issue_from_finding(finding: dict[str, Any]) -> dict[str, Any]:
     """Convert a changed-line finding to a report issue."""
     severity = finding['severity']
     base = {
-        'description': truncate(finding['description'], 300),
-        'confidence': finding['confidence'],
+        'description': finding['description'],
+        'confidence': round(float(finding['confidence']), 3),
         'location': finding['location'],
     }
     if severity in ('critical', 'high'):
         base.update(
             {
-                'risk': truncate(finding['impact'], 300),
+                'impact': finding['impact'],
                 'remediation_priority': (
                     'Immediate' if severity == 'critical' else 'Before merge'
                 ),
-                'why_matters': truncate(finding['impact'], 300),
-                'recommendation': truncate(finding['recommendation'], 500),
+                'recommendation': finding['recommendation'],
             }
         )
     elif severity == 'warnings':
         base.update(
             {
-                'impact': truncate(finding['impact'], 300),
-                'suggestion': truncate(finding['recommendation'], 500),
+                'impact': finding['impact'],
+                'suggestion': finding['recommendation'],
             }
         )
     else:
         base.update(
             {
-                'benefit': truncate(finding['impact'], 300),
-                'recommendation': truncate(finding['recommendation'], 500),
+                'impact': finding['impact'],
+                'recommendation': finding['recommendation'],
             }
         )
     return base
@@ -87,18 +78,18 @@ def issue_from_finding(finding: dict[str, Any]) -> dict[str, Any]:
 def patch_observation(finding: dict[str, Any]) -> dict[str, str]:
     """Convert a patch-level finding to a report observation."""
     return {
-        'description': truncate(finding['description'], 300),
-        'impact': truncate(finding['impact'], 300),
-        'recommendation': truncate(finding['recommendation'], 500),
+        'description': finding['description'],
+        'impact': finding['impact'],
+        'recommendation': finding['recommendation'],
     }
 
 
 def out_of_patch_observation(finding: dict[str, Any]) -> dict[str, str]:
     """Convert an out-of-patch finding to a report observation."""
     return {
-        'description': truncate(finding['description'], 300),
+        'description': finding['description'],
         'location': finding['location'] or 'unknown:1',
-        'suggestion': truncate(finding['recommendation'], 500),
+        'suggestion': finding['recommendation'],
     }
 
 
@@ -116,9 +107,9 @@ def context_from_validated(
         or 'Review impact was not provided by the prepared context'
     )
     return {
-        'change': truncate(change or 'No change summary available', 200),
-        'scope': truncate(scope or 'No review scope available', 300),
-        'impact': truncate(impact, 300),
+        'change': change or 'No change summary available',
+        'scope': scope or 'No review scope available',
+        'impact': impact,
     }
 
 

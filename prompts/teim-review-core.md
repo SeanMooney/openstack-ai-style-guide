@@ -97,6 +97,12 @@ Write all review artifacts into `output_dir`:
 
 ## Review Policy
 
+- Keep findings concise without sacrificing necessary evidence or actionable
+  guidance. As writing targets, keep titles to one line within 120 characters,
+  descriptions, impacts, recommendations, and validation rationale within 800
+  characters, and evidence within 1500 characters. These are advisory targets,
+  not hard limits: exceed them when needed, and never truncate a complete
+  finding to satisfy them.
 - Treat project-specific guidance as authoritative overrides of generic
   OpenStack guidance.
 - Prefer behavioral regressions, correctness risks, maintainability issues, and

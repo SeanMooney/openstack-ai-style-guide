@@ -143,6 +143,10 @@ class TestBuildReviewReport(test.NoDBTestCase):
         )
         issue = report['issues']['high'][0]
 
+        self.assertThat(
+            issue['title'],
+            matchers.Equals('Changed code drops required state'),
+        )
         self.assertThat(issue['description'], matchers.Equals(description))
         self.assertThat(issue['impact'], matchers.Equals(impact))
         self.assertThat(issue, matchers.Not(matchers.Contains('risk')))

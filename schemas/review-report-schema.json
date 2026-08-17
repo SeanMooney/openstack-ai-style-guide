@@ -242,6 +242,7 @@
     "criticalIssue": {
       "type": "object",
       "required": [
+        "title",
         "description",
         "confidence",
         "location",
@@ -250,6 +251,11 @@
         "recommendation"
       ],
       "properties": {
+        "title": {
+          "type": "string",
+          "description": "One-line title describing the problem",
+          "minLength": 5
+        },
         "description": {
           "type": "string",
           "description": "Clear description of the issue",
@@ -292,6 +298,7 @@
     "highIssue": {
       "type": "object",
       "required": [
+        "title",
         "description",
         "confidence",
         "location",
@@ -300,6 +307,11 @@
         "recommendation"
       ],
       "properties": {
+        "title": {
+          "type": "string",
+          "description": "One-line title describing the problem",
+          "minLength": 5
+        },
         "description": {
           "type": "string",
           "description": "Clear description of the issue",
@@ -342,6 +354,7 @@
     "warningIssue": {
       "type": "object",
       "required": [
+        "title",
         "description",
         "confidence",
         "location",
@@ -349,6 +362,11 @@
         "suggestion"
       ],
       "properties": {
+        "title": {
+          "type": "string",
+          "description": "One-line title describing the problem",
+          "minLength": 5
+        },
         "description": {
           "type": "string",
           "description": "Clear description of the issue",
@@ -386,6 +404,7 @@
     "suggestionIssue": {
       "type": "object",
       "required": [
+        "title",
         "description",
         "confidence",
         "location",
@@ -393,6 +412,11 @@
         "recommendation"
       ],
       "properties": {
+        "title": {
+          "type": "string",
+          "description": "One-line title describing the problem",
+          "minLength": 5
+        },
         "description": {
           "type": "string",
           "description": "Clear description of the issue",

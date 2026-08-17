@@ -60,6 +60,7 @@ class TestRenderHtml(test.NoDBTestCase):
             'issues': {
                 'critical': [
                     {
+                        'title': 'Authentication check is missing',
                         'description': 'Security vulnerability',
                         'confidence': 0.95,
                         'reporting_mode': 'inline',
@@ -89,11 +90,22 @@ class TestRenderHtml(test.NoDBTestCase):
         """Test HTML generation with valid review data."""
         review_data = self._create_sample_review()
         html_content = self.render_html.render_html_template(review_data)
+        issue_summary = html_content.split('<summary', 1)[1].split(
+            '</summary>', 1
+        )[0]
 
         # Verify HTML structure using matchers (H203/H204 compliance)
         self.assertThat(html_content, matchers.Contains('<!DOCTYPE html>'))
         self.assertThat(html_content, matchers.Contains('<title>Code Review Report</title>'))
         self.assertThat(html_content, matchers.Contains('1 Critical'))
+        self.assertThat(
+            issue_summary,
+            matchers.Contains('Authentication check is missing'),
+        )
+        self.assertThat(
+            issue_summary,
+            matchers.Not(matchers.Contains('Security vulnerability')),
+        )
         self.assertThat(html_content, matchers.Contains('Security vulnerability'))
 
     def test_render_html_preserves_complete_finding_text(self):

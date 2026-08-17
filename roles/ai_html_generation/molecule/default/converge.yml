@@ -50,6 +50,7 @@
             "issues": {
               "critical": [
                 {
+                  "title": "Authentication check is missing",
                   "description": "Security vulnerability",
                   "confidence": 0.95,
                   "reporting_mode": "inline",

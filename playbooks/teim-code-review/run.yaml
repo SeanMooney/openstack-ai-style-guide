@@ -200,6 +200,8 @@
         ai_html_generation_html_report_file: "{{ html_report_file }}"
         ai_html_generation_review_output_dir: "{{ review_output_dir }}"
         ai_html_generation_style_guide_project: "{{ style_guide_project }}"
+        ai_html_generation_review_report_schema: >-
+          {{ style_guide_project }}/schemas/review-report-schema.json
 
     - name: Integrate with Zuul (comments and artifacts)
       ansible.builtin.include_role:

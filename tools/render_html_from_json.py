@@ -1,7 +1,7 @@
 #!/usr/bin/env -S uv run --script
 # /// script
 # requires-python = ">=3.10"
-# dependencies = []
+# dependencies = ["jsonschema>=4.23.0"]
 # ///
 # Copyright 2025 Sean Mooney
 #
@@ -24,10 +24,12 @@ compliant HTML with enhanced visual features including collapsible sections,
 larger badges, and color-coded backgrounds.
 
 Usage (with uv, no venv required):
-    ./tools/render_html_from_json.py review-report.json review-report.html -v
+    ./tools/render_html_from_json.py review-report.json review-report.html \
+        --schema schemas/review-report-schema.json -v
 
 Usage (with plain python3):
-    python3 tools/render_html_from_json.py review-report.json review-report.html -v
+    python3 tools/render_html_from_json.py review-report.json review-report.html \
+        --schema schemas/review-report-schema.json -v
 """
 
 import argparse
@@ -35,6 +37,8 @@ import json
 import sys
 from pathlib import Path
 from typing import Any, Dict, List
+
+import jsonschema
 
 
 # WCAG AA compliant colors for carbon/slate + orange→pink theme
@@ -897,6 +901,12 @@ def main():
         help="Output HTML file path"
     )
     parser.add_argument(
+        "--schema",
+        required=True,
+        type=Path,
+        help="JSON schema used to validate the review report"
+    )
+    parser.add_argument(
         "-v", "--verbose",
         action="store_true",
         help="Enable verbose output"
@@ -932,28 +942,25 @@ def main():
         )
         sys.exit(1)
 
-    # Preserve compatibility with older report payloads by defaulting
-    # renderer-only optional sections when they are absent. Use a populated
-    # statistics_html_only default so legacy reports render explicit zeros.
-    review_data.setdefault('statistics_html_only', {
-        'critical': 0,
-        'high': 0,
-        'warnings': 0,
-        'suggestions': 0,
-        'total': 0,
-    })
-    review_data.setdefault('patch_level_observations', [])
-    review_data.setdefault('out_of_patch_observations', [])
-    review_data.setdefault('positive_observations', [])
-
-    # Validate the minimum structure needed for HTML generation.
-    required_keys = ['context', 'statistics', 'issues', 'summary']
-    missing_keys = [key for key in required_keys if key not in review_data]
-    if missing_keys:
+    try:
+        schema = load_json_with_trailing_text(args.schema)
+        jsonschema.Draft202012Validator.check_schema(schema)
+        jsonschema.validate(review_data, schema)
+    except (FileNotFoundError, json.JSONDecodeError) as exc:
+        print(f"Error: Unable to load review schema: {exc}", file=sys.stderr)
+        sys.exit(1)
+    except jsonschema.SchemaError as exc:
         print(
-            f"Error: Invalid review data structure. Missing required keys: "
-            f"{', '.join(missing_keys)}",
-            file=sys.stderr
+            f"Error: Invalid review schema: {exc.message}", file=sys.stderr
+        )
+        sys.exit(1)
+    except jsonschema.ValidationError as exc:
+        location = '.'.join(str(part) for part in exc.absolute_path)
+        location = location or '<root>'
+        print(
+            f"Error: Review report does not match schema at {location}: "
+            f"{exc.message}",
+            file=sys.stderr,
         )
         sys.exit(1)
 

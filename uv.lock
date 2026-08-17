@@ -1019,6 +1019,10 @@ wheels = [
 name = "openstack-ai-style-guide"
 version = "1.0.0"
 source = { virtual = "." }
+dependencies = [
+    { name = "jsonschema" },
+    { name = "pyyaml" },
+]
 
 [package.optional-dependencies]
 test = [
@@ -1046,12 +1050,14 @@ requires-dist = [
     { name = "ansible-lint", marker = "extra == 'test'" },
     { name = "coverage", marker = "extra == 'test'", specifier = ">=7.0.0" },
     { name = "fixtures", marker = "extra == 'test'", specifier = ">=4.0.0" },
+    { name = "jsonschema", specifier = ">=4.23.0" },
     { name = "mock", marker = "extra == 'test'", specifier = ">=5.0.0" },
     { name = "molecule", marker = "extra == 'test'", specifier = ">=6.0.0" },
     { name = "molecule-plugins", marker = "extra == 'test'", specifier = ">=23.0.0" },
     { name = "oslo-config", marker = "extra == 'test'", specifier = ">=9.0.0" },
     { name = "oslo-log", marker = "extra == 'test'", specifier = ">=5.0.0" },
     { name = "oslotest", marker = "extra == 'test'", specifier = ">=4.0.0" },
+    { name = "pyyaml", specifier = ">=6.0" },
     { name = "stestr", marker = "extra == 'test'", specifier = ">=4.0.0" },
     { name = "testtools", marker = "extra == 'test'", specifier = ">=2.5.0" },
 ]

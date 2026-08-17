@@ -12,6 +12,7 @@
 
 """Test cases for HTML rendering script."""
 
+import io
 import json
 import pathlib
 import sys
@@ -31,6 +32,7 @@ class TestRenderHtml(test.NoDBTestCase):
         self.render_html = test.load_script(
             'tools/render_html_from_json.py'
         )
+        self.schema_path = pathlib.Path('schemas/review-report-schema.json')
 
     def _create_sample_review(self):
         """Create sample review data.
@@ -39,7 +41,7 @@ class TestRenderHtml(test.NoDBTestCase):
         """
         return {
             'context': {
-                'change': '12345',
+                'change': 'Change 12345',
                 'scope': 'Modified roles/ai_code_review',
                 'impact': 'Adds structured output support',
             },
@@ -82,7 +84,10 @@ class TestRenderHtml(test.NoDBTestCase):
             'summary': {
                 'assessment': 'Needs work',
                 'priority_focus': 'Address the security finding before merge',
-                'detailed_summary': 'Multiple security issues found',
+                'detailed_summary': (
+                    'The review identified multiple security issues that '
+                    'must be addressed before this change can merge.'
+                ),
             },
         }
 
@@ -249,29 +254,38 @@ class TestRenderHtml(test.NoDBTestCase):
         self.assertThat(html, matchers.Contains('different scheduling decisions'))
         self.assertThat(html, matchers.Contains('release note before merge'))
 
-    def test_main_defaults_optional_sections_for_legacy_payloads(self):
-        """CLI rendering should stay compatible with legacy payloads."""
+    def test_main_rejects_issue_without_schema_required_title(self):
+        """CLI rejects an issue without its schema-required title."""
         tempdir = pathlib.Path(self.useFixture(fixtures.TempDir()).path)
-        json_file = tempdir / 'legacy-review.json'
-        html_file = tempdir / 'legacy-review.html'
+        json_file = tempdir / 'invalid-review.json'
+        html_file = tempdir / 'invalid-review.html'
         review_data = self._create_sample_review()
-        review_data.pop('statistics_html_only')
-        review_data.pop('patch_level_observations')
-        review_data.pop('out_of_patch_observations')
-        review_data.pop('positive_observations')
+        review_data['issues']['critical'][0].pop('title')
         json_file.write_text(json.dumps(review_data))
 
-        with mock.patch.object(
-            sys,
-            'argv',
-            ['render_html_from_json.py', str(json_file), str(html_file)],
+        stderr = io.StringIO()
+        with (
+            mock.patch.object(
+                sys,
+                'argv',
+                [
+                    'render_html_from_json.py',
+                    str(json_file),
+                    str(html_file),
+                    '--schema',
+                    str(self.schema_path),
+                ],
+            ),
+            mock.patch.object(sys, 'stderr', stderr),
         ):
-            self.render_html.main()
+            error = self.assertRaises(SystemExit, self.render_html.main)
 
-        self.assertThat(html_file.exists(), matchers.Equals(True))
+        self.assertThat(error.code, matchers.Equals(1))
         self.assertThat(
-            html_file.read_text(), matchers.Contains('Code Review Report')
+            stderr.getvalue(),
+            matchers.Contains("'title' is a required property"),
         )
+        self.assertThat(html_file.exists(), matchers.Equals(False))
 
     def test_main_rejects_non_object_json(self):
         """CLI rendering should fail cleanly on non-object JSON."""
@@ -287,7 +301,13 @@ class TestRenderHtml(test.NoDBTestCase):
             with mock.patch.object(
                 sys,
                 'argv',
-                ['render_html_from_json.py', str(json_file), str(html_file)],
+                [
+                    'render_html_from_json.py',
+                    str(json_file),
+                    str(html_file),
+                    '--schema',
+                    str(self.schema_path),
+                ],
             ):
                 error = self.assertRaises(SystemExit, self.render_html.main)
 

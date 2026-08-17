@@ -97,25 +97,15 @@ Write all review artifacts into `output_dir`:
 
 ## Review Policy
 
-- Keep findings concise without sacrificing necessary evidence or actionable
-  guidance. As writing targets, keep titles to one line within 120 characters,
-  descriptions, impacts, recommendations, and validation rationale within 800
-  characters, and evidence within 1500 characters. These are advisory targets,
-  not hard limits: exceed them when needed, and never truncate a complete
-  finding to satisfy them.
-- Treat project-specific guidance as authoritative overrides of generic
-  OpenStack guidance.
-- Prefer behavioral regressions, correctness risks, maintainability issues, and
-  security issues over formatting-only findings.
-- Keep hardcoded internal test credentials and other documented exceptions out
-  of findings when repository guidance marks them intentional.
-- Put pre-existing observations outside the patch in
-  `out_of_patch_observations`, not in `issues`.
-- If changed code in one file affects behavior in an unmodified file, report the
-  finding as an inline issue on the changed file and explain the unmodified file
-  impact in the issue text.
-- Put in-scope findings that cannot be safely anchored to a changed file in
-  `patch_level_observations`.
+The authoritative review contract is `finding_policy`. Candidate generation
+and finding validation must both follow it. The quick rules and comprehensive
+guide are coding references and do not independently determine what deserves a
+finding.
+
+This workflow owns preparation, orchestration, deterministic report assembly,
+scope-safe routing, and publication. It must not duplicate or weaken the review
+criteria, exclusions, severity guidance, or finding-quality requirements in
+`finding_policy`.
 
 ## Local Review Scope
 

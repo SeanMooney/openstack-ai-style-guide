@@ -94,6 +94,28 @@ class TestBuildReviewReport(test.NoDBTestCase):
             matchers.Equals(2),
         )
 
+    def test_build_report_retains_commit_message_finding_as_issue(self):
+        """Commit-message findings retain their synthetic file location."""
+        finding = self._finding(anchor_kind='patch_level', severity='warnings')
+        finding['location'] = '/COMMIT_MSG:1'
+
+        report = self.builder.build_report(
+            {'accepted_findings': [finding]},
+            {
+                'change': 'Commit message cleanup',
+                'scope': 'Commit message',
+                'review_basis': 'OpenStack review guidance',
+                'impact': 'Permanent change history remains clear',
+            },
+        )
+
+        self.assertThat(len(report['issues']['warnings']), matchers.Equals(1))
+        self.assertThat(
+            report['issues']['warnings'][0]['location'],
+            matchers.Equals('/COMMIT_MSG:1'),
+        )
+        self.assertThat(report['patch_level_observations'], matchers.Equals([]))
+
     def test_build_report_preserves_complete_finding_text(self):
         """Report assembly must not shorten or flatten finding content."""
         description = 'Detailed description\n' + ('d' * 600) + ' DESCRIPTION-END'

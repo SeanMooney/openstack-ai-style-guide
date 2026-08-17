@@ -135,6 +135,21 @@ class TestNormalizeReviewReport(test.NoDBTestCase):
         self.assertThat(issue['reporting_mode'], matchers.Equals('inline'))
         self.assertThat(normalized['statistics']['warnings'], matchers.Equals(1))
 
+    def test_commit_message_location_remains_inline(self):
+        """The synthetic commit-message file bypasses source allowlists."""
+        report = self._report()
+        report['issues']['warnings'][0]['location'] = '/COMMIT_MSG:1'
+
+        normalized, _diagnostics = self.normalizer.normalize_report(
+            report,
+            changed_files={'nova/compute/manager.py'},
+            changed_lines={'nova/compute/manager.py': [[1, 100]]},
+        )
+
+        issue = normalized['issues']['warnings'][0]
+        self.assertThat(issue['reporting_mode'], matchers.Equals('inline'))
+        self.assertThat(issue['location'], matchers.Equals('/COMMIT_MSG:1'))
+
     def test_changed_file_filter_downgrades_inline_finding(self):
         """Inline-eligible findings outside changed files are HTML-only."""
         report, diagnostics = self.normalizer.normalize_report(

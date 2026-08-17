@@ -74,6 +74,8 @@
       changed_files_file: "{{ review_output_dir }}/changed-files.txt"
       changed_lines_file: "{{ review_output_dir }}/changed-lines.json"
       venv_dir: "{{ ansible_user_dir }}/.venv"
+      zuul_copy_output:
+        "{{ review_output_dir }}": logs
 
       extensions_to_txt:
         conf: true

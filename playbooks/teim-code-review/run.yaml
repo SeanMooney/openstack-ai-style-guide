@@ -38,12 +38,55 @@
         dest: "{{ review_output_dir }}/inventory.yaml"
         mode: '0644'
 
+    - name: Select review source and scope
+      ansible.builtin.set_fact:
+        review_project_dir: >-
+          {{ ansible_user_dir }}/{{ zuul.project.src_dir }}
+        review_scope_mode: >-
+          {{ 'branch'
+             if (zuul.patchset | default('') | string)
+                is match('^[0-9a-fA-F]{40}([0-9a-fA-F]{24})?$')
+             else 'commit' }}
+
+    - name: Resolve GitHub branch review base
+      ansible.builtin.command:
+        argv:
+          - git
+          - -C
+          - "{{ review_project_dir }}"
+          - merge-base
+          - HEAD
+          - "refs/remotes/origin/{{ zuul.branch }}"
+      register: github_review_base
+      changed_when: false
+      when: review_scope_mode == 'branch'
+
+    - name: Resolve Gerrit commit review base
+      ansible.builtin.command:
+        argv:
+          - git
+          - -C
+          - "{{ review_project_dir }}"
+          - rev-parse
+          - HEAD^
+      register: gerrit_review_base
+      changed_when: false
+      when: review_scope_mode == 'commit'
+
+    - name: Record review base
+      ansible.builtin.set_fact:
+        review_base: >-
+          {{ github_review_base.stdout
+             if review_scope_mode == 'branch'
+             else gerrit_review_base.stdout }}
+
     - name: Generate changed file list for review scope
       ansible.builtin.command:
         cmd: >-
           python3
           {{ style_guide_project }}/skills/teim-review/scripts/detect_changed_files.py
-          {{ ansible_user_dir }}/{{ zuul.project.src_dir }}
+          {{ review_project_dir }}
+          --base-ref {{ review_base }}
           --output {{ changed_files_file }}
       changed_when: false
 
@@ -51,7 +94,7 @@
     - name: Fetch previous patchset for incremental review
       ansible.builtin.command:
         cmd: >-
-          git -C {{ ansible_user_dir }}/{{ zuul.project.src_dir }}
+          git -C {{ review_project_dir }}
           fetch origin
           refs/changes/{{ '%02d' | format(zuul.change | int % 100) }}/{{ zuul.change }}/{{ zuul.patchset | int - 1 }}
       changed_when: false
@@ -64,7 +107,7 @@
         cmd: >-
           python3
           {{ style_guide_project }}/skills/teim-review/scripts/detect_changed_lines.py
-          {{ ansible_user_dir }}/{{ zuul.project.src_dir }}
+          {{ review_project_dir }}
           --ref1 FETCH_HEAD
           --ref2 HEAD
           --output {{ changed_lines_file }}
@@ -112,8 +155,10 @@
         ai_code_review_context_file: "{{ review_output_dir }}/review-context.json"
         ai_code_review_validation_file: "{{ review_output_dir }}/review-validation.json"
         ai_code_review_changed_files_file: "{{ changed_files_file }}"
+        ai_code_review_review_base: "{{ review_base }}"
+        ai_code_review_scope_mode: "{{ review_scope_mode }}"
         ai_code_review_output_dir: "{{ review_output_dir }}"
-        ai_code_review_project_src_dir: "{{ ansible_user_dir }}/{{ zuul.project.src_dir }}"
+        ai_code_review_project_src_dir: "{{ review_project_dir }}"
         ai_code_review_claude_binary: "{{ claude_binary }}"
         ai_code_review_anthropic_auth_token: "{{ anthropic_auth_token }}"
         ai_code_review_anthropic_api_url: "{{ anthropic_api_url }}"

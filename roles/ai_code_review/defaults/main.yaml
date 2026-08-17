@@ -41,6 +41,8 @@ ai_code_review_context_file: >-
 ai_code_review_validation_file: >-
   {{ ai_code_review_output_dir }}/review-validation.json
 ai_code_review_changed_files_file: "{{ ai_code_review_output_dir }}/changed-files.txt"
+ai_code_review_review_base: ""
+ai_code_review_scope_mode: "local"
 
 # Review output directory
 ai_code_review_output_dir: "{{ ansible_user_dir }}/logs/code-review"

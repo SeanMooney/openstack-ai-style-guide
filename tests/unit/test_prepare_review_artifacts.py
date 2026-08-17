@@ -14,6 +14,7 @@
 
 import json
 import pathlib
+import subprocess
 
 import fixtures
 from testtools import matchers
@@ -113,6 +114,7 @@ class TestPrepareReviewArtifacts(test.NoDBTestCase):
             matchers.Equals(str(policy)),
         )
         self.assertThat(context['impact'], matchers.Contains('Review impact'))
+        self.assertThat(context['review']['scope_mode'], matchers.Equals('local'))
         guidelines = output.joinpath('project-guidelines.md').read_text(
             encoding='utf-8'
         )
@@ -139,3 +141,38 @@ class TestPrepareReviewArtifacts(test.NoDBTestCase):
         self.assertThat(zuul['change'], matchers.Equals('12345'))
         self.assertThat(zuul['patchset'], matchers.Equals('2'))
         self.assertThat(zuul['project'], matchers.Equals('openstack/nova'))
+
+    def test_git_context_stat_uses_explicit_review_base(self):
+        """GitHub branch summaries cover every commit after the PR base."""
+        root = pathlib.Path(self.useFixture(fixtures.TempDir()).path)
+        project = root / 'project'
+        project.mkdir()
+
+        def run_git(*args):
+            return subprocess.run(  # noqa: S603
+                ['git', *args],  # noqa: S607
+                cwd=str(project),
+                text=True,
+                capture_output=True,
+                check=True,
+            ).stdout.strip()
+
+        run_git('init', '-b', 'master')
+        run_git('config', 'user.email', 'test@example.com')
+        run_git('config', 'user.name', 'Test User')
+        project.joinpath('base.txt').write_text('base\n', encoding='utf-8')
+        run_git('add', '.')
+        run_git('commit', '-m', 'base')
+        review_base = run_git('rev-parse', 'HEAD')
+
+        project.joinpath('first.txt').write_text('first\n', encoding='utf-8')
+        run_git('add', '.')
+        run_git('commit', '-m', 'first PR commit')
+        project.joinpath('second.txt').write_text('second\n', encoding='utf-8')
+        run_git('add', '.')
+        run_git('commit', '-m', 'second PR commit')
+
+        context = self.preparer.collect_git_context(project, review_base)
+
+        self.assertThat(context['stat'], matchers.Contains('first.txt'))
+        self.assertThat(context['stat'], matchers.Contains('second.txt'))

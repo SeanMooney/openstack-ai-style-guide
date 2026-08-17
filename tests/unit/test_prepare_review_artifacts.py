@@ -174,5 +174,23 @@ class TestPrepareReviewArtifacts(test.NoDBTestCase):
 
         context = self.preparer.collect_git_context(project, review_base)
 
+        self.assertThat(context['commits'], matchers.Contains('first PR commit'))
+        self.assertThat(context['commits'], matchers.Contains('second PR commit'))
         self.assertThat(context['stat'], matchers.Contains('first.txt'))
         self.assertThat(context['stat'], matchers.Contains('second.txt'))
+
+        output = root / 'output'
+        output.mkdir()
+        self.preparer.write_commit_summary(
+            output,
+            {
+                'change': 'Multi-commit pull request',
+                'git': context,
+            },
+        )
+        summary = output.joinpath('commit-summary.md').read_text(
+            encoding='utf-8'
+        )
+        self.assertThat(summary, matchers.Contains('Head subject:'))
+        self.assertThat(summary, matchers.Contains('Commits In Reviewed Range'))
+        self.assertThat(summary, matchers.Contains('Reviewed Range Diff Stat'))

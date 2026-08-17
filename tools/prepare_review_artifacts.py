@@ -111,6 +111,10 @@ def collect_git_context(
         'subject': run_git(project_dir, ['log', '-1', '--format=%s']),
         'body': run_git(project_dir, ['log', '-1', '--format=%b']),
         'author': run_git(project_dir, ['log', '-1', '--format=%an <%ae>']),
+        'commits': run_git(
+            project_dir,
+            ['log', '--reverse', '--format=%h %s', diff_range],
+        ),
         'stat': run_git(project_dir, ['diff', '--stat', diff_range]),
         'status': run_git(project_dir, ['status', '--short']),
     }
@@ -205,19 +209,26 @@ def write_commit_summary(output_dir: Path, context: dict[str, Any]) -> None:
     """Write commit summary markdown."""
     git_context = context['git']
     body = git_context.get('body') or 'No commit body was available.'
+    commits = git_context.get('commits') or 'No commit list was available.'
     stat = git_context.get('stat') or 'No git diff stat was available.'
     lines = [
         '# Commit Summary',
         '',
-        f'Subject: {git_context.get("subject") or context["change"]}',
-        f'Author: {git_context.get("author") or "unknown"}',
-        f'Commit: {git_context.get("head") or "unknown"}',
+        f'Head subject: {git_context.get("subject") or context["change"]}',
+        f'Head author: {git_context.get("author") or "unknown"}',
+        f'Head commit: {git_context.get("head") or "unknown"}',
         '',
-        '## Message Body',
+        '## Head Commit Message Body',
         '',
         body,
         '',
-        '## Diff Stat',
+        '## Commits In Reviewed Range',
+        '',
+        '```text',
+        commits,
+        '```',
+        '',
+        '## Reviewed Range Diff Stat',
         '',
         '```text',
         stat,

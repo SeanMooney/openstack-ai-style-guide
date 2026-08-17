@@ -260,7 +260,8 @@ def render_issue_card(issue: Dict[str, Any], severity: str, number: int, total: 
     Returns:
         HTML for the issue card
     """
-    description = escape_html(issue.get('description', 'No description'))
+    title = escape_html(issue['title'])
+    description = escape_html(issue['description'])
     confidence = issue.get('confidence', 0.0)
     confidence_text = json.dumps(confidence, allow_nan=False)
     location = escape_html(issue.get('location', 'Unknown'))
@@ -275,7 +276,10 @@ def render_issue_card(issue: Dict[str, Any], severity: str, number: int, total: 
     icon, label = badge_map.get(severity, ('•', severity.upper()))
 
     # Build details section based on severity
-    details_parts = [f'<p><strong>Location</strong>: <code>{location}</code></p>']
+    details_parts = [
+        f'<p><strong>Location</strong>: <code>{location}</code></p>',
+        f'<p><strong>Description</strong>: {description}</p>',
+    ]
 
     if severity in ['critical', 'high']:
         if 'impact' in issue:
@@ -337,7 +341,7 @@ def render_issue_card(issue: Dict[str, Any], severity: str, number: int, total: 
         </span>
         {html_only_badge}
         <span class="issue-number">{number} of {total}</span>
-        <span class="issue-description">{description}</span>
+        <span class="issue-title">{title}</span>
         <span class="confidence">Confidence: {confidence_text}</span>
     </summary>
     <div class="issue-details">
@@ -750,7 +754,7 @@ strong {
     font-style: italic;
 }
 
-.issue-description {
+.issue-title {
     flex: 1;
     min-width: 200px;
 }

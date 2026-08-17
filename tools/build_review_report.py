@@ -44,6 +44,7 @@ def issue_from_finding(finding: dict[str, Any]) -> dict[str, Any]:
     """Convert a changed-line finding to a report issue."""
     severity = finding['severity']
     base = {
+        'title': finding['title'],
         'description': finding['description'],
         'confidence': round(float(finding['confidence']), 3),
         'location': finding['location'],

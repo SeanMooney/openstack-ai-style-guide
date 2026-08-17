@@ -84,6 +84,15 @@ def patch_observation(finding: dict[str, Any]) -> dict[str, str]:
     }
 
 
+def is_commit_message_finding(finding: dict[str, Any]) -> bool:
+    """Return whether a patch-level finding targets the commit message."""
+    location = finding.get('location') or ''
+    return (
+        finding.get('anchor_kind') == 'patch_level'
+        and location.startswith('/COMMIT_MSG:')
+    )
+
+
 def out_of_patch_observation(finding: dict[str, Any]) -> dict[str, str]:
     """Convert an out-of-patch finding to a report observation."""
     return {
@@ -165,7 +174,9 @@ def build_report(
     for finding in accepted:
         severity = finding['severity']
         anchor_kind = finding['anchor_kind']
-        if anchor_kind == 'changed_line' and finding.get('location'):
+        if (
+            anchor_kind == 'changed_line' and finding.get('location')
+        ) or is_commit_message_finding(finding):
             report['issues'][severity].append(issue_from_finding(finding))
             report['statistics'][severity] += 1
         elif anchor_kind == 'out_of_patch':

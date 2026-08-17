@@ -54,6 +54,11 @@ def normalize_file_path(file_path: str) -> str:
     Returns:
         Normalized relative path
     """
+    # Gerrit exposes the commit message as a synthetic file. Preserve its
+    # leading slash because that is part of the reporter API contract.
+    if file_path == '/COMMIT_MSG':
+        return file_path
+
     # Remove common Zuul path prefixes
     zuul_prefixes = [
         '/home/zuul/src/review.opendev.org/',
@@ -251,9 +256,14 @@ def extract_file_comments(
             file_path, line_number = parse_location(location)
             if not file_path or not line_number:
                 continue  # Skip invalid locations
-            if changed_files is not None and file_path not in changed_files:
+            is_commit_message = file_path == '/COMMIT_MSG'
+            if (
+                not is_commit_message
+                and changed_files is not None
+                and file_path not in changed_files
+            ):
                 continue
-            if changed_lines is not None:
+            if changed_lines is not None and not is_commit_message:
                 if file_path not in changed_lines:
                     continue
                 if not any(
@@ -282,8 +292,17 @@ def extract_file_comments(
 
 
 def extract_warnings(review_data: Dict[str, Any]) -> List[str]:
-    """Extract patch-level observations as Zuul summary warnings."""
+    """Extract change-level findings as Zuul summary warnings."""
     warnings = []
+
+    issues = review_data.get('issues', {})
+    for severity in ['critical', 'high', 'warnings', 'suggestions']:
+        severity_label = severity.rstrip('s')
+        for issue in issues.get(severity, []):
+            file_path, line_number = parse_location(issue.get('location', ''))
+            if file_path == '/COMMIT_MSG' and line_number:
+                warnings.append(format_issue_message(issue, severity_label))
+
     for observation in review_data.get('patch_level_observations', []):
         description = observation.get('description', '').strip()
         impact = observation.get('impact', '').strip()

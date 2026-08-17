@@ -179,6 +179,33 @@ class TestGenerateZuulComments(test.NoDBTestCase):
             matchers.Contains('Release note is needed'),
         )
 
+    def test_commit_message_finding_uses_comment_and_warning_paths(self):
+        """Commit-message feedback is published through both Zuul paths."""
+        issue = self._make_issue(location='/COMMIT_MSG:1')
+        review_data = {
+            'issues': {
+                'critical': [],
+                'high': [],
+                'warnings': [issue],
+                'suggestions': [],
+            },
+            'patch_level_observations': [],
+        }
+
+        result = self.gen_comments.generate_zuul_return_data(
+            review_data,
+            changed_files={'nova/compute/manager.py'},
+            changed_lines={'nova/compute/manager.py': [[1, 100]]},
+        )
+
+        comment = result['zuul']['file_comments']['/COMMIT_MSG'][0]
+        self.assertThat(comment['line'], matchers.Equals(1))
+        self.assertThat(comment['message'], matchers.Contains('Test issue'))
+        self.assertThat(
+            result['zuul']['warnings'],
+            matchers.Equals([comment['message']]),
+        )
+
     def test_out_of_patch_observations_do_not_generate_zuul_output(self):
         """Pre-existing findings remain HTML-only."""
         review_data = {

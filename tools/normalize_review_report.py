@@ -68,6 +68,9 @@ def extract_structured_output(data: Any) -> Any:
 
 def normalize_file_path(file_path: str) -> str:
     """Normalize workspace-prefixed paths to repository-relative paths."""
+    if file_path == '/COMMIT_MSG':
+        return file_path
+
     prefixes = [
         '/home/zuul/src/review.opendev.org/',
         '/home/zuul/src/opendev.org/',
@@ -126,6 +129,8 @@ def is_changed_scope(
     file_path, line_number = parse_location(issue.get('location'))
     if file_path is None or line_number is None:
         return False
+    if file_path == '/COMMIT_MSG':
+        return True
     if changed_files is not None and file_path not in changed_files:
         return False
     if changed_lines is None:

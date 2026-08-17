@@ -71,6 +71,8 @@
       html_report_file: "{{ review_output_dir }}/review-report.html"
       zuul_comments_file: "{{ review_output_dir }}/zuul-comments.json"
       venv_dir: "{{ ansible_user_dir }}/.venv"
+      zuul_copy_output:
+        "{{ review_output_dir }}": logs
 
       extensions_to_txt:
         conf: true

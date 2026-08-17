@@ -59,9 +59,8 @@
                   "confidence": 0.9,
                   "reporting_mode": "inline",
                   "location": "roles/ai_code_review/tasks/main.yaml:50",
-                  "risk": "Unauthorized access remains possible",
+                  "impact": "The change could allow unauthorized access",
                   "remediation_priority": "Immediate",
-                  "why_matters": "The change could allow unauthorized access",
                   "recommendation": "Add authentication"
                 }
               ],

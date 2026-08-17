@@ -23,20 +23,17 @@
         "change": {
           "type": "string",
           "description": "Brief description of what changed",
-          "minLength": 10,
-          "maxLength": 200
+          "minLength": 10
         },
         "scope": {
           "type": "string",
           "description": "Scope of the changes (files, modules, components affected)",
-          "minLength": 10,
-          "maxLength": 300
+          "minLength": 10
         },
         "impact": {
           "type": "string",
           "description": "Expected impact level and description",
-          "minLength": 10,
-          "maxLength": 300
+          "minLength": 10
         }
       },
       "additionalProperties": false
@@ -153,8 +150,7 @@
           "description": {
             "type": "string",
             "description": "Description of the issue found in unmodified code",
-            "minLength": 10,
-            "maxLength": 300
+            "minLength": 10
           },
           "location": {
             "type": "string",
@@ -164,8 +160,7 @@
           "suggestion": {
             "type": "string",
             "description": "What should be done in a follow-up patch",
-            "minLength": 10,
-            "maxLength": 500
+            "minLength": 10
           }
         },
         "additionalProperties": false
@@ -181,20 +176,17 @@
           "description": {
             "type": "string",
             "description": "Description of the in-scope finding",
-            "minLength": 10,
-            "maxLength": 300
+            "minLength": 10
           },
           "impact": {
             "type": "string",
             "description": "Why the finding matters for this change",
-            "minLength": 10,
-            "maxLength": 300
+            "minLength": 10
           },
           "recommendation": {
             "type": "string",
             "description": "What should be done before merge or in follow-up",
-            "minLength": 10,
-            "maxLength": 500
+            "minLength": 10
           }
         },
         "additionalProperties": false
@@ -215,8 +207,7 @@
           "observation": {
             "type": "string",
             "description": "The positive observation text",
-            "minLength": 10,
-            "maxLength": 500
+            "minLength": 10
           }
         },
         "additionalProperties": false
@@ -235,14 +226,12 @@
         "priority_focus": {
           "type": "string",
           "description": "Top priority item for the developer to address",
-          "minLength": 10,
-          "maxLength": 300
+          "minLength": 10
         },
         "detailed_summary": {
           "type": "string",
           "description": "Detailed summary of the review findings",
-          "minLength": 50,
-          "maxLength": 1000
+          "minLength": 50
         }
       },
       "additionalProperties": false
@@ -256,135 +245,15 @@
         "description",
         "confidence",
         "location",
-        "risk",
-        "remediation_priority",
-        "why_matters",
-        "recommendation"
-      ],
-      "properties": {
-        "description": {
-          "type": "string",
-          "description": "Clear description of the issue",
-          "minLength": 10,
-          "maxLength": 300
-        },
-        "confidence": {
-          "type": "number",
-          "description": "Confidence score (0.0-1.0). Per-severity thresholds determine whether the normalizer keeps or routes the finding.",
-          "minimum": 0.0,
-          "maximum": 1.0
-        },
-        "reporting_mode": {
-          "type": "string",
-          "description": "Routing decision: inline = post as Gerrit comment; html_only = HTML report only",
-          "enum": ["inline", "html_only"]
-        },
-        "location": {
-          "type": "string",
-          "description": "File path and line number (format: path/to/file.py:123 or path/to/file.py:123-456)",
-          "pattern": "^[^:]+:\\d+(-\\d+)?$"
-        },
-        "risk": {
-          "type": "string",
-          "description": "Security risk, data loss, system crash, etc.",
-          "minLength": 10,
-          "maxLength": 300
-        },
-        "remediation_priority": {
-          "type": "string",
-          "description": "Urgency level for fixing this issue",
-          "enum": ["Immediate", "Before merge", "Next sprint", "Backlog"]
-        },
-        "why_matters": {
-          "type": "string",
-          "description": "Explanation of business/technical impact",
-          "minLength": 10,
-          "maxLength": 300
-        },
-        "recommendation": {
-          "type": "string",
-          "description": "Specific, actionable steps to fix",
-          "minLength": 10,
-          "maxLength": 500
-        }
-      },
-      "additionalProperties": false
-    },
-    "highIssue": {
-      "type": "object",
-      "required": [
-        "description",
-        "confidence",
-        "location",
-        "risk",
-        "remediation_priority",
-        "why_matters",
-        "recommendation"
-      ],
-      "properties": {
-        "description": {
-          "type": "string",
-          "description": "Clear description of the issue",
-          "minLength": 10,
-          "maxLength": 300
-        },
-        "confidence": {
-          "type": "number",
-          "description": "Confidence score (0.0-1.0). Per-severity thresholds determine whether the normalizer keeps or routes the finding.",
-          "minimum": 0.0,
-          "maximum": 1.0
-        },
-        "reporting_mode": {
-          "type": "string",
-          "description": "Routing decision: inline = post as Gerrit comment; html_only = HTML report only",
-          "enum": ["inline", "html_only"]
-        },
-        "location": {
-          "type": "string",
-          "description": "File path and line number (format: path/to/file.py:123 or path/to/file.py:123-456)",
-          "pattern": "^[^:]+:\\d+(-\\d+)?$"
-        },
-        "risk": {
-          "type": "string",
-          "description": "Performance degradation, resource leak, incorrect behavior",
-          "minLength": 10,
-          "maxLength": 300
-        },
-        "remediation_priority": {
-          "type": "string",
-          "description": "Urgency level for fixing this issue",
-          "enum": ["Immediate", "Before merge", "Next sprint", "Backlog"]
-        },
-        "why_matters": {
-          "type": "string",
-          "description": "Explanation of business/technical impact",
-          "minLength": 10,
-          "maxLength": 300
-        },
-        "recommendation": {
-          "type": "string",
-          "description": "Specific, actionable steps to fix",
-          "minLength": 10,
-          "maxLength": 500
-        }
-      },
-      "additionalProperties": false
-    },
-    "warningIssue": {
-      "type": "object",
-      "required": [
-        "description",
-        "confidence",
-        "location",
         "impact",
-        "suggestion"
+        "remediation_priority",
+        "recommendation"
       ],
       "properties": {
         "description": {
           "type": "string",
           "description": "Clear description of the issue",
-          "minLength": 10,
-          "maxLength": 300
+          "minLength": 10
         },
         "confidence": {
           "type": "number",
@@ -404,34 +273,37 @@
         },
         "impact": {
           "type": "string",
-          "description": "What could go wrong if not addressed",
-          "minLength": 10,
-          "maxLength": 300
+          "description": "Practical impact of the issue",
+          "minLength": 10
         },
-        "suggestion": {
+        "remediation_priority": {
           "type": "string",
-          "description": "How to improve the code",
-          "minLength": 10,
-          "maxLength": 500
+          "description": "Urgency level for fixing this issue",
+          "enum": ["Immediate", "Before merge", "Next sprint", "Backlog"]
+        },
+        "recommendation": {
+          "type": "string",
+          "description": "Specific, actionable steps to fix",
+          "minLength": 10
         }
       },
       "additionalProperties": false
     },
-    "suggestionIssue": {
+    "highIssue": {
       "type": "object",
       "required": [
         "description",
         "confidence",
         "location",
-        "benefit",
+        "impact",
+        "remediation_priority",
         "recommendation"
       ],
       "properties": {
         "description": {
           "type": "string",
           "description": "Clear description of the issue",
-          "minLength": 10,
-          "maxLength": 300
+          "minLength": 10
         },
         "confidence": {
           "type": "number",
@@ -449,17 +321,108 @@
           "description": "File path and line number (format: path/to/file.py:123 or path/to/file.py:123-456)",
           "pattern": "^[^:]+:\\d+(-\\d+)?$"
         },
-        "benefit": {
+        "impact": {
           "type": "string",
-          "description": "Improvement this suggestion would provide",
-          "minLength": 10,
-          "maxLength": 300
+          "description": "Practical impact of the issue",
+          "minLength": 10
+        },
+        "remediation_priority": {
+          "type": "string",
+          "description": "Urgency level for fixing this issue",
+          "enum": ["Immediate", "Before merge", "Next sprint", "Backlog"]
+        },
+        "recommendation": {
+          "type": "string",
+          "description": "Specific, actionable steps to fix",
+          "minLength": 10
+        }
+      },
+      "additionalProperties": false
+    },
+    "warningIssue": {
+      "type": "object",
+      "required": [
+        "description",
+        "confidence",
+        "location",
+        "impact",
+        "suggestion"
+      ],
+      "properties": {
+        "description": {
+          "type": "string",
+          "description": "Clear description of the issue",
+          "minLength": 10
+        },
+        "confidence": {
+          "type": "number",
+          "description": "Confidence score (0.0-1.0). Per-severity thresholds determine whether the normalizer keeps or routes the finding.",
+          "minimum": 0.0,
+          "maximum": 1.0
+        },
+        "reporting_mode": {
+          "type": "string",
+          "description": "Routing decision: inline = post as Gerrit comment; html_only = HTML report only",
+          "enum": ["inline", "html_only"]
+        },
+        "location": {
+          "type": "string",
+          "description": "File path and line number (format: path/to/file.py:123 or path/to/file.py:123-456)",
+          "pattern": "^[^:]+:\\d+(-\\d+)?$"
+        },
+        "impact": {
+          "type": "string",
+          "description": "Practical impact of the issue",
+          "minLength": 10
+        },
+        "suggestion": {
+          "type": "string",
+          "description": "How to improve the code",
+          "minLength": 10
+        }
+      },
+      "additionalProperties": false
+    },
+    "suggestionIssue": {
+      "type": "object",
+      "required": [
+        "description",
+        "confidence",
+        "location",
+        "impact",
+        "recommendation"
+      ],
+      "properties": {
+        "description": {
+          "type": "string",
+          "description": "Clear description of the issue",
+          "minLength": 10
+        },
+        "confidence": {
+          "type": "number",
+          "description": "Confidence score (0.0-1.0). Per-severity thresholds determine whether the normalizer keeps or routes the finding.",
+          "minimum": 0.0,
+          "maximum": 1.0
+        },
+        "reporting_mode": {
+          "type": "string",
+          "description": "Routing decision: inline = post as Gerrit comment; html_only = HTML report only",
+          "enum": ["inline", "html_only"]
+        },
+        "location": {
+          "type": "string",
+          "description": "File path and line number (format: path/to/file.py:123 or path/to/file.py:123-456)",
+          "pattern": "^[^:]+:\\d+(-\\d+)?$"
+        },
+        "impact": {
+          "type": "string",
+          "description": "Practical impact of the issue",
+          "minLength": 10
         },
         "recommendation": {
           "type": "string",
           "description": "Specific guidance on implementing the improvement",
-          "minLength": 10,
-          "maxLength": 500
+          "minLength": 10
         }
       },
       "additionalProperties": false

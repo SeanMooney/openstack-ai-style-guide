@@ -94,6 +94,81 @@ class TestBuildReviewReport(test.NoDBTestCase):
             matchers.Equals(2),
         )
 
+    def test_build_report_preserves_complete_finding_text(self):
+        """Report assembly must not shorten or flatten finding content."""
+        description = 'Detailed description\n' + ('d' * 600) + ' DESCRIPTION-END'
+        impact = 'Detailed impact\n' + ('i' * 600) + ' IMPACT-END'
+        recommendation = (
+            'Detailed recommendation\n'
+            + ('r' * 1100)
+            + ' RECOMMENDATION-END'
+        )
+        finding = self._finding()
+        finding.update({
+            'description': description,
+            'impact': impact,
+            'recommendation': recommendation,
+        })
+        context = {
+            'change': 'Change context\n' + ('c' * 300) + ' CHANGE-END',
+            'scope': 'Scope context\n' + ('s' * 400) + ' SCOPE-END',
+            'impact': 'Context impact\n' + ('x' * 400) + ' CONTEXT-END',
+        }
+
+        report = self.builder.build_report(
+            {'context': context, 'accepted_findings': [finding]},
+            context,
+        )
+        issue = report['issues']['high'][0]
+
+        self.assertThat(issue['description'], matchers.Equals(description))
+        self.assertThat(issue['impact'], matchers.Equals(impact))
+        self.assertThat(issue, matchers.Not(matchers.Contains('risk')))
+        self.assertThat(issue, matchers.Not(matchers.Contains('why_matters')))
+        self.assertThat(
+            issue['recommendation'],
+            matchers.Equals(recommendation),
+        )
+        self.assertThat(
+            report['context']['change'], matchers.Equals(context['change'])
+        )
+        self.assertThat(
+            report['context']['scope'], matchers.Equals(context['scope'])
+        )
+        self.assertThat(
+            report['context']['impact'], matchers.Equals(context['impact'])
+        )
+
+    def test_build_report_rounds_confidence_to_three_decimal_places(self):
+        """The report JSON owns confidence precision."""
+        finding = self._finding()
+        finding['confidence'] = 0.12349
+
+        report = self.builder.build_report(
+            {'accepted_findings': [finding]},
+            {},
+        )
+
+        self.assertThat(
+            report['issues']['high'][0]['confidence'],
+            matchers.Equals(0.123),
+        )
+
+    def test_review_schemas_do_not_enforce_advisory_length_targets(self):
+        """Writing targets must not become destructive schema ceilings."""
+        for schema_name in (
+            'candidate-findings-schema.json',
+            'validated-findings-schema.json',
+            'review-report-schema.json',
+        ):
+            schema_path = (
+                pathlib.Path(__file__).resolve().parents[2]
+                / 'schemas'
+                / schema_name
+            )
+            schema_text = schema_path.read_text(encoding='utf-8')
+            self.assertNotIn('maxLength', schema_text)
+
     def test_summary_considers_html_only_high_severity_findings(self):
         """HTML-only critical/high findings still affect assessment."""
         report = {

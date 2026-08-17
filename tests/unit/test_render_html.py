@@ -64,9 +64,8 @@ class TestRenderHtml(test.NoDBTestCase):
                         'confidence': 0.95,
                         'reporting_mode': 'inline',
                         'location': 'roles/ai_code_review/tasks/main.yaml:25',
-                        'risk': 'High',
+                        'impact': 'Allows unauthorized access',
                         'remediation_priority': 'Immediate',
-                        'why_matters': 'Allows unauthorized access',
                         'recommendation': 'Add authentication check',
                     }
                 ],
@@ -96,6 +95,27 @@ class TestRenderHtml(test.NoDBTestCase):
         self.assertThat(html_content, matchers.Contains('<title>Code Review Report</title>'))
         self.assertThat(html_content, matchers.Contains('1 Critical'))
         self.assertThat(html_content, matchers.Contains('Security vulnerability'))
+
+    def test_render_html_preserves_complete_finding_text(self):
+        """HTML output includes content beyond the former length limits."""
+        review_data = self._create_sample_review()
+        issue = review_data['issues']['critical'][0]
+        issue['description'] = ('d' * 600) + ' DESCRIPTION-END'
+        issue['recommendation'] = ('r' * 1100) + ' RECOMMENDATION-END'
+
+        html_content = self.render_html.render_html_template(review_data)
+
+        self.assertThat(html_content, matchers.Contains('DESCRIPTION-END'))
+        self.assertThat(html_content, matchers.Contains('RECOMMENDATION-END'))
+
+    def test_render_html_uses_stored_confidence_precision(self):
+        """HTML displays the JSON number without independently rounding it."""
+        review_data = self._create_sample_review()
+        review_data['issues']['critical'][0]['confidence'] = 0.125
+
+        html_content = self.render_html.render_html_template(review_data)
+
+        self.assertThat(html_content, matchers.Contains('Confidence: 0.125'))
 
     def test_extract_review_data_from_wrapper(self):
         """Test extracting review data from Claude CLI wrapper."""

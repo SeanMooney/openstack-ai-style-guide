@@ -25,9 +25,8 @@
         "confidence": 0.9,
         "reporting_mode": "inline",
         "location": "roles/ai_code_review/tasks/main.yaml:50",
-        "risk": "Unauthorized access remains possible",
+        "impact": "The change could allow unauthorized access",
         "remediation_priority": "Immediate",
-        "why_matters": "The change could allow unauthorized access",
         "recommendation": "Add authentication"
       }
     ],
@@ -48,7 +47,7 @@
         "confidence": 0.8,
         "reporting_mode": "inline",
         "location": "roles/ai_code_review/tasks/main.yaml:100",
-        "benefit": "This improves mock safety and catches interface drift",
+        "impact": "This improves mock safety and catches interface drift",
         "recommendation": "Add autospec=True parameter"
       }
     ]

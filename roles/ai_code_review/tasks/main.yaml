@@ -38,6 +38,10 @@
       --knowledge-root {{ ai_code_review_knowledge_root }}
       --candidate-schema {{ ai_code_review_candidate_findings_schema }}
       --validated-schema {{ ai_code_review_validated_findings_schema }}
+      {% if ai_code_review_review_base %}
+      --review-base {{ ai_code_review_review_base }}
+      {% endif %}
+      --scope-mode {{ ai_code_review_scope_mode }}
   changed_when: true
 
 - name: Create teim-review orchestration prompt
@@ -54,6 +58,8 @@
       commit_summary_file: {{ ai_code_review_output_dir }}/commit-summary.md
       project_guidelines_file: {{ ai_code_review_output_dir }}/project-guidelines.md
       review_context_file: {{ ai_code_review_context_file }}
+      review_base: {{ ai_code_review_review_base }}
+      scope_mode: {{ ai_code_review_scope_mode }}
       candidate_findings_schema: {{ ai_code_review_candidate_findings_schema }}
       validated_findings_schema: {{ ai_code_review_validated_findings_schema }}
       candidate_findings_file: {{ ai_code_review_candidate_findings_file }}

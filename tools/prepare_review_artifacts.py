@@ -99,15 +99,19 @@ def find_zuul_vars(data: Any) -> dict[str, Any]:
     return {}
 
 
-def collect_git_context(project_dir: Path) -> dict[str, str]:
+def collect_git_context(
+    project_dir: Path,
+    base_ref: str | None = None,
+) -> dict[str, str]:
     """Collect deterministic local repository context."""
+    diff_range = f'{base_ref}..HEAD' if base_ref else 'HEAD~1..HEAD'
     return {
         'head': run_git(project_dir, ['rev-parse', 'HEAD']),
         'branch': run_git(project_dir, ['branch', '--show-current']),
         'subject': run_git(project_dir, ['log', '-1', '--format=%s']),
         'body': run_git(project_dir, ['log', '-1', '--format=%b']),
         'author': run_git(project_dir, ['log', '-1', '--format=%an <%ae>']),
-        'stat': run_git(project_dir, ['diff', '--stat', 'HEAD~1..HEAD']),
+        'stat': run_git(project_dir, ['diff', '--stat', diff_range]),
         'status': run_git(project_dir, ['status', '--short']),
     }
 
@@ -116,7 +120,7 @@ def build_context(args: argparse.Namespace) -> dict[str, Any]:
     """Build structured context metadata."""
     inventory = load_yaml(args.inventory_file)
     zuul = find_zuul_vars(inventory)
-    git_context = collect_git_context(args.project_dir)
+    git_context = collect_git_context(args.project_dir, args.review_base)
     changed_files = read_lines(args.changed_files)
 
     change = first_present(
@@ -149,6 +153,11 @@ def build_context(args: argparse.Namespace) -> dict[str, Any]:
             'commit_id': first_present(zuul, ['commit_id']),
         },
         'git': git_context,
+        'review': {
+            'head': git_context['head'],
+            'base': args.review_base,
+            'scope_mode': args.scope_mode,
+        },
         'changed_files': changed_files,
         'context_paths': {
             'project_dir': str(args.project_dir),
@@ -265,6 +274,12 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument('--knowledge-root', required=True, type=Path)
     parser.add_argument('--candidate-schema', required=True, type=Path)
     parser.add_argument('--validated-schema', required=True, type=Path)
+    parser.add_argument('--review-base')
+    parser.add_argument(
+        '--scope-mode',
+        choices=('branch', 'commit', 'local'),
+        default='local',
+    )
     return parser.parse_args()
 
 

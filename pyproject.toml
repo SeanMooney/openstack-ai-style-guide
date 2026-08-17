@@ -6,6 +6,7 @@ version = "1.0.0"
 requires-python = ">=3.10"
 description = "OpenStack AI Style Guide and Testing Tools"
 dependencies = [
+    "jsonschema>=4.23.0",
     "PyYAML>=6.0",
 ]
 

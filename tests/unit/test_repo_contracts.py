@@ -262,9 +262,9 @@ class TestRepoContracts(test.NoDBTestCase):
             matchers.Contains('name: openstack-ai-style-guide-lint'),
         )
         self.assertThat(jobs, matchers.Contains('haiku_model: "fast"'))
-        self.assertThat(jobs, matchers.Contains('sonnet_model: "smart"'))
-        self.assertThat(jobs, matchers.Contains('opus_model: "smart"'))
-        self.assertThat(jobs, matchers.Contains('review_model: "smart"'))
+        self.assertThat(jobs, matchers.Contains('sonnet_model: "fast"'))
+        self.assertThat(jobs, matchers.Contains('opus_model: "fast"'))
+        self.assertThat(jobs, matchers.Contains('review_model: "fast"'))
         self.assertThat(playbook, matchers.Contains('name: ai_review_setup'))
         self.assertThat(playbook, matchers.Contains('name: ai_code_review'))
         self.assertThat(

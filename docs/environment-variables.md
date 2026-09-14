@@ -12,8 +12,9 @@ These variables are set and used in Zuul CI jobs defined in `zuul.d/jobs.yaml`.
 These variables are used by `teim-code-review-base` in `zuul.d/jobs.yaml`.
 The Ansible roles default to Anthropic tier names (`haiku`, `sonnet`,
 `opus`), and the Zuul job overrides them with semantic LiteLLM routing
-aliases. LiteLLM owns the concrete provider selection behind `fast` and
-`smart`.
+aliases. LiteLLM owns the concrete provider selection. The base job currently
+routes every model tier through `fast`; child jobs may intentionally select
+another configured alias such as `smart`.
 
 #### `haiku_model`
 
@@ -27,8 +28,8 @@ aliases. LiteLLM owns the concrete provider selection behind `fast` and
 
 - **Job**: `teim-code-review-base`
 - **Type**: String (LiteLLM model identifier)
-- **Current Value**: `smart`
-- **Purpose**: Maps Claude's Sonnet tier to the high-capability LiteLLM group.
+- **Current Value**: `fast`
+- **Purpose**: Maps Claude's Sonnet tier to the fast LiteLLM routing group.
   The current review workflow does not assign work to Sonnet yet.
 - **Override**: Can be overridden in child jobs or via Zuul variables
 
@@ -36,17 +37,17 @@ aliases. LiteLLM owns the concrete provider selection behind `fast` and
 
 - **Job**: `teim-code-review-base`
 - **Type**: String (LiteLLM model identifier)
-- **Current Value**: `smart`
+- **Current Value**: `fast`
 - **Purpose**: Sets `ANTHROPIC_DEFAULT_OPUS_MODEL` for plugin-installed
   agents that inherit the Opus tier
-- **Override**: Change this in Zuul when moving the default high-capability
-  model to another LiteLLM routing alias
+- **Override**: Change this in Zuul when moving the model to another LiteLLM
+  routing alias
 
 #### `review_model`
 
 - **Job**: `teim-code-review-base`
 - **Type**: String (LiteLLM model identifier)
-- **Current Value**: `smart`
+- **Current Value**: `fast`
 - **Purpose**: Model used for the direct `teim-review-agent` invocation in
   the `ai_code_review` role.
 - **Override**: Change this in Zuul when moving the reviewer to another
@@ -209,6 +210,9 @@ These variables are provided by Zuul itself and used in job definitions:
 ## Customization Guide
 
 ### How to Override Variables in Zuul
+
+The following child job intentionally opts into the configured `smart` alias
+instead of inheriting the base job's `fast` default.
 
 **In Job Definition** (`zuul.d/jobs.yaml`):
 

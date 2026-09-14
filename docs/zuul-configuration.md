@@ -74,9 +74,9 @@ The linting job runs the configured pre-commit hooks, including:
     nodeset: debian-claude-code-single-node-pod
     vars:
       haiku_model: "fast"
-      sonnet_model: "smart"
-      opus_model: "smart"
-      review_model: "smart"
+      sonnet_model: "fast"
+      opus_model: "fast"
+      review_model: "fast"
       anthropic_api_url: "http://litellm.zuul-system.svc.cluster.local:4000"
 ```
 
@@ -90,22 +90,21 @@ The linting job runs the configured pre-commit hooks, including:
   - Override: Set in child jobs or via job variables
 
 - **`sonnet_model`**: Remaps the Claude Sonnet tier in CI
-  - Default: `smart`
-  - Purpose: Reserved for future general-purpose agent work. It currently
-    shares `smart` with `opus_model` because there is no separate mid-tier
-    LiteLLM routing group.
+  - Default: `fast`
+  - Purpose: Routes future general-purpose agent work through the fast
+    LiteLLM routing group
   - Override: Set in child jobs or via job variables
 
 - **`opus_model`**: Remaps the Claude Opus tier in CI
-  - Default: `smart`
+  - Default: `fast`
   - Purpose: Controls inherited `model: opus` behavior through
     `ANTHROPIC_DEFAULT_OPUS_MODEL`
   - Override: Update this in the Zuul job when changing the LiteLLM alias
 
 - **`review_model`**: Model used for the top-level `teim-review-agent` run
-  - Default: `smart`
-  - Purpose: Launches the orchestrator and detailed reviewer through the
-    high-capability LiteLLM routing group
+  - Default: `fast`
+  - Purpose: Launches the orchestrator and detailed reviewer through the fast
+    LiteLLM routing group
   - Override: Update this in the Zuul job when changing the reviewer alias
 
 #### LiteLLM Configuration
@@ -147,12 +146,14 @@ The linting job runs the configured pre-commit hooks, including:
     name: custom-review-job
     parent: teim-code-review
     vars:
-      review_model: "smart"
+      review_model: "fast"
 ```
 
 ### Overriding Model Selection
 
-You can override models in child jobs or via job variables:
+You can override models in child jobs or via job variables. For example, the
+following job intentionally opts into the configured `smart` alias instead of
+inheriting the `fast` default:
 
 ```yaml
 - job:

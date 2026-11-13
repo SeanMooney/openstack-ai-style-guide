@@ -1,0 +1,6 @@
+DNM: temporary CI log-storage smoke test.
+
+Trigger the existing Zuul check jobs to verify SSH log uploads, HTTPS log
+browsing, the build manifest and the Download all logs script.
+
+This change is for CI validation only and must not be merged.

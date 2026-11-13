@@ -17,6 +17,9 @@ run_claude_code_command_name: "claude command"
 # Path to Claude CLI binary
 run_claude_code_claude_binary: "claude"
 
+# Session storage location, matching the review job's generated settings.
+run_claude_code_config_dir: "{{ ansible_user_dir }}/.claude"
+
 # API authentication token
 run_claude_code_anthropic_auth_token: ""
 
@@ -42,5 +45,14 @@ run_claude_code_effort: ""
 # Run Claude in bare mode to skip non-essential CLI startup behavior.
 run_claude_code_bare: false
 
+# Suppress ambient executable configuration while retaining delegation.
+run_claude_code_isolate_startup: false
+
+# Trusted CI-generated settings, loaded explicitly even with discovery disabled.
+run_claude_code_settings_file: ""
+
 # Optional plugin directory to load explicitly, useful with bare mode.
 run_claude_code_plugin_dir: ""
+
+# Optional artifact directory for per-attempt debug logs and session IDs.
+run_claude_code_diagnostics_dir: ""

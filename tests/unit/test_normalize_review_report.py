@@ -26,7 +26,7 @@ class TestNormalizeReviewReport(test.NoDBTestCase):
 
     def setUp(self):
         super().setUp()
-        self.normalizer = test.load_script('tools/normalize_review_report.py')
+        self.normalizer = test.load_script('skills/teim-review/scripts/normalize_review_report.py')
 
     def _issue(self, confidence=0.9, location='nova/compute/manager.py:42'):
         return {

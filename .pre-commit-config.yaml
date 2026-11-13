@@ -54,6 +54,13 @@ repos:
         files: \.(yaml|yml)$
         exclude: ^\.pre-commit-config\.yaml$
 
+  # Pin the reviewed Skillsaw revision; run at repository scope.
+  - repo: https://github.com/stbenjam/skillsaw
+    rev: 825fc093e8a8a2a7c3fb146de54a850b04724a53  # 0.23.0
+    hooks:
+      - id: skillsaw
+        args: ["--config", ".skillsaw.yaml", "--no-custom-rules", "--no-plugins"]
+
   # License header check (local hook)
   - repo: local
     hooks:
@@ -81,7 +88,7 @@ repos:
           ' --
         language: system
         files: \.py$
-        exclude: '^(tests/|docs/examples/bad/|.*/__pycache__/)'
+        exclude: '^(tests/|skills/teim-review/references/examples/bad/|.*/__pycache__/)'
 
 # Files to exclude from all hooks
 exclude: |

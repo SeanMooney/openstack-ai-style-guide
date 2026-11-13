@@ -21,7 +21,7 @@
     description: |
       Base job for AI-assisted code review using Claude Code via LiteLLM.
       Installs the teim-review plugin from the openstack-ai-style-guide repo,
-      then runs a single Claude invocation using the teim-review-agent to
+      then runs a single Claude invocation using the portable teim-review skill to
       orchestrate context extraction, commit analysis, project guidelines
       extraction, and code review in one pass.
     abstract: true
@@ -62,9 +62,9 @@
         {{ ansible_user_dir }}/{{ zuul.projects[
         'github.com/SeanMooney/openstack-ai-style-guide'].src_dir }}
       style_guide_quick_rules: >-
-        {{ style_guide_project }}/docs/quick-rules.md
+        {{ style_guide_project }}/skills/teim-review/references/quick-rules.md
       style_guide_comprehensive: >-
-        {{ style_guide_project }}/docs/comprehensive-guide.md
+        {{ style_guide_project }}/skills/teim-review/references/comprehensive-guide.md
 
       # Output configuration
       review_output_dir: "{{ ansible_user_dir }}/logs/code-review"

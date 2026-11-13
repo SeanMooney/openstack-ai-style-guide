@@ -18,15 +18,22 @@
       loop:
         - "{{ ai_code_review_output_dir }}"
         - "{{ ai_code_review_project_src_dir }}"
+        - "/tmp/.claude"
         - "/tmp/openstack-ai-style-guide/docs"
-        - "/tmp/openstack-ai-style-guide/docs/knowledge"
-        - "/tmp/openstack-ai-style-guide/docs/knowledge/overlays"
-        - "/tmp/openstack-ai-style-guide/docs/knowledge/overlays/language"
-        - "/tmp/openstack-ai-style-guide/docs/knowledge/examples"
-        - "/tmp/openstack-ai-style-guide/docs/knowledge/examples/good"
-        - "/tmp/openstack-ai-style-guide/schemas"
+        - "/tmp/openstack-ai-style-guide/skills/teim-review/references/knowledge"
+        - "/tmp/openstack-ai-style-guide/skills/teim-review/references/knowledge/overlays"
+        - "/tmp/openstack-ai-style-guide/skills/teim-review/references/knowledge/overlays/language"
+        - "/tmp/openstack-ai-style-guide/skills/teim-review/references/knowledge/examples"
+        - "/tmp/openstack-ai-style-guide/skills/teim-review/references/knowledge/examples/good"
+        - "/tmp/openstack-ai-style-guide/skills/teim-review/references/schemas"
         - "/tmp/openstack-ai-style-guide/prompts"
-        - "/tmp/openstack-ai-style-guide/tools"
+        - "/tmp/openstack-ai-style-guide/skills/teim-review/scripts"
+
+    - name: Create trusted CI settings
+      ansible.builtin.copy:
+        dest: /tmp/.claude/settings.json
+        content: '{"disableAllHooks":true,"env":{"ANTHROPIC_DEFAULT_OPUS_MODEL":"fast"}}'
+        mode: '0644'
 
     - name: Create mock Claude CLI script
       ansible.builtin.copy:
@@ -39,6 +46,8 @@
           cat << 'EOF'
           {
             "type": "result",
+            "is_error": false,
+            "subagent_stats": {"spawned": 2, "completed": 2, "failed": 0},
             "structured_output": {
               "context": {"change": "12345", "scope": "Test", "review_basis": "Test basis"},
               "accepted_findings": [],
@@ -71,22 +80,30 @@
         content: "{{ item.content }}"
         mode: '0644'
       loop:
-        - name: "openstack-ai-style-guide/docs/quick-rules.md"
+        - name: "openstack-ai-style-guide/skills/teim-review/SKILL.md"
+          content: "# Mock portable skill"
+        - name: "openstack-ai-style-guide/skills/teim-review/references/workflow.md"
+          content: "# Mock workflow"
+        - name: "openstack-ai-style-guide/skills/teim-review/references/reviewer.md"
+          content: "# Mock reviewer"
+        - name: "openstack-ai-style-guide/skills/teim-review/references/validator.md"
+          content: "# Mock validator"
+        - name: "openstack-ai-style-guide/skills/teim-review/references/quick-rules.md"
           content: "# Quick Rules\n\nTest rules"
-        - name: "openstack-ai-style-guide/docs/comprehensive-guide.md"
+        - name: "openstack-ai-style-guide/skills/teim-review/references/comprehensive-guide.md"
           content: "# Comprehensive Guide\n\nTest guide"
-        - name: "openstack-ai-style-guide/docs/knowledge/README.md"
+        - name: "openstack-ai-style-guide/skills/teim-review/references/knowledge/README.md"
           content: "# Knowledge Root\n\nTest knowledge"
-        - name: "openstack-ai-style-guide/docs/knowledge/overlays/language/openstack-python-review.md"
+        - name: "openstack-ai-style-guide/skills/teim-review/references/knowledge/overlays/language/openstack-python-review.md"
           content: "# OpenStack Python Review Overlay\n\nTest overlay"
-        - name: "openstack-ai-style-guide/docs/knowledge/examples/good/README.md"
+        - name: "openstack-ai-style-guide/skills/teim-review/references/knowledge/examples/good/README.md"
           content: "# Good Review Examples\n\nTest example"
-        - name: "openstack-ai-style-guide/prompts/teim-review-finding-policy.md"
+        - name: "openstack-ai-style-guide/skills/teim-review/references/finding-policy.md"
           content: "# Finding Policy\n\nTest policy"
 
     - name: Create minimal deterministic preparation tool
       ansible.builtin.copy:
-        dest: "/tmp/openstack-ai-style-guide/tools/prepare_review_artifacts.py"
+        dest: "/tmp/openstack-ai-style-guide/skills/teim-review/scripts/prepare_review_artifacts.py"
         mode: '0755'
         content: |
           #!/usr/bin/env python3
@@ -119,7 +136,7 @@
 
     - name: Create prerequisite JSON schema file
       ansible.builtin.copy:
-        dest: "/tmp/openstack-ai-style-guide/schemas/review-report-schema.json"
+        dest: "/tmp/openstack-ai-style-guide/skills/teim-review/references/schemas/review-report-schema.json"
         content: |
           {
             "type": "object",
@@ -138,7 +155,7 @@
 
     - name: Create intermediate JSON schema files
       ansible.builtin.copy:
-        dest: "/tmp/openstack-ai-style-guide/schemas/{{ item }}"
+        dest: "/tmp/openstack-ai-style-guide/skills/teim-review/references/schemas/{{ item }}"
         content: '{"type":"object"}'
         mode: '0644'
       loop:

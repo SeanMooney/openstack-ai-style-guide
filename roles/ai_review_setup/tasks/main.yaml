@@ -49,6 +49,7 @@
   ansible.builtin.copy:
     content: |
       {
+        "disableAllHooks": true,
         "env": {
           "ANTHROPIC_DEFAULT_HAIKU_MODEL": "{{ ai_review_setup_haiku_model }}",
           "ANTHROPIC_DEFAULT_SONNET_MODEL": "{{ ai_review_setup_sonnet_model }}",

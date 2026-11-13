@@ -1,0 +1,15 @@
+# Skillsaw 0.23.0: structural errors fail CI; prose advice stays visible.
+version: "0.23.0"
+fail-on: error
+rules:
+  agentskill-structure:
+    enabled: true
+  # Skills require no lifecycle hooks or MCP servers. Approve exceptions here.
+  hooks-prohibited:
+    enabled: true
+    severity: error
+    allowlist: []
+  mcp-prohibited:
+    enabled: true
+    severity: error
+    allowlist: []

@@ -2,13 +2,12 @@
 # AI-Assisted Code Review Playbook (Task-Based Orchestration)
 #
 # This playbook performs comprehensive AI-assisted code review using the
-# teim-review-agent, which orchestrates all subagents in a single Claude
-# invocation. The workflow is:
+# portable teim-review skill in a single Claude invocation. The workflow is:
 #
 # 1. Inventory copy — copies Zuul executor inventory to the output directory
 # 2. ai_review_setup — installs teim-review plugin, configures Claude CLI
 # 3. ai_code_review — deterministic prep plus one Claude invocation via
-#    teim-review-agent for candidate generation and finding validation
+#    the shared skill for candidate generation and finding validation
 # 4. build_review_report — deterministically assembles review-report.raw.json
 # 5. normalize_review_report — repairs/routes structured output deterministically
 # 6. ai_html_generation — converts JSON report to HTML (Python, no Claude)
@@ -18,7 +17,7 @@
 #   - claude_binary: Path to Claude CLI executable
 #   - claude_config_dir: Claude CLI configuration directory
 #   - haiku_model, sonnet_model, opus_model: Model name overrides
-#   - review_model: Model for the teim-review-agent invocation
+#   - review_model: Model for the review invocation
 #   - style_guide_project: Absolute path to style guide repository on node
 #   - anthropic_auth_token: API authentication token
 #   - anthropic_api_url: API base URL
@@ -137,16 +136,17 @@
         ai_review_setup_anthropic_auth_token: "{{ anthropic_auth_token }}"
         ai_review_setup_anthropic_api_url: "{{ anthropic_api_url }}"
 
-    - name: Perform AI code review (teim-review-agent validates findings)
+    - name: Perform AI code review with the portable skill
       ansible.builtin.include_role:
         name: ai_code_review
       vars:
         ai_code_review_model: "{{ review_model }}"
+        ai_code_review_claude_settings_file: "{{ claude_config_dir }}/settings.json"
         ai_code_review_inventory_file: "{{ review_output_dir }}/inventory.yaml"
         ai_code_review_style_guide_project: "{{ style_guide_project }}"
         ai_code_review_style_guide_quick_rules: "{{ style_guide_quick_rules }}"
         ai_code_review_style_guide_comprehensive: "{{ style_guide_comprehensive }}"
-        ai_code_review_finding_policy: "{{ style_guide_project }}/prompts/teim-review-finding-policy.md"
+        ai_code_review_finding_policy: "{{ style_guide_project }}/skills/teim-review/references/finding-policy.md"
         ai_code_review_report_file: "{{ review_report_file }}"
         ai_code_review_raw_report_file: "{{ review_output_dir }}/review-report.raw.json"
         ai_code_review_candidate_findings_file: "{{ review_output_dir }}/candidate-findings.json"
@@ -167,7 +167,7 @@
       ansible.builtin.command:
         cmd: >-
           python3
-          {{ style_guide_project }}/tools/build_review_report.py
+          {{ style_guide_project }}/skills/teim-review/scripts/build_review_report.py
           --validated-findings {{ review_output_dir }}/validated-findings.raw.json
           --review-context {{ review_output_dir }}/review-context.json
           --output {{ review_output_dir }}/review-report.raw.json
@@ -178,11 +178,11 @@
       ansible.builtin.command:
         cmd: >-
           python3
-          {{ style_guide_project }}/tools/normalize_review_report.py
+          {{ style_guide_project }}/skills/teim-review/scripts/normalize_review_report.py
           --raw-report {{ review_output_dir }}/review-report.raw.json
           --candidate-findings {{ review_output_dir }}/candidate-findings.json
           --validated-findings {{ review_output_dir }}/validated-findings.json
-          --schema {{ style_guide_project }}/schemas/review-report-schema.json
+          --schema {{ style_guide_project }}/skills/teim-review/references/schemas/review-report-schema.json
           --changed-files {{ changed_files_file }}
           {% if changed_lines_available | default(false) %}
           --changed-lines {{ changed_lines_file }}
@@ -201,7 +201,7 @@
         ai_html_generation_review_output_dir: "{{ review_output_dir }}"
         ai_html_generation_style_guide_project: "{{ style_guide_project }}"
         ai_html_generation_review_report_schema: >-
-          {{ style_guide_project }}/schemas/review-report-schema.json
+          {{ style_guide_project }}/skills/teim-review/references/schemas/review-report-schema.json
 
     - name: Integrate with Zuul (comments and artifacts)
       ansible.builtin.include_role:

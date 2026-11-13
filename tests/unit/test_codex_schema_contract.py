@@ -24,7 +24,7 @@ class TestCodexSchemaContract(test.NoDBTestCase):
     """Ensure object nodes are explicit enough for Codex schema validation."""
 
     @staticmethod
-    def _load_schema(relative_path='schemas/review-report-schema.json'):
+    def _load_schema(relative_path='skills/teim-review/references/schemas/review-report-schema.json'):
         schema_path = pathlib.Path(__file__).resolve().parents[2]
         schema_path /= relative_path
         return json.loads(schema_path.read_text())
@@ -32,9 +32,9 @@ class TestCodexSchemaContract(test.NoDBTestCase):
     def test_all_object_nodes_set_additional_properties_false(self):
         """Every schema object should be closed explicitly."""
         for schema_name in [
-            'schemas/review-report-schema.json',
-            'schemas/candidate-findings-schema.json',
-            'schemas/validated-findings-schema.json',
+            'skills/teim-review/references/schemas/review-report-schema.json',
+            'skills/teim-review/references/schemas/candidate-findings-schema.json',
+            'skills/teim-review/references/schemas/validated-findings-schema.json',
         ]:
             self._assert_object_nodes_closed(self._load_schema(schema_name))
 
@@ -61,9 +61,9 @@ class TestCodexSchemaContract(test.NoDBTestCase):
     def test_all_object_properties_are_required(self):
         """Schema objects require fields unless explicitly normalizer-owned."""
         for schema_name in [
-            'schemas/review-report-schema.json',
-            'schemas/candidate-findings-schema.json',
-            'schemas/validated-findings-schema.json',
+            'skills/teim-review/references/schemas/review-report-schema.json',
+            'skills/teim-review/references/schemas/candidate-findings-schema.json',
+            'skills/teim-review/references/schemas/validated-findings-schema.json',
         ]:
             self._assert_object_properties_required(
                 self._load_schema(schema_name)
@@ -154,8 +154,8 @@ class TestCodexSchemaContract(test.NoDBTestCase):
     def test_intermediate_schemas_do_not_include_reporting_mode(self):
         """Model handoff schemas should not own publication routing."""
         for schema_name in [
-            'schemas/candidate-findings-schema.json',
-            'schemas/validated-findings-schema.json',
+            'skills/teim-review/references/schemas/candidate-findings-schema.json',
+            'skills/teim-review/references/schemas/validated-findings-schema.json',
         ]:
             schema = self._load_schema(schema_name)
             self.assertThat(
@@ -165,7 +165,7 @@ class TestCodexSchemaContract(test.NoDBTestCase):
 
     def test_candidate_findings_include_classification_fields(self):
         """Candidate findings carry proposed severity, confidence, and anchor."""
-        schema = self._load_schema('schemas/candidate-findings-schema.json')
+        schema = self._load_schema('skills/teim-review/references/schemas/candidate-findings-schema.json')
         finding = schema['properties']['findings']['items']
         required = set(finding['required'])
         self.assertThat(required, matchers.Contains('severity'))
@@ -191,9 +191,9 @@ class TestCodexSchemaContract(test.NoDBTestCase):
             return confidence_fields
 
         for schema_name in [
-            'schemas/review-report-schema.json',
-            'schemas/candidate-findings-schema.json',
-            'schemas/validated-findings-schema.json',
+            'skills/teim-review/references/schemas/review-report-schema.json',
+            'skills/teim-review/references/schemas/candidate-findings-schema.json',
+            'skills/teim-review/references/schemas/validated-findings-schema.json',
         ]:
             schema = self._load_schema(schema_name)
             confidence_fields = collect_confidence_fields(schema)

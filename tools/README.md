@@ -12,16 +12,16 @@ Python style validator for OpenStack compliance.
 
 ```bash
 # Validate single file
-python tools/validate_style.py examples/good/basic_service.py
+python tools/validate_style.py skills/teim-review/references/examples/good/basic_service.py
 
 # Validate multiple files
-python tools/validate_style.py examples/good/*.py
+python tools/validate_style.py skills/teim-review/references/examples/good/*.py
 
 # Treat warnings as errors
-python tools/validate_style.py --warnings-as-errors examples/good/*.py
+python tools/validate_style.py --warnings-as-errors skills/teim-review/references/examples/good/*.py
 
 # Quiet mode (errors/warnings only)
-python tools/validate_style.py --quiet examples/good/*.py
+python tools/validate_style.py --quiet skills/teim-review/references/examples/good/*.py
 ```
 
 **Checks performed:**
@@ -42,10 +42,10 @@ Token counting utility for AI context management.
 
 ```bash
 # Count tokens in style guide files
-python tools/count_tokens.py docs/quick-rules.md docs/comprehensive-guide.md
+python tools/count_tokens.py skills/teim-review/references/quick-rules.md skills/teim-review/references/comprehensive-guide.md
 
 # Check against target
-python tools/count_tokens.py --target 800 docs/quick-rules.md
+python tools/count_tokens.py --target 800 skills/teim-review/references/quick-rules.md
 
 # JSON output
 python tools/count_tokens.py --format json docs/*.md
@@ -81,9 +81,9 @@ repos:
 
 ```bash
 # In your CI script
-python tools/validate_style.py --warnings-as-errors examples/good/*.py
-python tools/count_tokens.py --target 800 docs/quick-rules.md
-python tools/count_tokens.py --target 2500 docs/comprehensive-guide.md
+python tools/validate_style.py --warnings-as-errors skills/teim-review/references/examples/good/*.py
+python tools/count_tokens.py --target 800 skills/teim-review/references/quick-rules.md
+python tools/count_tokens.py --target 2500 skills/teim-review/references/comprehensive-guide.md
 ```
 
 ### AI Tool Integration
@@ -93,7 +93,7 @@ python tools/count_tokens.py --target 2500 docs/comprehensive-guide.md
 python tools/validate_style.py generated_code.py
 
 # Context size management
-TOKEN_COUNT=$(python tools/count_tokens.py --format simple docs/quick-rules.md | grep -o '[0-9]*')
+TOKEN_COUNT=$(python tools/count_tokens.py --format simple skills/teim-review/references/quick-rules.md | grep -o '[0-9]*')
 if [ $TOKEN_COUNT -gt 1000 ]; then
   echo "Warning: Context file too large for efficient AI processing"
 fi
@@ -123,13 +123,13 @@ def _check_new_pattern(self, content):
 
 ```bash
 # Test validator with good examples (should pass)
-python tools/validate_style.py examples/good/*.py
+python tools/validate_style.py skills/teim-review/references/examples/good/*.py
 
 # Test validator with bad examples (should fail)
-python tools/validate_style.py examples/bad/*.py
+python tools/validate_style.py skills/teim-review/references/examples/bad/*.py
 
 # Test token counter
-python tools/count_tokens.py docs/*.md examples/*.py
+python tools/count_tokens.py docs/*.md skills/teim-review/references/examples/good/*.py
 ```
 
 ## Performance Notes

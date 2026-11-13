@@ -44,12 +44,30 @@
 
 - name: Build optional Claude CLI arguments
   ansible.builtin.set_fact:
+    run_claude_code_diagnostics_preamble: >-
+      {% if run_claude_code_diagnostics_dir | default('') != '' %}
+      teim_claude_session_id="$(python3 -c 'import uuid; print(uuid.uuid4())')" &&
+      printf '%s\n' "$teim_claude_session_id" >> "{{ run_claude_code_diagnostics_dir }}/session-ids.txt" &&
+      {% endif %}
     run_claude_code_optional_args: >-
+      {% if run_claude_code_diagnostics_dir | default('') != '' %}
+      --session-id "$teim_claude_session_id"
+      --debug-file "{{ run_claude_code_diagnostics_dir }}/debug-$teim_claude_session_id.log"
+      {% endif %}
       {% if run_claude_code_effort | default('') != '' %}
       --effort {{ run_claude_code_effort }}
       {% endif %}
       {% if run_claude_code_bare | default(false) | bool %}
       --bare
+      {% endif %}
+      {% if run_claude_code_isolate_startup | default(false) | bool %}
+      --setting-sources ""
+      --strict-mcp-config --mcp-config '{"mcpServers":{}}'
+      {% endif %}
+      {% if run_claude_code_settings_file | default('') != '' %}
+      --settings "{{ run_claude_code_settings_file }}"
+      {% elif run_claude_code_isolate_startup | default(false) | bool %}
+      --settings '{"disableAllHooks":true}'
       {% endif %}
       {% if run_claude_code_plugin_dir | default('') != '' %}
       --plugin-dir "{{ run_claude_code_plugin_dir }}"
@@ -62,6 +80,7 @@
     # - Read/Grep/Glob: Required for code analysis and file discovery
     # - Write: Required for generating review reports and output files
     # - Edit: Allows Claude to suggest/apply fixes during review
+    # - Agent/Task: Delegation tool names across Claude CLI releases
     # This is appropriate for a trusted CI environment.
     run_claude_code_command: >-
       {{ run_claude_code_claude_binary }}
@@ -69,7 +88,7 @@
       --model "{{ run_claude_code_model_name }}"
       --output-format {{ run_claude_code_output_format | default('text') }}
       {{ run_claude_code_optional_args }}
-      --allowedTools "Bash,Read,Write,Edit,Grep,Glob"
+      --allowedTools "Bash,Read,Write,Edit,Grep,Glob,Agent,Task"
       --permission-mode acceptEdits
   when: not run_claude_code_structured_mode
 
@@ -84,7 +103,7 @@
       --output-format json
       --json-schema "$(cat '{{ run_claude_code_json_schema }}')"
       {{ run_claude_code_optional_args }}
-      --allowedTools "Bash,Read,Write,Edit,Grep,Glob"
+      --allowedTools "Bash,Read,Write,Edit,Grep,Glob,Agent,Task"
       --permission-mode acceptEdits
   when: run_claude_code_structured_mode
 
@@ -106,16 +125,25 @@
     msg: "Structured output mode: ENABLED - Claude CLI will validate output against JSON schema"
   when: run_claude_code_structured_mode
 
+- name: Ensure Claude diagnostics directory exists
+  ansible.builtin.file:
+    path: "{{ run_claude_code_diagnostics_dir }}"
+    state: directory
+    mode: '0700'
+  when: run_claude_code_diagnostics_dir | default('') != ''
+
 - name: "Run Claude in headless mode (standard) - {{ run_claude_code_command_name }}"
   ansible.builtin.shell:
     cmd: >-
       set -o pipefail &&
+      {{ run_claude_code_diagnostics_preamble }}
       {{ run_claude_code_command }} &&
       test -f '{{ run_claude_code_output_file }}'
     executable: /bin/bash
     chdir: "{{ run_claude_code_working_dir | default(omit) }}"
   register: run_claude_code_result_standard
   environment:
+    CLAUDE_CONFIG_DIR: "{{ run_claude_code_config_dir }}"
     ANTHROPIC_AUTH_TOKEN: "{{ run_claude_code_anthropic_auth_token }}"
     ANTHROPIC_BASE_URL: "{{ run_claude_code_anthropic_api_url }}"
   failed_when: false
@@ -141,6 +169,7 @@
   ansible.builtin.shell:
     cmd: >-
       set -o pipefail &&
+      {{ run_claude_code_diagnostics_preamble }}
       {{ run_claude_code_command }} > '{{ run_claude_code_output_file }}' &&
       if [ ! -s '{{ run_claude_code_output_file }}' ]; then
         echo "ERROR: Output file is empty after command execution" >&2
@@ -150,6 +179,7 @@
     chdir: "{{ run_claude_code_working_dir | default(omit) }}"
   register: run_claude_code_result_structured
   environment:
+    CLAUDE_CONFIG_DIR: "{{ run_claude_code_config_dir }}"
     ANTHROPIC_AUTH_TOKEN: "{{ run_claude_code_anthropic_auth_token }}"
     ANTHROPIC_BASE_URL: "{{ run_claude_code_anthropic_api_url }}"
   failed_when: false

@@ -26,7 +26,7 @@ class TestNormalizeReviewReport(test.NoDBTestCase):
 
     def setUp(self):
         super().setUp()
-        self.normalizer = test.load_script('tools/normalize_review_report.py')
+        self.normalizer = test.load_script('skills/teim-review/scripts/normalize_review_report.py')
 
     def _issue(self, confidence=0.9, location='nova/compute/manager.py:42'):
         return {
@@ -101,6 +101,53 @@ class TestNormalizeReviewReport(test.NoDBTestCase):
             matchers.Equals(0),
         )
         self.assertThat(diagnostics['repairs'], matchers.Not(matchers.Equals([])))
+
+    def test_deleted_file_is_retained_html_only_without_line_scope(self):
+        """Review deletions without emitting anchors into missing files."""
+        project = pathlib.Path(self.useFixture(fixtures.TempDir()).path)
+        (project / 'kept.py').write_text('value = 1\n')
+        (project / 'removed.py').write_text('removed = True\n')
+        (project / 'removed.py').unlink()
+        raw = self._report()
+        raw['issues']['warnings'] = [
+            self._issue(location='kept.py:1'),
+            self._issue(location='removed.py:1'),
+        ]
+
+        report, diagnostics = self.normalizer.normalize_report(
+            raw, changed_files={'kept.py', 'removed.py'}, project_dir=project,
+        )
+
+        issues = report['issues']['warnings']
+        self.assertEqual(['inline', 'html_only'],
+                         [issue['reporting_mode'] for issue in issues])
+        self.assertEqual('removed.py:1', issues[1]['location'])
+        self.assertEqual(1, report['statistics']['warnings'])
+        self.assertEqual(1, report['statistics_html_only']['warnings'])
+        self.assertEqual([], diagnostics['dropped_findings'])
+
+    def test_missing_file_is_not_inline_even_with_line_ranges(self):
+        project = pathlib.Path(self.useFixture(fixtures.TempDir()).path)
+        raw = self._report()
+        raw['issues']['warnings'] = [self._issue(location='removed.py:1')]
+
+        report, _diagnostics = self.normalizer.normalize_report(
+            raw, changed_files={'removed.py'},
+            changed_lines={'removed.py': [[1, 10]]}, project_dir=project,
+        )
+
+        self.assertEqual('html_only', report['issues']['warnings'][0]['reporting_mode'])
+
+    def test_commit_message_anchor_needs_no_real_file(self):
+        project = pathlib.Path(self.useFixture(fixtures.TempDir()).path)
+        raw = self._report()
+        raw['issues']['warnings'] = [self._issue(location='/COMMIT_MSG:1')]
+
+        report, _diagnostics = self.normalizer.normalize_report(
+            raw, changed_files=set(), changed_lines={}, project_dir=project,
+        )
+
+        self.assertEqual('inline', report['issues']['warnings'][0]['reporting_mode'])
 
     def test_confidence_is_rounded_before_routing(self):
         """Routing and persisted JSON use the same confidence value."""
@@ -230,6 +277,8 @@ class TestNormalizeReviewReport(test.NoDBTestCase):
                 'sys.argv',
                 [
                     'normalize_review_report.py',
+                    '--project-dir',
+                    str(tempdir),
                     '--raw-report',
                     str(raw_report),
                     '--output',

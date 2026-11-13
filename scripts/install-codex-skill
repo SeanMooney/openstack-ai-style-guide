@@ -5,7 +5,7 @@ CODEX_HOME="${CODEX_HOME:-$HOME/.codex}"
 AGENTS_HOME="${AGENTS_HOME:-$HOME/.agents}"
 PLUGIN_ROOT="${CODEX_HOME}/plugins"
 TARGET="${PLUGIN_ROOT}/teim-review"
-SOURCE="$(CDPATH= cd -- "$(dirname -- "$0")/../plugins/teim-review" && pwd)"
+SOURCE="$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)"
 MARKETPLACE_ROOT="${AGENTS_HOME}/plugins"
 MARKETPLACE_FILE="${MARKETPLACE_ROOT}/marketplace.json"
 
@@ -15,7 +15,9 @@ if [[ "$(basename -- "${TARGET}")" != "teim-review" ]]; then
     exit 1
 fi
 rm -rf "${TARGET}"
-cp -R "${SOURCE}" "${TARGET}"
+mkdir -p "${TARGET}"
+cp -R "${SOURCE}/.codex-plugin" "${SOURCE}/skills" "${TARGET}/"
+cp "${SOURCE}/plugin.json" "${SOURCE}/LICENSE" "${TARGET}/"
 
 export MARKETPLACE_FILE TARGET
 python3 <<'PY'

@@ -1,0 +1,106 @@
+---
+- name: Verify per-attempt Claude diagnostics
+  hosts: all
+  gather_facts: false
+  tasks:
+    - name: Allocate isolated diagnostics fixture
+      ansible.builtin.tempfile:
+        state: directory
+        prefix: teim-diagnostics-
+      register: run_claude_code_diag_fixture
+
+    - name: Install retrying Claude fixture
+      ansible.builtin.copy:
+        src: "{{ playbook_dir }}/mock_claude_diagnostics.py"
+        dest: "{{ run_claude_code_diag_fixture.path }}/mock-claude"
+        mode: '0755'
+
+    - name: Create fixture schema
+      ansible.builtin.copy:
+        content: '{"type":"object"}'
+        dest: "{{ run_claude_code_diag_fixture.path }}/schema.json"
+        mode: '0644'
+
+    - name: Run production role through a failing attempt and retry
+      ansible.builtin.include_role:
+        name: run_claude_code
+      vars:
+        run_claude_code_claude_binary: "python3 {{ run_claude_code_diag_fixture.path }}/mock-claude"
+        run_claude_code_config_dir: "{{ run_claude_code_diag_fixture.path }}/config"
+        run_claude_code_diagnostics_dir: "{{ run_claude_code_diag_fixture.path }}/logs with spaces/claude"
+        run_claude_code_output_file: "{{ run_claude_code_diag_fixture.path }}/result.json"
+        run_claude_code_json_schema: "{{ run_claude_code_diag_fixture.path }}/schema.json"
+        run_claude_code_prompt_text: "Diagnostics fixture"
+        run_claude_code_anthropic_auth_token: "local-test-token"
+        run_claude_code_anthropic_api_url: "http://localhost:1"
+
+    - name: Read attempt index
+      ansible.builtin.slurp:
+        src: "{{ run_claude_code_diag_fixture.path }}/logs with spaces/claude/session-ids.txt"
+      register: run_claude_code_diag_index
+
+    - name: Decode attempt IDs
+      ansible.builtin.set_fact:
+        run_claude_code_diag_ids: "{{ (run_claude_code_diag_index.content | b64decode).splitlines() }}"
+
+    - name: Require exactly two distinct attempts
+      ansible.builtin.assert:
+        that:
+          - run_claude_code_diag_ids | length == 2
+          - run_claude_code_diag_ids | unique | length == 2
+
+    - name: Require canonical session UUIDs
+      ansible.builtin.assert:
+        that:
+          - item is match('^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$')
+      loop: "{{ run_claude_code_diag_ids }}"
+
+    - name: Inspect each attempt's debug log
+      ansible.builtin.stat:
+        path: "{{ run_claude_code_diag_fixture.path }}/logs with spaces/claude/debug-{{ item }}.log"
+      register: run_claude_code_diag_logs
+      loop: "{{ run_claude_code_diag_ids }}"
+
+    - name: Require nonempty debug logs for both attempts
+      ansible.builtin.assert:
+        that:
+          - item.stat.exists
+          - item.stat.size > 0
+      loop: "{{ run_claude_code_diag_logs.results }}"
+
+    - name: Collect diagnostics using production post-run helper
+      ansible.builtin.script:
+        cmd: >-
+          {{ playbook_dir }}/../../../ai_code_review/files/collect_claude_diagnostics.py
+          --config-dir {{ (run_claude_code_diag_fixture.path ~ '/config') | quote }}
+          --diagnostics-dir {{ (run_claude_code_diag_fixture.path ~ '/logs with spaces/claude') | quote }}
+        executable: python3
+      changed_when: false
+
+    - name: Read collection manifest
+      ansible.builtin.slurp:
+        src: "{{ run_claude_code_diag_fixture.path }}/logs with spaces/claude/collection.json"
+      register: run_claude_code_diag_collection
+
+    - name: Decode collection manifest
+      ansible.builtin.set_fact:
+        run_claude_code_diag_manifest: "{{ run_claude_code_diag_collection.content | b64decode | from_json }}"
+
+    - name: Require collection of both indexed sessions
+      ansible.builtin.assert:
+        that:
+          - run_claude_code_diag_manifest.invalid_session_ids | length == 0
+          - run_claude_code_diag_manifest.sessions | map(attribute='session_id') | sort == run_claude_code_diag_ids | sort
+
+    - name: Require main and subagent transcripts for each attempt
+      ansible.builtin.assert:
+        that:
+          - item.files | length == 2
+          - (item.files | select('search', '/subagents/agent-reviewer.jsonl$') | list | length) == 1
+          - (item.files | select('search', '/' ~ item.session_id ~ '.jsonl$') | list | length) == 1
+      loop: "{{ run_claude_code_diag_manifest.sessions }}"
+
+    - name: Remove successful diagnostics fixture
+      ansible.builtin.file:
+        path: "{{ run_claude_code_diag_fixture.path }}"
+        state: absent

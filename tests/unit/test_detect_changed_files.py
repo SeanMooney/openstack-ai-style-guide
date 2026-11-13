@@ -96,6 +96,48 @@ class TestDetectChangedFiles(test.NoDBTestCase):
             repo,
         )
 
+    def test_detects_deleted_file_in_latest_commit(self):
+        repo = self._make_repo()
+        self._write(repo, 'deleted.txt', 'base\n')
+        self._run(repo, 'add', '.')
+        self._run(repo, 'commit', '-m', 'base')
+        self._run(repo, 'rm', 'deleted.txt')
+        self._run(repo, 'commit', '-m', 'delete')
+
+        result = self.detect_changed_files.detect_changed_files(repo)
+
+        self.assertThat(result, matchers.Equals(['deleted.txt']))
+
+    def test_detects_deleted_file_since_branch_base(self):
+        repo = self._make_repo()
+        self._write(repo, 'deleted.txt', 'base\n')
+        self._run(repo, 'add', '.')
+        self._run(repo, 'commit', '-m', 'base')
+        self._run(repo, 'branch', 'review-base')
+        self._run(repo, 'rm', 'deleted.txt')
+        self._run(repo, 'commit', '-m', 'delete')
+
+        result = self.detect_changed_files.detect_changed_files(
+            repo, base_ref='review-base'
+        )
+
+        self.assertThat(result, matchers.Equals(['deleted.txt']))
+
+    def test_detects_staged_and_unstaged_deletions(self):
+        repo = self._make_repo()
+        self._write(repo, 'staged.txt', 'base\n')
+        self._write(repo, 'unstaged.txt', 'base\n')
+        self._run(repo, 'add', '.')
+        self._run(repo, 'commit', '-m', 'base')
+        self._run(repo, 'rm', 'staged.txt')
+        (repo / 'unstaged.txt').unlink()
+
+        result = self.detect_changed_files.detect_changed_files(
+            repo, uncommitted_only=True
+        )
+
+        self.assertThat(result, matchers.Equals(['staged.txt', 'unstaged.txt']))
+
     def test_root_commit_can_explicitly_use_tracked_files(self):
         repo = self._make_repo()
         self._write(repo, 'b.txt', 'base\n')

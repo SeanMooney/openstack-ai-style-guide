@@ -10,354 +10,159 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 
-"""Repository contract tests for plugin and workflow wiring."""
+"""Repository contracts for portable review and standalone skills."""
 
 import json
 import pathlib
+import re
+import shlex
 
+import yaml
 from testtools import matchers
 
 from tests import test
 
 
 class TestRepoContracts(test.NoDBTestCase):
-    """Lock active runtime contracts during repository restructuring."""
+    """Verify installable resources and CI delivery contracts."""
 
     def setUp(self):
         super().setUp()
         self.repo_root = pathlib.Path(__file__).resolve().parents[2]
+        self.skill_root = self.repo_root / 'skills' / 'teim-review'
 
-    def _read_text(self, relative_path):
-        return (self.repo_root / relative_path).read_text()
+    def _read_json(self, path):
+        return json.loads((self.repo_root / path).read_text())
 
-    def _read_json(self, relative_path):
-        with (self.repo_root / relative_path).open() as fh:
-            return json.load(fh)
+    def test_plugins_expose_the_same_skill_tree(self):
+        """Native metadata must resolve to the same portable sources."""
+        portable = self._read_json('plugin.json')
+        self.assertEqual('https://agent-plugins.org/schemas/1.0.0/plugin.schema.json',
+                         portable['$schema'])
+        for directory in ('.claude-plugin', '.codex-plugin', '.cursor-plugin'):
+            plugin = self._read_json(directory + '/plugin.json')
+            self.assertEqual(portable['name'], plugin['name'])
+            self.assertEqual(portable['version'], plugin['version'])
+            skills_path = plugin.get('skills', './skills/')
+            self.assertEqual(self.skill_root.parent,
+                             (self.repo_root / skills_path).resolve())
+        pi = self._read_json('package.json')
+        self.assertEqual(['./skills'], pi['pi']['skills'])
 
-    def test_plugin_and_marketplace_metadata_stay_aligned(self):
-        """The plugin and marketplace must describe the same plugin contract."""
-        plugin = self._read_json('.claude-plugin/plugin.json')
-        marketplace = self._read_json('.claude-plugin/marketplace.json')
+    def test_marketplaces_resolve_the_plugin_root(self):
+        """Both marketplace identities and source paths stay usable."""
+        claude = self._read_json('.claude-plugin/marketplace.json')
+        codex = self._read_json('.agents/plugins/marketplace.json')
+        for marketplace in (claude, codex):
+            self.assertEqual('openstack-ai-style-guide', marketplace['name'])
+            self.assertEqual('teim-review', marketplace['plugins'][0]['name'])
+        self.assertEqual('./', claude['plugins'][0]['source'])
+        codex_source = codex['plugins'][0]['source']['path']
+        self.assertEqual(self.repo_root,
+                         (self.repo_root / codex_source).resolve())
 
-        self.assertThat(plugin['name'], matchers.Equals('teim-review'))
-        self.assertThat(
-            marketplace['name'], matchers.Equals('openstack-ai-style-guide')
-        )
-        self.assertThat(len(marketplace['plugins']), matchers.Equals(1))
+    def test_skill_frontmatter_is_portable(self):
+        """Every sibling has standard routing and no model settings."""
+        for skill in self.skill_root.parent.iterdir():
+            if not skill.is_dir():
+                continue
+            body = (skill / 'SKILL.md').read_text()
+            frontmatter = yaml.safe_load(body.split('---', 2)[1])
+            self.assertEqual(skill.name, frontmatter['name'])
+            self.assertTrue(frontmatter['description'])
+            self.assertLessEqual(len(frontmatter['description']), 1024)
+            self.assertNotIn('model', frontmatter)
+            self.assertNotIn('context', frontmatter)
+            self.assertNotIn('agent', frontmatter)
 
-        listed_plugin = marketplace['plugins'][0]
-        self.assertThat(listed_plugin['name'], matchers.Equals(plugin['name']))
-        self.assertThat(
-            listed_plugin['version'], matchers.Equals(plugin['version'])
-        )
-        self.assertThat(listed_plugin['source'], matchers.Equals('./'))
+    def test_standalone_invocation_policy(self):
+        """Audits need explicit invocation; conversion stays discoverable."""
+        for name in ('security-auditor', 'code-maintainability-auditor',
+                     'doc-to-markdown'):
+            skill = self.skill_root.parent / name
+            frontmatter = yaml.safe_load(
+                (skill / 'SKILL.md').read_text().split('---', 2)[1])
+            explicit_only = name != 'doc-to-markdown'
+            self.assertEqual(explicit_only,
+                             frontmatter.get('disable-model-invocation', False))
+            metadata_path = skill / 'agents/openai.yaml'
+            metadata = (yaml.safe_load(metadata_path.read_text())
+                        if metadata_path.exists() else {})
+            self.assertEqual(not explicit_only,
+                             metadata.get('policy', {}).get(
+                                 'allow_implicit_invocation', True))
+        self.assertFalse((self.repo_root / 'agents').exists())
+        for alias in ('.claude/agents', '.opencode/agent'):
+            self.assertFalse((self.repo_root / alias).is_symlink())
 
-    def test_codex_plugin_and_marketplace_metadata_stay_aligned(self):
-        """Codex plugin metadata should match the repo marketplace entry."""
-        plugin = self._read_json('plugins/teim-review/.codex-plugin/plugin.json')
-        marketplace = self._read_json('.agents/plugins/marketplace.json')
+    def test_skill_links_resolve_inside_the_package(self):
+        """Each skill stays usable when installed independently."""
+        for skill in self.skill_root.parent.iterdir():
+            if not skill.is_dir():
+                continue
+            for path in skill.rglob('*.md'):
+                for target in re.findall(r'\]\(([^)]+)\)', path.read_text()):
+                    if '://' in target or target.startswith('#'):
+                        continue
+                    resource = (path.parent / target.split('#', 1)[0]).resolve()
+                    self.assertTrue(resource.is_relative_to(skill),
+                                    f'{path}: resource escapes skill: {target}')
+                    self.assertTrue(resource.exists(),
+                                    f'{path}: missing {target}')
 
-        self.assertThat(plugin['name'], matchers.Equals('teim-review'))
-        self.assertThat(plugin['skills'], matchers.Equals('./skills/'))
-        self.assertThat(
-            marketplace['plugins'][0]['name'], matchers.Equals(plugin['name'])
-        )
-        self.assertThat(
-            marketplace['plugins'][0]['source']['path'],
-            matchers.Equals('../../plugins/teim-review'),
-        )
-        resolved_path = (
-            self.repo_root
-            / '.agents'
-            / 'plugins'
-            / marketplace['plugins'][0]['source']['path']
-        ).resolve()
-        self.assertThat(
-            resolved_path,
-            matchers.Equals((self.repo_root / 'plugins' / 'teim-review').resolve()),
-        )
+    def test_required_runtime_resources_are_bundled(self):
+        """Installing one skill includes both review roles and report tools."""
+        for path in (
+            'references/workflow.md', 'references/finding-policy.md',
+            'references/reviewer.md', 'references/validator.md',
+            'references/quick-rules.md', 'references/comprehensive-guide.md',
+            'references/knowledge/README.md',
+            'references/schemas/candidate-findings-schema.json',
+            'references/schemas/validated-findings-schema.json',
+            'references/schemas/review-report-schema.json',
+            'scripts/detect_changed_files.py',
+            'scripts/detect_changed_lines.py',
+            'scripts/prepare_review_artifacts.py',
+            'scripts/build_review_report.py',
+            'scripts/normalize_review_report.py',
+            'scripts/render_html_from_json.py',
+        ):
+            self.assertTrue((self.skill_root / path).is_file(), path)
+        self.assertFalse((self.repo_root / 'plugins/teim-review/skills/teim-review/SKILL.md').exists())
+        self.assertFalse((self.repo_root / 'config/tool-profiles.json').exists())
 
-    def test_shared_core_and_tool_profiles_exist(self):
-        """The shared workflow and semantic profiles are stable contracts."""
-        prompt = self._read_text('prompts/teim-review-core.md')
-        profiles = self._read_json('config/tool-profiles.json')
+    def test_ci_uses_one_claude_call_and_the_portable_entrypoint(self):
+        """CI keeps Claude delivery and deterministic report assembly."""
+        role = yaml.safe_load((self.repo_root / 'roles/ai_code_review/tasks/main.yaml').read_text())
+        invocations = [task for task in role
+                       if task.get('ansible.builtin.include_role', {}).get('name')
+                       == 'run_claude_code']
+        self.assertEqual(1, len(invocations))
+        variables = invocations[0]['vars']
+        self.assertEqual('{{ ai_code_review_model }}',
+                         variables['run_claude_code_model_name'])
+        self.assertEqual('{{ ai_code_review_validated_findings_schema }}',
+                         variables['run_claude_code_json_schema'])
+        prompt = next(task['ansible.builtin.set_fact']['ai_code_review_review_prompt']
+                      for task in role if 'ansible.builtin.set_fact' in task)
+        self.assertThat(prompt, matchers.Contains('{{ ai_code_review_skill_root }}/SKILL.md'))
+        self.assertThat(prompt, matchers.Contains('findings_only: true'))
+        self.assertNotIn('@teim-review-agent', prompt)
+        playbook = (self.repo_root / 'playbooks/teim-code-review/run.yaml').read_text()
+        for tool in ('build_review_report.py', 'normalize_review_report.py'):
+            self.assertThat(playbook, matchers.Contains('skills/teim-review/scripts/' + tool))
 
-        self.assertThat(
-            prompt,
-            matchers.Contains('authoritative provider-neutral review workflow'),
-        )
-        self.assertThat(
-            profiles['profiles']['fast']['codex']['context_model'],
-            matchers.Equals('gpt-5.4-mini'),
-        )
-        self.assertThat(
-            profiles['profiles']['fast']['codex']['interactive_review_model'],
-            matchers.Equals('inherit'),
-        )
-        self.assertThat(
-            profiles['profiles']['deep']['codex']['interactive_review_model'],
-            matchers.Equals('inherit'),
-        )
-        self.assertThat(
-            profiles['profiles']['deep']['claude']['review_model'],
-            matchers.Equals('inherit'),
-        )
-
-    def test_codex_plugin_references_mirror_shared_core_files(self):
-        """Codex plugin mirrors should stay aligned with shared sources."""
-        shared_prompt = self._read_text('prompts/teim-review-core.md')
-        plugin_prompt = self._read_text(
-            'plugins/teim-review/references/teim-review-core.md'
-        )
-        shared_profiles = self._read_json('config/tool-profiles.json')
-        plugin_profiles = self._read_json(
-            'plugins/teim-review/references/tool-profiles.json'
-        )
-        shared_changed_files_helper = self._read_text(
-            'skills/teim-review/scripts/detect_changed_files.py'
-        )
-        plugin_changed_files_helper = self._read_text(
-            'plugins/teim-review/skills/teim-review/scripts/'
-            'detect_changed_files.py'
-        )
-
-        self.assertThat(plugin_prompt, matchers.Equals(shared_prompt))
-        self.assertThat(plugin_profiles, matchers.Equals(shared_profiles))
-        self.assertThat(
-            plugin_changed_files_helper,
-            matchers.Equals(shared_changed_files_helper),
-        )
-
-    def test_skill_points_at_teim_review_agent_and_schema(self):
-        """The interactive entrypoint must keep its agent and schema contract."""
-        skill = self._read_text('skills/teim-review/SKILL.md')
-
-        self.assertThat(
-            skill, matchers.Contains('Use the @teim-review-agent subagent')
-        )
-        self.assertThat(
-            skill, matchers.Contains('prompts/teim-review-core.md')
-        )
-        self.assertThat(
-            skill,
-            matchers.Contains('schemas/review-report-schema.json'),
-        )
-        self.assertThat(skill, matchers.Contains('scripts/detect_changed_files.py'))
-        self.assertThat(skill, matchers.Contains('.teim-review/'))
-        self.assertThat(skill, matchers.Contains('./docs/knowledge/'))
-
-    def test_orchestrator_agent_references_core_outputs(self):
-        """The orchestrator agent must still define the expected review flow."""
-        agent = self._read_text('agents/teim-review-agent.md')
-
-        self.assertThat(agent, matchers.Contains('@code-review-agent'))
-        self.assertThat(
-            agent, matchers.Contains('@finding-validation-agent')
-        )
-        self.assertThat(
-            agent, matchers.Contains('prompts/teim-review-core.md')
-        )
-        self.assertThat(agent, matchers.Contains('candidate-findings.json'))
-        self.assertThat(agent, matchers.Contains('validated-findings.json'))
-        self.assertThat(agent, matchers.Contains('review-context.json'))
-        self.assertThat(agent, matchers.Contains('review-validation.json'))
-        self.assertThat(
-            agent, matchers.Contains('teim-review-finding-policy.md')
-        )
-        self.assertThat(agent, matchers.Contains('review-report.json'))
-        self.assertThat(agent, matchers.Contains('project-guidelines.md'))
-        self.assertThat(agent, matchers.Contains('knowledge_root'))
-        self.assertThat(
-            agent,
-            matchers.Contains('Do not invoke `@zuul-context-extractor`'),
-        )
-        self.assertThat(
-            agent,
-            matchers.Contains('Return the same validated findings object'),
-        )
-
-    def test_review_agents_have_separate_responsibilities(self):
-        """Reviewer and validator prompts should stay narrowly scoped."""
-        reviewer = self._read_text('agents/code-review-agent.md')
-        validator = self._read_text('agents/finding-validation-agent.md')
-        policy = self._read_text('prompts/teim-review-finding-policy.md')
-
-        self.assertThat(
-            reviewer,
-            matchers.Contains('Your only job is to identify candidate'),
-        )
-        self.assertThat(
-            reviewer,
-            matchers.Contains('prompts/teim-review-finding-policy.md'),
-        )
-        self.assertThat(
-            reviewer,
-            matchers.Not(matchers.Contains('Generate HTML')),
-        )
-        self.assertThat(
-            reviewer,
-            matchers.Not(matchers.Contains('statistics.total')),
-        )
-        self.assertThat(
-            validator,
-            matchers.Contains('must not invent new'),
-        )
-        self.assertThat(
-            validator,
-            matchers.Not(matchers.Contains('Zuul comments')),
-        )
-        self.assertThat(
-            validator,
-            matchers.Contains('prompts/teim-review-finding-policy.md'),
-        )
-        self.assertThat(policy, matchers.Contains('High-Signal Rules'))
-        self.assertThat(policy, matchers.Contains('Security Decision Framework'))
-        self.assertThat(policy, matchers.Contains('Do not decide whether'))
-
-    def test_codex_and_cursor_adapters_reference_shared_core(self):
-        """Codex and Cursor should stay thin adapters over the shared core."""
-        codex_skill = self._read_text(
-            'plugins/teim-review/skills/teim-review/SKILL.md'
-        )
-        cursor_rule = self._read_text('.cursor/rules/teim-review.mdc')
-        cursor_mode = self._read_text('cursor/teim-review-mode-template.json')
-        agents_doc = self._read_text('AGENTS.md')
-
-        self.assertThat(
-            codex_skill, matchers.Contains('references/teim-review-core.md')
-        )
-        self.assertThat(
-            cursor_rule, matchers.Contains('prompts/teim-review-core.md')
-        )
-        self.assertThat(cursor_mode, matchers.Contains('Teim Review'))
-        self.assertThat(agents_doc, matchers.Contains('plugins/teim-review/'))
-        self.assertThat(agents_doc, matchers.Contains('.cursor/rules/'))
-        self.assertThat(codex_skill, matchers.Contains('$teim-review'))
-        self.assertThat(codex_skill, matchers.Contains('/skills'))
-        self.assertThat(
-            codex_skill, matchers.Contains('scripts/detect_changed_files.py')
-        )
-        self.assertThat(
-            codex_skill,
-            matchers.Not(matchers.Contains('scripts/teim-review-codex')),
-        )
-        self.assertThat(codex_skill, matchers.Not(matchers.Contains('@teim-review')))
-        self.assertThat(agents_doc, matchers.Not(matchers.Contains('@teim-review')))
-
-    def test_gitignore_ignores_codex_artifact(self):
-        """Local Codex run artifacts should not dirty the repository."""
-        gitignore = self._read_text('.gitignore')
-        self.assertThat(gitignore, matchers.Contains('.codex'))
-
-    def test_zuul_job_and_playbook_keep_current_entrypoints(self):
-        """Zuul and playbook wiring should continue to target the same flow."""
-        jobs = self._read_text('zuul.d/jobs.yaml')
-        playbook = self._read_text('playbooks/teim-code-review/run.yaml')
-        setup_role = self._read_text('roles/ai_review_setup/tasks/main.yaml')
-        review_role = self._read_text('roles/ai_code_review/tasks/main.yaml')
-
-        self.assertThat(jobs, matchers.Contains('name: teim-code-review'))
-        self.assertThat(
-            jobs,
-            matchers.Contains('name: openstack-ai-style-guide-lint'),
-        )
-        self.assertThat(jobs, matchers.Contains('haiku_model: "fast"'))
-        self.assertThat(jobs, matchers.Contains('sonnet_model: "fast"'))
-        self.assertThat(jobs, matchers.Contains('opus_model: "fast"'))
-        self.assertThat(jobs, matchers.Contains('review_model: "fast"'))
-        self.assertThat(playbook, matchers.Contains('name: ai_review_setup'))
-        self.assertThat(playbook, matchers.Contains('name: ai_code_review'))
-        self.assertThat(
-            playbook, matchers.Contains('tools/build_review_report.py')
-        )
-        self.assertThat(
-            playbook, matchers.Contains('validated-findings.raw.json')
-        )
-        self.assertThat(playbook, matchers.Contains('name: ai_html_generation'))
-        self.assertThat(
-            playbook, matchers.Contains('name: ai_zuul_integration')
-        )
-        self.assertThat(
-            playbook,
-            matchers.Contains(
-                'skills/teim-review/scripts/detect_changed_files.py'
-            ),
-        )
-        self.assertThat(
-            setup_role,
-            matchers.Contains('teim-review@openstack-ai-style-guide'),
-        )
-        self.assertThat(review_role, matchers.Contains('knowledge_root'))
-        self.assertThat(
-            review_role,
-            matchers.Contains('tools/prepare_review_artifacts.py'),
-        )
-        self.assertThat(
-            review_role,
-            matchers.Contains(
-                'run_claude_code_json_schema: '
-                '"{{ ai_code_review_validated_findings_schema }}"'
-            ),
-        )
-        self.assertThat(review_role, matchers.Contains('run_claude_code_effort'))
-        self.assertThat(review_role, matchers.Contains('run_claude_code_bare'))
-        self.assertThat(playbook, matchers.Contains('statistics_html_only'))
-        self.assertThat(
-            playbook,
-            matchers.Contains('name: Record changed-lines availability'),
-        )
-        self.assertThat(
-            playbook,
-            matchers.Contains('changed_lines_available | default(false)'),
-        )
-        self.assertThat(
-            playbook,
-            matchers.Not(matchers.Contains('detect_lines_result.rc')),
-        )
-
-    def test_ci_review_path_has_single_claude_invocation(self):
-        """CI review keeps one Claude call and deterministic glue."""
-        review_role = self._read_text('roles/ai_code_review/tasks/main.yaml')
-        playbook = self._read_text('playbooks/teim-code-review/run.yaml')
-
-        self.assertThat(
-            review_role.count('name: run_claude_code'),
-            matchers.Equals(1),
-        )
-        self.assertThat(
-            review_role,
-            matchers.Not(matchers.Contains('@zuul-context-extractor')),
-        )
-        self.assertThat(
-            review_role,
-            matchers.Not(matchers.Contains('@commit-summary')),
-        )
-        self.assertThat(
-            review_role,
-            matchers.Not(matchers.Contains('@project-guidelines-extractor')),
-        )
-        self.assertThat(
-            playbook,
-            matchers.Contains('Build raw review report from validated findings'),
-        )
-
-    def test_active_docs_and_archive_markers_exist(self):
-        """Supporting docs should make active versus legacy material explicit."""
-        active_doc = self.repo_root / 'docs/review-system-overview.md'
-        archive_doc = self.repo_root / 'docs/archive/README.md'
-        knowledge_doc = self.repo_root / 'docs/knowledge/README.md'
-        quick_rules = self.repo_root / 'docs/quick-rules.md'
-        comprehensive = self.repo_root / 'docs/comprehensive-guide.md'
-
-        self.assertTrue(active_doc.exists())
-        self.assertTrue(archive_doc.exists())
-        self.assertTrue(knowledge_doc.exists())
-        self.assertTrue(quick_rules.exists())
-        self.assertTrue(comprehensive.exists())
-        self.assertThat(active_doc.read_text(), matchers.Contains('teim-review'))
-        self.assertThat(active_doc.read_text(), matchers.Contains('$teim-review'))
-        self.assertThat(
-            active_doc.read_text(),
-            matchers.Not(matchers.Contains('@teim-review')),
-        )
-        self.assertThat(knowledge_doc.read_text(), matchers.Contains('overlays'))
+    def test_claude_review_can_delegate_without_interactive_approval(self):
+        """Headless review exposes delegation instead of forcing fallback."""
+        defaults = yaml.safe_load((self.repo_root / 'roles/ai_code_review/defaults/main.yaml').read_text())
+        self.assertFalse(defaults['ai_code_review_claude_bare'])
+        tasks = yaml.safe_load((self.repo_root / 'roles/run_claude_code/tasks/main.yaml').read_text())
+        commands = [task['ansible.builtin.set_fact']['run_claude_code_command']
+                    for task in tasks if 'run_claude_code_command'
+                    in task.get('ansible.builtin.set_fact', {})]
+        self.assertEqual(2, len(commands))
+        for command in commands:
+            args = shlex.split(command)
+            tools = args[args.index('--allowedTools') + 1].split(',')
+            self.assertIn('Agent', tools)
+            self.assertIn('Task', tools)

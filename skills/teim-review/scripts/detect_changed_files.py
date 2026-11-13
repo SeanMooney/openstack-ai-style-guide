@@ -62,7 +62,7 @@ def detect_changed_files(
 
     if uncommitted_only:
         output = _git_stdout(
-            project_dir, 'diff', '--name-only', '--diff-filter=ACMR', 'HEAD'
+            project_dir, 'diff', '--name-only', '--diff-filter=ACDMR', 'HEAD'
         )
         untracked = _git_stdout(
             project_dir,
@@ -80,7 +80,7 @@ def detect_changed_files(
             project_dir,
             'diff',
             '--name-only',
-            '--diff-filter=ACMR',
+            '--diff-filter=ACDMR',
             f'{merge_base}..HEAD',
         )
         return _normalize_paths(output.splitlines())
@@ -90,7 +90,7 @@ def detect_changed_files(
             project_dir,
             'diff',
             '--name-only',
-            '--diff-filter=ACMR',
+            '--diff-filter=ACDMR',
             'HEAD^..HEAD',
         )
         return _normalize_paths(output.splitlines())

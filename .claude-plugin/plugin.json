@@ -1,5 +1,8 @@
 {
   "name": "teim-review",
-  "description": "AI-powered OpenStack code review toolkit for Gerrit/Zuul CI",
-  "version": "1.0.0"
+  "description": "Portable OpenStack review, security and maintainability audits, and documentation conversion skills.",
+  "version": "1.0.0",
+  "author": {
+    "name": "Sean Mooney"
+  }
 }

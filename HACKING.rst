@@ -15,8 +15,8 @@ Plugin Manifest: No ``agents_dir`` or ``skills_dir`` Fields
 ``.claude-plugin/plugin.json`` does not declare ``agents_dir`` or
 ``skills_dir``. This is intentional.
 
-Claude Code auto-discovers agents from ``agents/`` and skills from ``skills/``
-by default. Explicit fields in ``plugin.json`` are only required when using
+Claude Code auto-discovers skills from ``skills/`` by default. The standalone
+capabilities are sibling skills, with no native agent registrations. Explicit fields in ``plugin.json`` are only required when using
 non-default directory names or paths. The repository uses the default layout,
 so no manifest fields are needed.
 
@@ -26,17 +26,13 @@ configuration issue.
 Shared Review Core
 ------------------
 
-``prompts/teim-review-core.md`` is the provider-neutral source of truth for the
-review workflow. Claude, Codex, and Cursor files adapt that shared core into
-their native delivery surfaces.
+The single portable source is ``skills/teim-review/``. Its workflow and role
+prompts apply to every supported harness. Plugin metadata exposes the same
+skill tree; there are no manually maintained workflow copies or model profiles.
+Subagents are optional. A harness without them executes reviewer and validator
+passes sequentially in its main thread using the same policy and schemas.
 
-It is expected that ``agents/teim-review-agent.md``,
-``skills/teim-review/SKILL.md``, ``.cursor/rules/teim-review.mdc``, and
-``plugins/teim-review/skills/teim-review/SKILL.md`` reference the shared core instead of
-repeating every workflow step inline.
-
-**Do not flag** shared-core references as missing detail or incomplete
-documentation.
+**Do not flag** the main-thread fallback as a missing native-agent integration.
 
 Ansible: Jinja2 Variable Cross-References in ``defaults/main.yaml``
 --------------------------------------------------------------------
@@ -45,7 +41,7 @@ Role defaults files (e.g. ``roles/ai_code_review/defaults/main.yaml``) contain
 variables that reference other variables defined in the same file, for example::
 
     ai_code_review_style_guide_quick_rules: >-
-      {{ ai_code_review_style_guide_project }}/docs/quick-rules.md
+      {{ ai_code_review_style_guide_project }}/skills/teim-review/references/quick-rules.md
 
 Ansible resolves variable references at play time, not at load time. Intra-file
 cross-references in ``defaults/main.yaml`` are valid and work correctly. This is

@@ -80,3 +80,6 @@
               - run_claude_code_role_result_fail.failed | default(false) | bool
             fail_msg: "Role should have failed with missing auth token"
             success_msg: "Role correctly failed with missing auth token"
+
+- name: Exercise diagnostics retry and collection
+  ansible.builtin.import_playbook: diagnostics.yml

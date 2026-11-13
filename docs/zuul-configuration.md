@@ -101,7 +101,7 @@ The linting job runs the configured pre-commit hooks, including:
     `ANTHROPIC_DEFAULT_OPUS_MODEL`
   - Override: Update this in the Zuul job when changing the LiteLLM alias
 
-- **`review_model`**: Model used for the top-level `teim-review-agent` run
+- **`review_model`**: Model used for the top-level `teim-review` skill run
   - Default: `fast`
   - Purpose: Launches the orchestrator and detailed reviewer through the fast
     LiteLLM routing group
@@ -217,4 +217,4 @@ If the DCO hook fails:
 - **Pre-commit Hooks**: See `CONTRIBUTING.md` for detailed pre-commit instructions
 - **Environment Variables**: See `docs/environment-variables.md` for Zuul job variables
 - **Claude Code Plugin**: See `README.md` for plugin installation and review workflow setup
-- **Linting Rules**: See `docs/quick-rules.md` and `docs/comprehensive-guide.md`
+- **Linting Rules**: See `skills/teim-review/references/quick-rules.md` and `skills/teim-review/references/comprehensive-guide.md`

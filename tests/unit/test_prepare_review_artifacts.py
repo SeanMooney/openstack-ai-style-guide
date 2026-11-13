@@ -27,7 +27,7 @@ class TestPrepareReviewArtifacts(test.NoDBTestCase):
 
     def setUp(self):
         super().setUp()
-        self.preparer = test.load_script('tools/prepare_review_artifacts.py')
+        self.preparer = test.load_script('skills/teim-review/scripts/prepare_review_artifacts.py')
 
     def test_cli_writes_prepared_context_artifacts(self):
         """The CLI writes all prepared artifacts and full context paths."""

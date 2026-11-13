@@ -30,9 +30,9 @@ class TestRenderHtml(test.NoDBTestCase):
     def setUp(self):
         super().setUp()
         self.render_html = test.load_script(
-            'tools/render_html_from_json.py'
+            'skills/teim-review/scripts/render_html_from_json.py'
         )
-        self.schema_path = pathlib.Path('schemas/review-report-schema.json')
+        self.schema_path = pathlib.Path('skills/teim-review/references/schemas/review-report-schema.json')
 
     def _create_sample_review(self):
         """Create sample review data.

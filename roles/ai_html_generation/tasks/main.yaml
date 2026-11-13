@@ -25,7 +25,7 @@
 - name: Generate HTML report from JSON
   ansible.builtin.command: >
     {{ ai_html_generation_venv_dir }}/bin/python3
-    {{ ai_html_generation_style_guide_project }}/tools/render_html_from_json.py
+    {{ ai_html_generation_style_guide_project }}/skills/teim-review/scripts/render_html_from_json.py
     {{ ai_html_generation_review_report_file }}
     {{ ai_html_generation_html_report_file }}
     --schema {{ ai_html_generation_review_report_schema }}

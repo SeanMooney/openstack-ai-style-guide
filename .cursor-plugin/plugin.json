@@ -1,0 +1,7 @@
+{
+  "name": "teim-review",
+  "version": "1.0.0",
+  "description": "Portable OpenStack review, security and maintainability audits, and documentation conversion skills.",
+  "skills": "./skills/",
+  "license": "Apache-2.0"
+}

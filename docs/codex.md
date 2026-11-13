@@ -25,7 +25,7 @@ scripts/install-codex-skill
 
 That helper:
 
-- copies `plugins/teim-review/` into `${CODEX_HOME:-$HOME/.codex}/plugins/`
+- copies root `plugin.json`, `.codex-plugin/`, shared `skills/`, and the license into `${CODEX_HOME:-$HOME/.codex}/plugins/`
 - creates or updates a personal marketplace at `${AGENTS_HOME:-$HOME/.agents}/plugins/marketplace.json`
 - preserves unrelated marketplace entries and top-level metadata when the file already exists
 - writes the installed `teim-review` entry with an absolute plugin path that matches the effective `CODEX_HOME`
@@ -55,22 +55,26 @@ Output is written to `.teim-review/`:
 - `review-report.json`
 - `review-report.html`
 
-## Profiles
+## Portable execution
 
-- `fast`: lightweight profile for context-style extraction tasks
-- `deep`: high-capability profile for deeper review passes; it shares the
-  same context model as `fast` today
-- interactive Codex skill runs should keep the final review in the current
-  session model
-- Codex profiles intentionally share the same context model today because the
-  active Codex session model controls the final review pass. Unlike the
-  Claude CI path, Codex does not route these profile models through LiteLLM,
-  so `config/tool-profiles.json` intentionally keeps the concrete Codex
-  context model name.
-- `$teim-review` is the supported Codex-native interactive entrypoint for this
-  repository
+Codex loads the same skill used by Claude, Cursor, OpenCode, and Pi. It uses
+the session's model settings, delegates review roles when supported and
+permitted, and runs them sequentially in the main thread otherwise.
+When a native delegation tool is available, the skill explicitly requests two
+distinct subagents, so ordinary advice against unsolicited delegation is not a
+reason to skip them. Main-thread fallback must identify the specific capability
+or permission limit. Refresh the installed plugin after changing this workflow;
+an already loaded session can still contain the older skill instructions.
+The installed package contains all runtime scripts, policy, schemas, and coding
+references; it does not depend on the style-guide checkout being the target.
 
-Profile mappings are defined in `config/tool-profiles.json`.
+For direct skill installation instead of a plugin, from the source checkout:
+
+```bash
+npx skills add . --skill teim-review -a codex
+```
+
+Choose one installation method to avoid duplicate entries.
 
 ## Updating the Plugin
 

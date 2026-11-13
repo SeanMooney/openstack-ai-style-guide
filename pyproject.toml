@@ -72,8 +72,9 @@ ignore = [
 ]
 
 [tool.ruff.lint.per-file-ignores]
-"docs/examples/bad/*.py" = ["ALL"]  # Bad examples are intentionally non-compliant
-"docs/examples/good/*.py" = ["ALL"]  # Good examples may contain demonstration patterns
+"skills/teim-review/references/examples/bad/*.py" = ["ALL"]  # Bad examples are intentionally non-compliant
+"skills/teim-review/references/examples/good/*.py" = ["ALL"]  # Good examples may contain demonstration patterns
+"skills/teim-review/scripts/*.py" = ["T20"]
 "tools/*.py" = ["T20"]  # Allow print statements in CLI tools
 "roles/*/files/*.py" = ["T20"]  # Allow print in role scripts (CLI tools)
 "tests/**/*.py" = [
@@ -108,7 +109,7 @@ line-ending = "lf"
 # Bandit security linting configuration
 exclude_dirs = [
     "tests",
-    "docs/examples/bad",
+    "skills/teim-review/references/examples/bad",
     ".tox",
     ".venv",
     "venv",

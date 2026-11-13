@@ -1,167 +1,117 @@
 # OpenStack AI Review System
 
-This repository packages the active pieces of an AI-assisted OpenStack review
-workflow:
+Portable skills for Claude Code, Codex, Cursor, OpenCode, and Pi. The
+teim-review skill contains its workflow, finding policy, reviewer and validator
+prompts, coding guidance, schemas, and deterministic scripts.
 
-- shared provider-neutral review prompts and model profiles
-- Claude plugin and marketplace metadata
-- Codex plugin and skill tooling
-- Cursor rules and custom mode template
-- review agents and tool-native interactive entrypoints
-- review report schema and helper transforms
-- Zuul jobs and Ansible roles that run the workflow in CI
+## Local review
 
-The repository started as a generic AI style-guide project. It has since
-evolved into a review system with a growing internal knowledge base. The
-runtime pipeline is the primary product, while standards snapshots and derived
-review knowledge support that pipeline.
-
-## Active Workflow
-
-The current production path is:
-
-1. Zuul checks out this repository as a required project.
-2. `ai_review_setup` registers the local marketplace and installs the
-   `teim-review` plugin.
-3. `ai_code_review` invokes `teim-review-agent` in one Claude session.
-4. The agent orchestrates context extraction, commit summarization,
-   project-guideline extraction, and structured review generation.
-5. Python helpers turn the JSON report into HTML and Zuul file comments.
-
-Local interactive usage is now distributed through native tool adapters over
-the same shared review core.
-
-## Primary Entry Points
-
-### Local review
-
-#### Claude
+Install the shared skill into your chosen tools with the Agent Skills CLI:
 
 ```bash
+npx skills add . --skill teim-review -a claude-code codex cursor opencode pi
+```
+
+Run this from the source checkout to install the local version. Select only
+one installation method per tool to avoid duplicate skills. Native plugin
+metadata exposes the same `skills/` directory without a separate skill body.
+
+For Claude Code, the existing marketplace installation remains supported:
+
+```text
 /plugin marketplace add /path/to/openstack-ai-style-guide
 /plugin install teim-review@openstack-ai-style-guide
 /teim-review
 ```
 
-#### Codex
+Codex users can retain `scripts/install-codex-skill` and invoke `$teim-review`;
+see [docs/codex.md](docs/codex.md). Pi can also install the repository as a
+native package with `pi install ./` and invoke `/skill:teim-review`.
 
-```bash
-npm install -g @openai/codex
-codex login
-scripts/install-codex-skill
-codex
-# restart Codex, then install teim-review from the Local Codex Plugins marketplace
-# use /skills to discover the installed skill, then run:
-$teim-review
-```
+The skill reviews the target repository and writes `.teim-review/` artifacts.
+It runs candidate generation followed by finding validation, then assembles,
+normalizes, and renders the report deterministically. If the harness supports
+and permits subagents it uses them; otherwise both passes run in the main
+thread. It uses the harness's model settings throughout.
 
-Detailed installation, update, troubleshooting, and isolated validation steps
-live in `docs/codex.md`.
+## Standalone skills
 
-#### Cursor
+| Skill | Purpose | Invocation |
+| --- | --- | --- |
+| `security-auditor` | Dedicated security audit with exploit-path evidence | Explicit user request only |
+| `code-maintainability-auditor` | Dead code, dependency, and consolidation audit | Explicit user request only |
+| `doc-to-markdown` | Convert source documentation into cited Markdown | Tool/model discovery or explicit request |
 
-- versioned project rules live in `.cursor/rules/`
-- `cursor/teim-review-mode-template.json` is the repository template for a
-  Custom Mode backed by the same shared review workflow
+These are sibling packages under `skills/`, each usable independently. Native
+plugin installation includes all four skills. To install an individual sibling
+with the Skills CLI, select its name with `--skill`. The audit skills use
+`disable-model-invocation: true` and Codex's `allow_implicit_invocation: false`;
+document conversion retains normal discovery. Each audit also requires an
+explicit user request in its instructions for hosts without matching controls.
 
-Local output is written to `.teim-review/`:
+The old preparation agents have been removed. Deterministic context preparation
+remains part of teim-review. Standalone skills are not additional stages in the
+CI/local review pipeline, and no native agent registration is required.
 
-- `zuul-context.md`
-- `commit-summary.md`
-- `project-guidelines.md`
-- `review-report.json`
-- `review-report.html`
+## CI review
 
-### Zuul review
+Zuul job `teim-code-review` uses the same skill through Claude Code:
 
-The live job entrypoint is `teim-code-review`, defined in
-`zuul.d/jobs.yaml` and executed via `playbooks/teim-code-review/run.yaml`.
+1. Prepare Git scope and context with bundled Python scripts.
+2. Run one Claude CLI invocation with the shared skill and `findings_only: true`.
+3. Assemble and normalize the structured findings deterministically.
+4. Render HTML and publish Zuul comments and artifacts.
 
-## Repository Layout
+The job selects its model. The skill contains no model IDs or tier routing.
+Claude CLI authentication, model alias configuration, structured-output
+handling, and publication remain in the CI roles.
+
+## Repository layout
 
 ```text
-openstack-ai-style-guide/
-├── prompts/              # Shared provider-neutral review workflow
-├── config/               # Shared semantic model profile mappings
-├── .claude-plugin/        # Claude plugin and marketplace metadata
-├── .agents/plugins/       # Codex repo marketplace catalog
-├── .cursor/rules/         # Cursor-native project rules
-├── plugins/teim-review/   # Codex-native plugin bundle
-├── cursor/                # Cursor custom mode templates
-├── agents/                # Review orchestration and specialist agents
-├── skills/                # Interactive skill entrypoints
-├── schemas/               # Structured output contracts
-├── tools/                 # JSON → HTML and JSON → Zuul helpers
-├── roles/                 # Ansible roles used by the Zuul workflow
-├── playbooks/             # Zuul playbooks
-├── zuul.d/                # Jobs, projects, semaphores
-├── docs/                  # Baseline guides, knowledge overlays, and legacy docs
-├── references/            # Canonical external standards snapshots
-└── tests/                 # Unit and contract tests
+skills/
+  teim-review/
+    SKILL.md               Portable review entrypoint
+    references/            Workflow, role prompts, policy, coding knowledge
+    references/schemas/    Candidate, validated, and final report contracts
+    scripts/               Scope, preparation, assembly, normalization, HTML
+  security-auditor/        Explicit-only security audit
+  code-maintainability-auditor/
+                           Explicit-only maintenance audit
+  doc-to-markdown/         Discoverable document conversion
+plugin.json                Agent Plugins 1.0.0 portable manifest
+.claude-plugin/            Claude plugin and marketplace metadata
+.codex-plugin/             Codex plugin metadata
+.cursor-plugin/            Cursor plugin metadata
+.agents/plugins/           Codex repository marketplace
+package.json               Pi package metadata
+roles/, playbooks/, zuul.d/ CI integration
+references/                Canonical external standards snapshots
+docs/                      Usage, architecture, and legacy support documents
+tools/                     Standalone legacy utilities
+tests/                     Unit, installation, and contract tests
 ```
 
-## Knowledge Model
+The curated coding guides and knowledge live inside the skill. External
+standards snapshots remain in root `references/`; they are source material
+for maintaining that curated guidance, not installation dependencies.
 
-The repository now treats review knowledge in three layers:
-
-1. **Canonical external snapshots**: `references/`
-2. **Curated baseline and derived knowledge**: `docs/`
-3. **Provider-neutral runtime behavior**: `prompts/`, `config/`, and
-   `schemas/review-report-schema.json`
-4. **Tool-native adapters**: `agents/`, `skills/`, `.claude-plugin/`,
-   `.cursor/rules/`, and `plugins/teim-review/`
-
-`references/` holds canonical snapshots of external coding standards, policy,
-and review guidance. `docs/quick-rules.md` and
-`docs/comprehensive-guide.md` are curated baseline guides distilled from those
-references. `docs/knowledge/` is the starting point for internal overlays,
-examples, and future RAG-oriented review knowledge.
-
-`prompts/teim-review-core.md` and `schemas/review-report-schema.json` are
-authoritative for workflow behavior and output contracts. Tool-native adapter
-files translate that shared core into Claude, Codex, and Cursor delivery
-surfaces.
-
-See [docs/review-system-overview.md](docs/review-system-overview.md) for the
-runtime model and [docs/archive/README.md](docs/archive/README.md) for legacy
-material status.
-
-## Compatibility Commitments
-
-This restructuring pass preserves the current runtime contracts:
-
-- plugin name: `teim-review`
-- marketplace identity: `openstack-ai-style-guide`
-- Claude skill entrypoint: `/teim-review`
-- Codex skill entrypoint: `$teim-review`
-- orchestrator: `teim-review-agent`
-- shared workflow: `prompts/teim-review-core.md`
-- output schema: `schemas/review-report-schema.json`
-- local output directory: `.teim-review/`
-- Zuul job: `teim-code-review`
+See [the architecture](docs/review-system-overview.md) and
+[contribution guidance](CONTRIBUTING.md).
 
 ## Validation
 
-Common checks:
-
 ```bash
-python3 -m unittest discover -s tests/unit -p 'test_*.py'
-tox -e py3
-tox -e linters
+uvx tox -e py3,linters
 ```
 
-`tox` is the main developer path when available. The unit tests also cover
-repo contracts such as plugin metadata, skill wiring, and workflow references.
-
-## Supporting Material
-
-The repo still includes `docs/quick-rules.md`,
-`docs/comprehensive-guide.md`, a new `docs/knowledge/` area, and legacy
-checklists/templates material. These serve different purposes:
-
-- baseline review context for the current workflow
-- constructed internal knowledge that will grow over time
-- legacy support content pending further pruning or relocation
+Tests exercise installed skill resources against a separate target repository,
+report schemas, deterministic processing, marketplace metadata, and CI wiring.
+Skillsaw runs through pre-commit and the existing Zuul lint job. Its reviewed
+revision is pinned in `.pre-commit-config.yaml`; `.skillsaw.yaml` enables the
+common skill directory layout policy and gates structural errors. Advisory
+findings remain visible without a baseline. Live model behavior needs a
+separate smoke review in each supported harness.
 
 ## License
 

@@ -8,7 +8,7 @@
       "name": "teim-review",
       "source": {
         "source": "local",
-        "path": "../../plugins/teim-review"
+        "path": "./"
       },
       "policy": {
         "installation": "AVAILABLE",

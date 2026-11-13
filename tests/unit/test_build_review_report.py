@@ -26,7 +26,7 @@ class TestBuildReviewReport(test.NoDBTestCase):
 
     def setUp(self):
         super().setUp()
-        self.builder = test.load_script('tools/build_review_report.py')
+        self.builder = test.load_script('skills/teim-review/scripts/build_review_report.py')
 
     def _finding(self, anchor_kind='changed_line', severity='high'):
         return {
@@ -189,7 +189,7 @@ class TestBuildReviewReport(test.NoDBTestCase):
         ):
             schema_path = (
                 pathlib.Path(__file__).resolve().parents[2]
-                / 'schemas'
+                / 'skills/teim-review/references/schemas'
                 / schema_name
             )
             schema_text = schema_path.read_text(encoding='utf-8')

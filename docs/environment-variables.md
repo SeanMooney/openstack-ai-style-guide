@@ -48,7 +48,7 @@ another configured alias such as `smart`.
 - **Job**: `teim-code-review-base`
 - **Type**: String (LiteLLM model identifier)
 - **Current Value**: `fast`
-- **Purpose**: Model used for the direct `teim-review-agent` invocation in
+- **Purpose**: Model used for the direct `teim-review` skill invocation in
   the `ai_code_review` role.
 - **Override**: Change this in Zuul when moving the reviewer to another
   LiteLLM routing alias
@@ -110,14 +110,14 @@ another configured alias such as `smart`.
 
 - **Job**: `teim-code-review-base`
 - **Type**: String (file path)
-- **Current Value**: `{{ style_guide_project }}/docs/quick-rules.md`
+- **Current Value**: `{{ style_guide_project }}/skills/teim-review/references/quick-rules.md`
 - **Purpose**: Quick reference passed into the review workflow
 
 #### `style_guide_comprehensive`
 
 - **Job**: `teim-code-review-base`
 - **Type**: String (file path)
-- **Current Value**: `{{ style_guide_project }}/docs/comprehensive-guide.md`
+- **Current Value**: `{{ style_guide_project }}/skills/teim-review/references/comprehensive-guide.md`
 - **Purpose**: Detailed style guide passed into the review workflow
 
 ## Pre-commit Hook Environment Variables

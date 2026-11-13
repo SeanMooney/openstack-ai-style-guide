@@ -1,0 +1,11 @@
+{
+  "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
+  "name": "teim-review",
+  "version": "1.0.0",
+  "description": "Portable OpenStack review, security and maintainability audits, and documentation conversion skills.",
+  "author": {
+    "name": "Sean Mooney"
+  },
+  "repository": "https://github.com/SeanMooney/openstack-ai-style-guide",
+  "license": "Apache-2.0"
+}

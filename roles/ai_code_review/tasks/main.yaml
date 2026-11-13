@@ -8,6 +8,11 @@
     path: "{{ item }}"
   register: ai_code_review_prereq_paths
   loop:
+    - "{{ ai_code_review_skill_root }}/SKILL.md"
+    - "{{ ai_code_review_claude_settings_file }}"
+    - "{{ ai_code_review_skill_root }}/references/workflow.md"
+    - "{{ ai_code_review_skill_root }}/references/reviewer.md"
+    - "{{ ai_code_review_skill_root }}/references/validator.md"
     - "{{ ai_code_review_style_guide_quick_rules }}"
     - "{{ ai_code_review_style_guide_comprehensive }}"
     - "{{ ai_code_review_finding_policy }}"
@@ -27,7 +32,7 @@
   ansible.builtin.command:
     cmd: >-
       python3
-      {{ ai_code_review_style_guide_project }}/tools/prepare_review_artifacts.py
+      {{ ai_code_review_style_guide_project }}/skills/teim-review/scripts/prepare_review_artifacts.py
       --project-dir {{ ai_code_review_project_src_dir }}
       --output-dir {{ ai_code_review_output_dir }}
       --inventory-file {{ ai_code_review_inventory_file }}
@@ -44,11 +49,15 @@
       --scope-mode {{ ai_code_review_scope_mode }}
   changed_when: true
 
-- name: Create teim-review orchestration prompt
+- name: Create portable teim-review prompt
   ansible.builtin.set_fact:
     ai_code_review_review_prompt: >-
-      Use the @teim-review-agent subagent to perform the model reasoning
-      portion of a teim-review code review.
+      Read {{ ai_code_review_skill_root }}/SKILL.md and follow its workflow
+      for the model reasoning portion of a teim-review code review.
+
+      skill_root: {{ ai_code_review_skill_root }}
+      execution_mode: zuul
+      findings_only: true
 
       inventory_file: {{ ai_code_review_inventory_file }}
       output_dir: {{ ai_code_review_output_dir }}
@@ -70,13 +79,19 @@
       finding_policy: {{ ai_code_review_finding_policy }}
       knowledge_root: {{ ai_code_review_knowledge_root }}
       json_schema: {{ ai_code_review_json_schema }}
-      tools_dir: {{ ai_code_review_style_guide_project }}/tools
       generate_html: false
 
       Deterministic preparation has already produced the context artifacts.
       Do not invoke extraction subagents or regenerate these artifacts.
-      Complete candidate generation and finding validation in this one Claude
-      invocation. Aim to complete model reasoning within 12 minutes.
+      Complete candidate generation and finding validation in this invocation.
+      Claude Code supports and is authorized to use its native delegation tool
+      (Agent or Task, depending on the CLI version) here.
+      You must delegate candidate generation to one general-purpose subagent,
+      wait for its artifact, then delegate validation to a distinct subagent.
+      Pass the bundled role instructions and shared policy to each subagent.
+      Main-thread fallback is not permitted for this CI invocation; report an
+      execution failure if delegation cannot be completed.
+      Keep the current model settings.
 
       Return structured JSON conforming to validated_findings_schema. Also
       write the same validated findings JSON to
@@ -85,7 +100,7 @@
       calculate routing, statistics, and publication safety after this Claude
       invocation.
 
-- name: Execute code review with Claude via teim-review-agent
+- name: Execute portable review with Claude
   ansible.builtin.include_role:
     name: run_claude_code
   vars:
@@ -97,11 +112,37 @@
     run_claude_code_command_name: "code review"
     run_claude_code_working_dir: "{{ ai_code_review_project_src_dir }}"
     run_claude_code_claude_binary: "{{ ai_code_review_claude_binary }}"
+    run_claude_code_config_dir: "{{ ai_code_review_claude_settings_file | dirname }}"
     run_claude_code_anthropic_auth_token: "{{ ai_code_review_anthropic_auth_token }}"
     run_claude_code_anthropic_api_url: "{{ ai_code_review_anthropic_api_url }}"
     run_claude_code_effort: "{{ ai_code_review_claude_effort }}"
     run_claude_code_bare: "{{ ai_code_review_claude_bare }}"
+    run_claude_code_isolate_startup: true
+    run_claude_code_settings_file: "{{ ai_code_review_claude_settings_file }}"
     run_claude_code_plugin_dir: "{{ ai_code_review_claude_plugin_dir }}"
+    run_claude_code_diagnostics_dir: "{{ ai_code_review_output_dir }}/claude"
+
+- name: Read Claude execution metadata
+  ansible.builtin.slurp:
+    src: "{{ ai_code_review_raw_validated_findings_file }}"
+  register: ai_code_review_execution_metadata
+
+- name: Parse Claude execution metadata
+  ansible.builtin.set_fact:
+    ai_code_review_execution: >-
+      {{ ai_code_review_execution_metadata.content | b64decode | from_json }}
+
+- name: Require completed reviewer and validator subagents
+  ansible.builtin.assert:
+    that:
+      - not (ai_code_review_execution.get('is_error', true) | bool)
+      - ai_code_review_execution.get('subagent_stats', {}).get('spawned', 0) | int >= 2
+      - ai_code_review_execution.get('subagent_stats', {}).get('completed', 0) | int >= 2
+      - ai_code_review_execution.get('subagent_stats', {}).get('failed', 0) | int == 0
+    fail_msg: >-
+      Claude CI requires separate reviewer and validator subagents.
+      Main-thread execution does not satisfy this review contract.
+      Execution statistics: {{ ai_code_review_execution.get('subagent_stats', {}) }}
 
 # Claude CLI validates the structured_output against the schema automatically.
 # The downstream Python scripts handle extracting structured_output from the

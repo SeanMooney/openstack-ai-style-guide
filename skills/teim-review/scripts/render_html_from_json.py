@@ -1,0 +1,987 @@
+#!/usr/bin/env -S uv run --script
+# /// script
+# requires-python = ">=3.10"
+# dependencies = ["jsonschema>=4.23.0"]
+# ///
+# Copyright 2025 Sean Mooney
+#
+# Licensed under the Apache License, Version 2.0 (the "License"); you may
+# not use this file except in compliance with the License. You may obtain
+# a copy of the License at
+#
+#      http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+# WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+# License for the specific language governing permissions and limitations
+# under the License.
+
+"""Generate enhanced HTML reports from JSON code review data.
+
+This script reads structured JSON review reports and generates WCAG AA
+compliant HTML with enhanced visual features including collapsible sections,
+larger badges, and color-coded backgrounds.
+
+Usage (with uv, no venv required):
+    ./skills/teim-review/scripts/render_html_from_json.py review-report.json review-report.html \
+        --schema skills/teim-review/references/schemas/review-report-schema.json -v
+
+Usage (with plain python3):
+    python3 skills/teim-review/scripts/render_html_from_json.py review-report.json review-report.html \
+        --schema skills/teim-review/references/schemas/review-report-schema.json -v
+"""
+
+import argparse
+import json
+import sys
+from pathlib import Path
+from typing import Any, Dict, List
+
+import jsonschema
+
+
+# WCAG AA compliant colors for carbon/slate + orange→pink theme
+COLORS = {
+    'background': '#1a1a1a',  # Carbon black
+    'container': '#2a2a2a',  # Slate gray
+    'text': '#e0e0e0',  # Light gray
+    'heading': '#ffffff',  # White
+    'accent_orange': '#ff6f00',  # Deep orange
+    'accent_pink': '#ec407a',  # Pink
+    'critical_bg': 'rgba(198, 40, 40, 0.15)',  # Semi-transparent red
+    'critical_border': '#c62828',  # Solid red
+    'warning_bg': 'rgba(213, 61, 13, 0.15)',  # Semi-transparent orange
+    'warning_border': '#d53d0d',  # Solid dark orange
+    'suggestion_bg': 'rgba(93, 64, 55, 0.15)',  # Semi-transparent brown
+    'suggestion_border': '#5d4037',  # Solid brown
+}
+
+
+def render_html_template(review_data: Dict[str, Any]) -> str:
+    """Generate complete HTML document from review JSON data.
+
+    Args:
+        review_data: Parsed JSON review report
+
+    Returns:
+        Complete HTML document as string
+    """
+    context = review_data.get('context', {})
+    statistics = review_data.get('statistics', {})
+    statistics_html_only = review_data.get('statistics_html_only', {})
+    issues = review_data.get('issues', {})
+    positive_observations = review_data.get('positive_observations', [])
+    patch_level = review_data.get('patch_level_observations', [])
+    out_of_patch = review_data.get('out_of_patch_observations', [])
+    summary = review_data.get('summary', {})
+
+    # Build HTML sections
+    context_html = render_context_section(context)
+    stats_html = render_statistics_section(statistics, statistics_html_only)
+    issues_html = render_all_issues(issues)
+    positive_html = render_positive_observations(positive_observations)
+    patch_level_html = render_patch_level_observations(patch_level)
+    out_of_patch_html = render_out_of_patch_observations(out_of_patch)
+    summary_html = render_summary_section(summary, statistics)
+
+    # Complete HTML document
+    return f"""<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="AI Code Review Report - WCAG 2.1 Level AA Accessible">
+    <title>Code Review Report</title>
+    <style>
+{CSS_STYLES}
+    </style>
+</head>
+<body>
+    <div class="container" role="main">
+        <h1>Code Review Report</h1>
+
+        {stats_html}
+        {context_html}
+        {issues_html}
+        {positive_html}
+        {patch_level_html}
+        {out_of_patch_html}
+        {summary_html}
+    </div>
+</body>
+</html>
+"""
+
+
+def render_context_section(context: Dict[str, str]) -> str:
+    """Render context section with change details."""
+    return f"""<section role="region" aria-label="Review context">
+<h2>Context</h2>
+<ul>
+<li><strong>Change</strong>: {escape_html(context.get('change', 'N/A'))}</li>
+<li><strong>Scope</strong>: {escape_html(context.get('scope', 'N/A'))}</li>
+<li><strong>Impact</strong>: {escape_html(context.get('impact', 'N/A'))}</li>
+</ul>
+</section>
+"""
+
+
+def render_statistics_section(
+    statistics: Dict[str, int],
+    statistics_html_only: Dict[str, int],
+) -> str:
+    """Render summary statistics with visual indicators."""
+    critical = statistics.get('critical', 0)
+    high = statistics.get('high', 0)
+    warnings = statistics.get('warnings', 0)
+    suggestions = statistics.get('suggestions', 0)
+    total = statistics.get('total', 0)
+
+    ho_critical = statistics_html_only.get('critical', 0)
+    ho_high = statistics_html_only.get('high', 0)
+    ho_warnings = statistics_html_only.get('warnings', 0)
+    ho_suggestions = statistics_html_only.get('suggestions', 0)
+    ho_total = statistics_html_only.get('total', 0)
+
+    html_only_row = ''
+    if ho_total > 0:
+        html_only_row = f"""
+<div class="stats-container stats-html-only" role="region"
+     aria-label="HTML-only findings (below inline confidence threshold)">
+    <div class="stat-item-label">HTML report only</div>
+    <div class="stat-item stat-critical">
+        <div class="stat-number" aria-label="{ho_critical} critical html-only">{ho_critical}</div>
+        <div class="stat-label">Critical</div>
+    </div>
+    <div class="stat-item stat-high">
+        <div class="stat-number" aria-label="{ho_high} high html-only">{ho_high}</div>
+        <div class="stat-label">High</div>
+    </div>
+    <div class="stat-item stat-warning">
+        <div class="stat-number" aria-label="{ho_warnings} warnings html-only">{ho_warnings}</div>
+        <div class="stat-label">Warnings</div>
+    </div>
+    <div class="stat-item stat-suggestion">
+        <div class="stat-number"
+             aria-label="{ho_suggestions} suggestions html-only">{ho_suggestions}</div>
+        <div class="stat-label">Suggestions</div>
+    </div>
+    <div class="stat-item">
+        <div class="stat-number" aria-label="{ho_total} total html-only">{ho_total}</div>
+        <div class="stat-label">Total</div>
+    </div>
+</div>"""
+
+    return f"""<div class="summary-stats">
+<div class="stats-container" role="region" aria-label="Inline findings (posted to Gerrit)">
+    <div class="stat-item-label">Inline comments</div>
+    <div class="stat-item stat-critical">
+        <div class="stat-number" aria-label="{critical} critical issues">{critical}</div>
+        <div class="stat-label">Critical</div>
+    </div>
+    <div class="stat-item stat-high">
+        <div class="stat-number" aria-label="{high} high issues">{high}</div>
+        <div class="stat-label">High</div>
+    </div>
+    <div class="stat-item stat-warning">
+        <div class="stat-number" aria-label="{warnings} warnings">{warnings}</div>
+        <div class="stat-label">Warnings</div>
+    </div>
+    <div class="stat-item stat-suggestion">
+        <div class="stat-number" aria-label="{suggestions} suggestions">{suggestions}</div>
+        <div class="stat-label">Suggestions</div>
+    </div>
+    <div class="stat-item">
+        <div class="stat-number" aria-label="{total} total findings">{total}</div>
+        <div class="stat-label">Total</div>
+    </div>
+</div>{html_only_row}
+</div>
+"""
+
+
+def render_all_issues(issues: Dict[str, List[Dict[str, Any]]]) -> str:
+    """Render all issue categories."""
+    html_parts = []
+
+    # Critical issues
+    critical = issues.get('critical', [])
+    if critical:
+        html_parts.append('<section role="region" aria-label="Critical issues">')
+        html_parts.append('<h2>Critical Issues</h2>')
+        for idx, issue in enumerate(critical, 1):
+            html_parts.append(render_issue_card(issue, 'critical', idx, len(critical)))
+        html_parts.append('</section>')
+    else:
+        html_parts.append('<h2>Critical Issues</h2><p>None found.</p>')
+
+    # High issues
+    high = issues.get('high', [])
+    if high:
+        html_parts.append('<section role="region" aria-label="High severity issues">')
+        html_parts.append('<h2>High Issues</h2>')
+        for idx, issue in enumerate(high, 1):
+            html_parts.append(render_issue_card(issue, 'high', idx, len(high)))
+        html_parts.append('</section>')
+    else:
+        html_parts.append('<h2>High Issues</h2><p>None found.</p>')
+
+    # Warnings
+    warnings_list = issues.get('warnings', [])
+    if warnings_list:
+        html_parts.append('<section role="region" aria-label="Warnings">')
+        html_parts.append('<h2>Warnings</h2>')
+        for idx, issue in enumerate(warnings_list, 1):
+            html_parts.append(render_issue_card(issue, 'warning', idx, len(warnings_list)))
+        html_parts.append('</section>')
+    else:
+        html_parts.append('<h2>Warnings</h2><p>None found.</p>')
+
+    # Suggestions
+    suggestions = issues.get('suggestions', [])
+    if suggestions:
+        html_parts.append('<section role="region" aria-label="Suggestions">')
+        html_parts.append('<h2>Suggestions</h2>')
+        for idx, issue in enumerate(suggestions, 1):
+            html_parts.append(render_issue_card(issue, 'suggestion', idx, len(suggestions)))
+        html_parts.append('</section>')
+    else:
+        html_parts.append('<h2>Suggestions</h2><p>None found.</p>')
+
+    return '\n'.join(html_parts)
+
+
+def render_issue_card(issue: Dict[str, Any], severity: str, number: int, total: int) -> str:
+    """Render a collapsible issue card with enhanced visuals.
+
+    Args:
+        issue: Issue data dictionary
+        severity: Severity level (critical, high, warning, suggestion)
+        number: Issue number within this severity level
+        total: Total issues in this severity level
+
+    Returns:
+        HTML for the issue card
+    """
+    title = escape_html(issue['title'])
+    description = escape_html(issue['description'])
+    confidence = issue.get('confidence', 0.0)
+    confidence_text = json.dumps(confidence, allow_nan=False)
+    location = escape_html(issue.get('location', 'Unknown'))
+
+    # Severity badge and icon
+    badge_map = {
+        'critical': ('⛔', 'CRITICAL'),
+        'high': ('🔴', 'HIGH'),
+        'warning': ('⚠️', 'WARNING'),
+        'suggestion': ('ℹ️', 'SUGGESTION'),
+    }
+    icon, label = badge_map.get(severity, ('•', severity.upper()))
+
+    # Build details section based on severity
+    details_parts = [
+        f'<p><strong>Location</strong>: <code>{location}</code></p>',
+        f'<p><strong>Description</strong>: {description}</p>',
+    ]
+
+    if severity in ['critical', 'high']:
+        if 'impact' in issue:
+            details_parts.append(
+                f'<p><strong>Impact</strong>: '
+                f'{escape_html(issue["impact"])}</p>'
+            )
+        if 'remediation_priority' in issue:
+            details_parts.append(
+                f'<p><strong>Remediation Priority</strong>: '
+                f'{escape_html(issue["remediation_priority"])}</p>'
+            )
+        if 'recommendation' in issue:
+            details_parts.append(
+                f'<p><strong>Recommendation</strong>: '
+                f'{escape_html(issue["recommendation"])}</p>'
+            )
+
+    elif severity == 'warning':
+        if 'impact' in issue:
+            details_parts.append(
+                f'<p><strong>Impact</strong>: {escape_html(issue["impact"])}</p>'
+            )
+        if 'suggestion' in issue:
+            details_parts.append(
+                f'<p><strong>Suggestion</strong>: {escape_html(issue["suggestion"])}</p>'
+            )
+
+    elif severity == 'suggestion':
+        if 'impact' in issue:
+            details_parts.append(
+                f'<p><strong>Impact</strong>: '
+                f'{escape_html(issue["impact"])}</p>'
+            )
+        if 'recommendation' in issue:
+            details_parts.append(
+                f'<p><strong>Recommendation</strong>: '
+                f'{escape_html(issue["recommendation"])}</p>'
+            )
+
+    details_html = '\n'.join(details_parts)
+
+    # HTML-only badge for issues below the inline confidence threshold
+    reporting_mode = issue.get('reporting_mode', 'inline')
+    html_only_badge = ''
+    if reporting_mode == 'html_only':
+        html_only_badge = (
+            '<span class="html-only-badge" '
+            'title="Below inline confidence threshold — not posted to Gerrit">'
+            'HTML only</span>'
+        )
+
+    # Collapsible card with enhanced visuals
+    return f"""<details class="issue-card {severity}" open>
+    <summary class="issue-summary">
+        <span class="severity-badge severity-{severity}">
+            <span class="severity-icon" aria-hidden="true">{icon}</span>
+            {label}
+        </span>
+        {html_only_badge}
+        <span class="issue-number">{number} of {total}</span>
+        <span class="issue-title">{title}</span>
+        <span class="confidence">Confidence: {confidence_text}</span>
+    </summary>
+    <div class="issue-details">
+        {details_html}
+    </div>
+</details>
+"""
+
+
+def render_positive_observations(observations: List[Dict[str, str]]) -> str:
+    """Render positive observations section."""
+    if not observations:
+        return ''
+
+    obs_html = []
+    for obs in observations:
+        category = escape_html(obs.get('category', 'General'))
+        observation = escape_html(obs.get('observation', ''))
+        obs_html.append(f'<li><strong>{category}</strong>: {observation}</li>')
+
+    return f"""<section role="region" aria-label="Positive observations">
+<h2>Positive Observations</h2>
+<div class="positive-observation">
+<ul>
+{''.join(obs_html)}
+</ul>
+</div>
+</section>
+"""
+
+
+def render_out_of_patch_observations(observations: List[Dict[str, str]]) -> str:
+    """Render out-of-patch observations section (findings outside the diff)."""
+    if not observations:
+        return ''
+
+    obs_html = []
+    for obs in observations:
+        location = escape_html(obs.get('location', ''))
+        description = escape_html(obs.get('description', ''))
+        suggestion = escape_html(obs.get('suggestion', ''))
+        obs_html.append(
+            f'<li><code>{location}</code> — {description}'
+            f'<br><em>Suggestion: {suggestion}</em></li>'
+        )
+
+    return f"""<section role="region" aria-label="Out-of-patch observations">
+<h2>Out-of-Patch Observations</h2>
+<p>These findings are in unmodified code and are not blocking. Consider addressing them in a
+follow-up patch.</p>
+<div class="out-of-patch-observation">
+<ul>
+{''.join(obs_html)}
+</ul>
+</div>
+</section>
+"""
+
+
+def render_patch_level_observations(observations: List[Dict[str, str]]) -> str:
+    """Render in-scope findings that cannot be anchored to a changed file."""
+    if not observations:
+        return ''
+
+    obs_html = []
+    for obs in observations:
+        description = escape_html(obs.get('description', ''))
+        impact = escape_html(obs.get('impact', ''))
+        recommendation = escape_html(obs.get('recommendation', ''))
+        obs_html.append(
+            f'<li>{description}<br><strong>Impact:</strong> {impact}'
+            f'<br><em>Recommendation: {recommendation}</em></li>'
+        )
+
+    return f"""<section role="region" aria-label="Patch-level observations">
+<h2>Patch-Level Observations</h2>
+<p>These findings are in scope for this change but could not be safely anchored
+to a changed file line. They are also summarized in the Zuul change comment.</p>
+<div class="patch-level-observation">
+<ul>
+{''.join(obs_html)}
+</ul>
+</div>
+</section>
+"""
+
+
+def render_summary_section(summary: Dict[str, str], statistics: Dict[str, int]) -> str:
+    """Render summary section."""
+    assessment = escape_html(summary.get('assessment', 'N/A'))
+    priority_focus = escape_html(summary.get('priority_focus', 'N/A'))
+    detailed_summary = escape_html(summary.get('detailed_summary', 'N/A'))
+
+    critical = statistics.get('critical', 0)
+    high = statistics.get('high', 0)
+    warnings = statistics.get('warnings', 0)
+    suggestions = statistics.get('suggestions', 0)
+
+    return f"""<section role="region" aria-label="Summary">
+<h2>Summary</h2>
+<ul>
+<li><strong>Total Issues</strong>: {critical} Critical, {high} High, {warnings} Warnings,
+{suggestions} Suggestions</li>
+<li><strong>Overall Assessment</strong>: {assessment}</li>
+<li><strong>Priority Focus</strong>: {priority_focus}</li>
+</ul>
+<p>{detailed_summary}</p>
+</section>
+"""
+
+
+def escape_html(text: str) -> str:
+    """Escape HTML special characters."""
+    if not isinstance(text, str):
+        text = str(text)
+    return (text
+            .replace('&', '&amp;')
+            .replace('<', '&lt;')
+            .replace('>', '&gt;')
+            .replace('"', '&quot;')
+            .replace("'", '&#39;'))
+
+
+def extract_review_data(data: Dict[str, Any]) -> Dict[str, Any]:
+    """Extract review data from Claude CLI wrapper if present.
+
+    Claude CLI with --json-schema returns a wrapper object:
+    {"type": "result", "structured_output": {...}, ...}
+
+    This function extracts the actual review data from structured_output
+    if present, otherwise returns the data as-is.
+
+    Args:
+        data: The loaded JSON data (may be wrapper or direct)
+
+    Returns:
+        The review data dictionary
+    """
+    if (
+        isinstance(data, dict)
+        and 'structured_output' in data
+        and isinstance(data['structured_output'], dict)
+    ):
+        return data['structured_output']
+    return data
+
+
+# Enhanced CSS with larger badges, collapsible sections, and color-coded backgrounds
+CSS_STYLES = """
+/* Base Styles */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    background: linear-gradient(135deg, #1a1a1a 0%, #0d0d0d 100%);
+    color: #e0e0e0;
+    line-height: 1.6;
+    padding: 20px;
+}
+
+.container {
+    max-width: 1200px;
+    margin: 0 auto;
+    background: linear-gradient(180deg, #2a2a2a 0%, #1e1e1e 100%);
+    padding: 30px;
+    border-radius: 8px;
+    border: 1px solid rgba(255, 111, 0, 0.4);
+    box-shadow: 0 4px 20px rgba(255, 111, 0, 0.2);
+}
+
+h1 {
+    background: linear-gradient(90deg, #ff6f00 0%, #ec407a 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    font-size: 2.5em;
+    margin-bottom: 20px;
+    border-bottom: 3px solid;
+    border-image: linear-gradient(90deg, #ff6f00, #ec407a) 1;
+    padding-bottom: 10px;
+}
+
+h2 {
+    background: linear-gradient(90deg, #ffa726 0%, #ec407a 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    font-size: 2em;
+    margin-top: 30px;
+    margin-bottom: 15px;
+    border-bottom: 2px solid;
+    border-image: linear-gradient(90deg, #ffa726, #ec407a) 1;
+    padding-bottom: 8px;
+}
+
+p {
+    margin-bottom: 15px;
+}
+
+ul {
+    margin-left: 20px;
+    margin-bottom: 15px;
+}
+
+li {
+    margin-bottom: 8px;
+}
+
+code {
+    background-color: #1a1a1a;
+    color: #f8f8f2;
+    padding: 2px 6px;
+    border-radius: 3px;
+    font-family: "Consolas", "Monaco", "Courier New", monospace;
+    font-size: 0.9em;
+}
+
+strong {
+    color: #ffffff;
+    font-weight: 600;
+}
+
+/* Summary Statistics */
+.summary-stats {
+    background: linear-gradient(135deg, #1e1e1e 0%, #2a2a2a 100%);
+    padding: 20px;
+    border-radius: 8px;
+    margin-bottom: 30px;
+    border: 1px solid rgba(236, 64, 122, 0.4);
+    box-shadow: 0 2px 15px rgba(255, 111, 0, 0.15);
+}
+
+.stats-container {
+    display: flex;
+    justify-content: space-around;
+    flex-wrap: wrap;
+    gap: 20px;
+}
+
+.stats-html-only {
+    opacity: 0.65;
+    background-color: rgba(255, 255, 255, 0.03);
+    border-radius: 6px;
+    padding: 4px 8px;
+    margin-bottom: 8px;
+}
+
+.stat-item-label {
+    width: 100%;
+    text-align: center;
+    font-size: 0.75em;
+    color: #888888;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin-bottom: 4px;
+}
+
+.stat-item {
+    text-align: center;
+    padding: 10px 20px;
+    min-width: 120px;
+}
+
+.html-only-badge {
+    display: inline-block;
+    font-size: 0.7em;
+    padding: 1px 6px;
+    border-radius: 10px;
+    background-color: #3a3a3a;
+    color: #999999;
+    border: 1px solid #555555;
+    margin-left: 6px;
+    vertical-align: middle;
+    font-weight: normal;
+}
+
+.stat-number {
+    font-size: 2.5em;
+    font-weight: bold;
+    color: #ffffff;
+}
+
+.stat-label {
+    color: #b0b0b0;
+    font-size: 0.9em;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.stat-critical .stat-number {
+    color: #ff5252;
+    text-shadow: 0 0 15px rgba(255, 82, 82, 0.6);
+}
+
+.stat-high .stat-number {
+    color: #ff9800;
+    text-shadow: 0 0 15px rgba(255, 152, 0, 0.6);
+}
+
+.stat-warning .stat-number {
+    color: #ffab40;
+    text-shadow: 0 0 15px rgba(255, 171, 64, 0.6);
+}
+
+.stat-suggestion .stat-number {
+    color: #a1887f;
+    text-shadow: 0 0 15px rgba(161, 136, 127, 0.6);
+}
+
+/* Enhanced Severity Badges - LARGER */
+.severity-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 16px;
+    border-radius: 6px;
+    font-weight: bold;
+    font-size: 1.2em;
+    margin-right: 12px;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+}
+
+.severity-badge.severity-critical {
+    background-color: #c62828;
+    color: #ffffff;
+}
+
+.severity-badge.severity-high {
+    background-color: #d53d0d;
+    color: #ffffff;
+}
+
+.severity-badge.severity-warning {
+    background-color: #e07b39;
+    color: #ffffff;
+}
+
+.severity-badge.severity-suggestion {
+    background-color: #5d4037;
+    color: #ffffff;
+}
+
+.severity-icon {
+    font-style: normal;
+    font-size: 1.2em;
+}
+
+/* Collapsible Issue Cards - Enhanced */
+.issue-card {
+    background: linear-gradient(135deg, #1e1e1e 0%, #1a1a1a 100%);
+    padding: 15px;
+    margin-bottom: 20px;
+    border-radius: 6px;
+    border-left: 6px solid;
+}
+
+.issue-card.critical {
+    background: linear-gradient(135deg, rgba(198, 40, 40, 0.15) 0%, rgba(198, 40, 40, 0.05) 100%);
+    border-image: linear-gradient(180deg, #ff5252, #c62828) 1;
+    border-left-color: #c62828;
+}
+
+.issue-card.high {
+    background: linear-gradient(135deg, rgba(213, 61, 13, 0.15) 0%, rgba(213, 61, 13, 0.05) 100%);
+    border-image: linear-gradient(180deg, #ff9800, #d53d0d) 1;
+    border-left-color: #d53d0d;
+}
+
+.issue-card.warning {
+    background: linear-gradient(135deg, rgba(213, 61, 13, 0.12) 0%, rgba(213, 61, 13, 0.04) 100%);
+    border-image: linear-gradient(180deg, #ffab40, #d53d0d) 1;
+    border-left-color: #d53d0d;
+}
+
+.issue-card.suggestion {
+    background: linear-gradient(135deg, rgba(93, 64, 55, 0.15) 0%, rgba(93, 64, 55, 0.05) 100%);
+    border-image: linear-gradient(180deg, #a1887f, #5d4037) 1;
+    border-left-color: #5d4037;
+}
+
+.issue-card:hover {
+    background-color: #252525;
+    transform: translateX(2px);
+    transition: all 0.2s ease;
+}
+
+.issue-summary {
+    cursor: pointer;
+    padding: 8px;
+    user-select: none;
+    list-style: none;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+}
+
+.issue-summary::-webkit-details-marker {
+    display: none;
+}
+
+.issue-number {
+    font-size: 0.85em;
+    color: #b0b0b0;
+    font-style: italic;
+}
+
+.issue-title {
+    flex: 1;
+    min-width: 200px;
+}
+
+.confidence {
+    color: #b0b0b0;
+    font-size: 0.9em;
+    font-style: italic;
+    margin-left: auto;
+}
+
+.issue-details {
+    margin-top: 15px;
+    padding: 15px;
+    background-color: rgba(0, 0, 0, 0.2);
+    border-radius: 4px;
+}
+
+.issue-details p {
+    margin-bottom: 10px;
+}
+
+/* Positive Observations */
+.positive-observation {
+    background-color: #2a2a2a;
+    border-left: 4px solid #ffa726;
+    padding: 15px;
+    margin-bottom: 15px;
+    border-radius: 4px;
+}
+
+/* Out-of-Patch Observations */
+.out-of-patch-observation {
+    background-color: #252525;
+    border-left: 4px solid #78909c;
+    padding: 15px;
+    margin-bottom: 15px;
+    border-radius: 4px;
+    color: #b0bec5;
+}
+
+/* Patch-Level Observations */
+.patch-level-observation {
+    background-color: #252525;
+    border-left: 4px solid #ffab40;
+    padding: 15px;
+    margin-bottom: 15px;
+    border-radius: 4px;
+    color: #f5f5f5;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .stats-container {
+        flex-direction: column;
+    }
+
+    .issue-summary {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+
+    .severity-badge {
+        font-size: 1em;
+        padding: 6px 12px;
+    }
+}
+
+/* Print Styles */
+@media print {
+    body {
+        background: white;
+        color: black;
+    }
+
+    .container {
+        background: white;
+        border: 1px solid black;
+        box-shadow: none;
+    }
+
+    details {
+        open: true;
+    }
+}
+"""
+
+
+def load_json_with_trailing_text(filepath: Path) -> Dict[str, Any]:
+    """Load JSON from a file that may have trailing text after the JSON.
+
+    Claude CLI sometimes outputs additional text after the JSON object.
+    This function handles that by using a JSON decoder that stops at the
+    end of the first complete JSON object.
+
+    Args:
+        filepath: Path to the JSON file
+
+    Returns:
+        Parsed JSON data
+
+    Raises:
+        FileNotFoundError: If file doesn't exist
+        json.JSONDecodeError: If no valid JSON found
+    """
+    content = filepath.read_text(encoding='utf-8')
+
+    # Try standard parsing first
+    try:
+        return json.loads(content)
+    except json.JSONDecodeError:
+        pass
+
+    # Try to parse just the JSON portion (handles trailing text)
+    decoder = json.JSONDecoder()
+    try:
+        data, _ = decoder.raw_decode(content)
+        return data
+    except json.JSONDecodeError as e:
+        raise json.JSONDecodeError(
+            f"No valid JSON found in file: {e.msg}",
+            e.doc,
+            e.pos
+        ) from e
+
+
+def main():
+    """Main entry point."""
+    parser = argparse.ArgumentParser(
+        description="Generate enhanced HTML report from JSON review data"
+    )
+    parser.add_argument(
+        "json_file",
+        type=Path,
+        help="Path to the review JSON file"
+    )
+    parser.add_argument(
+        "html_file",
+        type=Path,
+        help="Output HTML file path"
+    )
+    parser.add_argument(
+        "--schema",
+        required=True,
+        type=Path,
+        help="JSON schema used to validate the review report"
+    )
+    parser.add_argument(
+        "-v", "--verbose",
+        action="store_true",
+        help="Enable verbose output"
+    )
+
+    args = parser.parse_args()
+
+    # Read JSON file (handles trailing text from Claude CLI)
+    try:
+        raw_data = load_json_with_trailing_text(args.json_file)
+    except FileNotFoundError:
+        print(f"Error: JSON file not found: {args.json_file}", file=sys.stderr)
+        sys.exit(1)
+    except json.JSONDecodeError as e:
+        print(f"Error: Invalid JSON: {e}", file=sys.stderr)
+        sys.exit(1)
+
+    # Extract review data from Claude CLI wrapper if present
+    review_data = extract_review_data(raw_data)
+
+    if not isinstance(review_data, dict):
+        print(
+            "Error: Invalid review data structure. Expected a JSON object.",
+            file=sys.stderr
+        )
+        sys.exit(1)
+
+    # Check if structured_output was missing when expected
+    if 'structured_output' in raw_data and not isinstance(raw_data['structured_output'], dict):
+        print(
+            "Error: structured_output field exists but is not a dictionary",
+            file=sys.stderr
+        )
+        sys.exit(1)
+
+    try:
+        schema = load_json_with_trailing_text(args.schema)
+        jsonschema.Draft202012Validator.check_schema(schema)
+        jsonschema.validate(review_data, schema)
+    except (FileNotFoundError, json.JSONDecodeError) as exc:
+        print(f"Error: Unable to load review schema: {exc}", file=sys.stderr)
+        sys.exit(1)
+    except jsonschema.SchemaError as exc:
+        print(
+            f"Error: Invalid review schema: {exc.message}", file=sys.stderr
+        )
+        sys.exit(1)
+    except jsonschema.ValidationError as exc:
+        location = '.'.join(str(part) for part in exc.absolute_path)
+        location = location or '<root>'
+        print(
+            f"Error: Review report does not match schema at {location}: "
+            f"{exc.message}",
+            file=sys.stderr,
+        )
+        sys.exit(1)
+
+    if args.verbose:
+        print(f"Loaded review data from {args.json_file}")
+        stats = review_data.get('statistics', {})
+        print(f"Statistics: {stats.get('total', 0)} total issues")
+
+    # Generate HTML
+    html_content = render_html_template(review_data)
+
+    # Write HTML file
+    try:
+        args.html_file.write_text(html_content)
+        print(f"✓ HTML report generated: {args.html_file}")
+        if args.verbose:
+            print(f"  File size: {args.html_file.stat().st_size} bytes")
+    except OSError as e:
+        print(f"Error: Failed to write HTML file: {e}", file=sys.stderr)
+        sys.exit(1)
+
+
+if __name__ == "__main__":
+    main()

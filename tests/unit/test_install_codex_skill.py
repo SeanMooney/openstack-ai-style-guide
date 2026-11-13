@@ -15,8 +15,11 @@
 import json
 import pathlib
 import subprocess
+import sys
 
 import fixtures
+import jsonschema
+import yaml
 from testtools import matchers
 
 from tests import test
@@ -64,6 +67,21 @@ class TestInstallCodexSkill(test.NoDBTestCase):
             matchers.Equals(str(self.codex_home / 'plugins' / 'teim-review')),
         )
         self.assertTrue((self.codex_home / 'plugins' / 'teim-review').exists())
+        skills = self.codex_home / 'plugins/teim-review/skills'
+        expected = {'teim-review', 'security-auditor',
+                    'code-maintainability-auditor', 'doc-to-markdown'}
+        self.assertEqual(expected, {p.name for p in skills.iterdir()})
+        for name in ('security-auditor', 'code-maintainability-auditor'):
+            skill = skills / name
+            metadata = yaml.safe_load((skill / 'agents/openai.yaml').read_text())
+            self.assertFalse(metadata['policy']['allow_implicit_invocation'])
+            frontmatter = yaml.safe_load(
+                (skill / 'SKILL.md').read_text().split('---', 2)[1])
+            self.assertTrue(frontmatter['disable-model-invocation'])
+        conversion = yaml.safe_load(
+            (skills / 'doc-to-markdown/SKILL.md').read_text().split('---', 2)[1])
+        self.assertFalse(conversion.get('disable-model-invocation', False))
+
 
     def test_installer_preserves_metadata_and_unrelated_plugins(self):
         """Existing marketplace state should be preserved during install."""
@@ -152,3 +170,107 @@ class TestInstallCodexSkill(test.NoDBTestCase):
             self.marketplace_file.read_text(),
             matchers.Equals('{"name":'),
         )
+
+    def test_installed_skill_runs_without_the_source_checkout(self):
+        """A copied package can prepare and render a different repository."""
+        installed = self._run_installer()
+        self.assertEqual(0, installed.returncode, installed.stderr)
+        skill = self.codex_home / 'plugins/teim-review/skills/teim-review'
+        project = self.tempdir / 'separate project'
+        project.mkdir()
+        output = self.tempdir / 'review output'
+
+        def run(*args):
+            result = subprocess.run(  # noqa: S603
+                list(args), cwd=project, capture_output=True, text=True,
+                check=False,
+            )
+            self.assertEqual(0, result.returncode, result.stderr)
+            return result.stdout
+
+        run('git', 'init')
+        run('git', 'config', 'user.name', 'Test User')
+        run('git', 'config', 'user.email', 'test@example.com')
+        project.joinpath('service.py').write_text('value = 1\n')
+        project.joinpath('AGENTS.md').write_text('Use project-specific guidance.\n')
+        run('git', 'add', '.')
+        run('git', 'commit', '-m', 'base')
+        project.joinpath('service.py').write_text('value = 2\n')
+        run('git', 'add', '.')
+        run('git', 'commit', '-m', 'change')
+
+        def script(name, *args):
+            return run(sys.executable, str(skill / 'scripts' / name), *args)
+
+        changed = output / 'changed-files.txt'
+        script('detect_changed_files.py', str(project), '--output', str(changed))
+        self.assertEqual('service.py\n', changed.read_text())
+        script(
+            'prepare_review_artifacts.py',
+            '--project-dir', str(project), '--output-dir', str(output),
+            '--changed-files', str(changed),
+            '--quick-rules', str(skill / 'references/quick-rules.md'),
+            '--comprehensive-guide', str(skill / 'references/comprehensive-guide.md'),
+            '--finding-policy', str(skill / 'references/finding-policy.md'),
+            '--knowledge-root', str(skill / 'references/knowledge'),
+            '--candidate-schema', str(skill / 'references/schemas/candidate-findings-schema.json'),
+            '--validated-schema', str(skill / 'references/schemas/validated-findings-schema.json'),
+        )
+        context = json.loads(output.joinpath('review-context.json').read_text())
+        for path in context['context_paths'].values():
+            if path and str(skill) in path:
+                self.assertTrue(pathlib.Path(path).exists(), path)
+        self.assertIn('Use project-specific guidance.',
+                      output.joinpath('project-guidelines.md').read_text())
+
+        # Model reasoning is supplied as fixture data; run the actual installed
+        # assembly, normalization, schema validation, and renderer around it.
+        finding_context = {
+            'change': 'Change service value', 'scope': 'service.py',
+            'review_basis': 'Fixture review of the prepared change',
+        }
+        finding = {
+            'id': 'CF-001', 'category': 'correctness',
+            'title': 'Changed service behavior',
+            'description': 'The changed value alters the service behavior.',
+            'evidence': 'The patch changes the configured service value.',
+            'source_basis': 'service.py',
+            'relation_to_change': 'The value is modified in this patch.',
+            'location': None, 'impact': 'Existing callers receive a new value.',
+            'recommendation': 'Verify the changed value matches the intended behavior.',
+            'severity': 'warnings', 'confidence': 0.9,
+            'anchor_kind': 'patch_level',
+        }
+        candidates = {'context': finding_context, 'findings': [finding]}
+        validated = {
+            'context': finding_context,
+            'accepted_findings': [dict(finding, validation_rationale='Fixture evidence confirms the changed behavior.')],
+            'rejected_findings': [],
+        }
+        for filename, data, schema in (
+            ('candidate-findings.json', candidates, 'candidate-findings-schema.json'),
+            ('validated-findings.json', validated, 'validated-findings-schema.json'),
+        ):
+            jsonschema.validate(data, json.loads((skill / 'references/schemas' / schema).read_text()))
+            output.joinpath(filename).write_text(json.dumps(data))
+
+        raw = output / 'review-report.raw.json'
+        report_path = output / 'review-report.json'
+        schema_path = skill / 'references/schemas/review-report-schema.json'
+        script('build_review_report.py',
+               '--validated-findings', str(output / 'validated-findings.json'),
+               '--review-context', str(output / 'review-context.json'),
+               '--output', str(raw))
+        script('normalize_review_report.py', '--raw-report', str(raw),
+               '--candidate-findings', str(output / 'candidate-findings.json'),
+               '--validated-findings', str(output / 'validated-findings.json'),
+               '--changed-files', str(changed), '--schema', str(schema_path),
+               '--output', str(report_path),
+               '--diagnostics', str(output / 'review-validation.json'))
+        report = json.loads(report_path.read_text())
+        jsonschema.validate(report, json.loads(schema_path.read_text()))
+        self.assertEqual(1, report['statistics_html_only']['total'])
+        html = output / 'review-report.html'
+        script('render_html_from_json.py', str(report_path), str(html),
+               '--schema', str(schema_path))
+        self.assertIn(finding['description'], html.read_text())

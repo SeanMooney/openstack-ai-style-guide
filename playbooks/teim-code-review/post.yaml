@@ -7,6 +7,15 @@
 - name: AI Code Review Post-Run Tasks
   hosts: all
   tasks:
+    - name: Collect current review session transcripts
+      ansible.builtin.script:
+        cmd: >-
+          {{ playbook_dir }}/../../roles/ai_code_review/files/collect_claude_diagnostics.py
+          --config-dir {{ claude_config_dir | quote }}
+          --diagnostics-dir {{ (review_output_dir ~ '/claude') | quote }}
+        executable: python3
+      changed_when: false
+
     - name: Verify review artifacts were created
       ansible.builtin.stat:
         path: "{{ item }}"

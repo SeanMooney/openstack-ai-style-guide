@@ -1,0 +1,29 @@
+{
+  "name": "teim-review",
+  "version": "1.0.0",
+  "description": "Portable OpenStack review, security and maintainability audits, and documentation conversion skills.",
+  "author": {
+    "name": "Sean Mooney",
+    "email": "sean@seanmooney.info",
+    "url": "https://seanmooney.info"
+  },
+  "repository": "https://github.com/SeanMooney/openstack-ai-style-guide",
+  "license": "Apache-2.0",
+  "keywords": [
+    "openstack",
+    "review",
+    "codex"
+  ],
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "Teim Review",
+    "shortDescription": "Code review, auditing, and documentation skills",
+    "longDescription": "Portable OpenStack review, security and maintainability audits, and documentation conversion skills.",
+    "developerName": "Sean Mooney",
+    "category": "Developer Tools",
+    "capabilities": [
+      "Read",
+      "Write"
+    ]
+  }
+}

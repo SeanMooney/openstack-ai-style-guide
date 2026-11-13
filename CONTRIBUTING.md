@@ -3,11 +3,11 @@
 This repository is maintained as an AI review system for OpenStack-oriented
 projects. Contributions should improve one of these areas:
 
-- review behavior in `agents/` and `skills/`
-- Codex plugin packaging in `plugins/` and `.agents/plugins/`
-- structured output contracts in `schemas/`
+- portable review behavior in `skills/teim-review/`
+- distribution metadata in native plugin and marketplace files
+- structured output contracts in `skills/teim-review/references/schemas/`
 - CI/runtime wiring in `roles/`, `playbooks/`, and `zuul.d/`
-- helper transforms in `tools/`
+- helper transforms in `skills/teim-review/scripts/`
 - supporting docs and references that explain the active workflow
 
 ## Contribution Priorities
@@ -26,18 +26,22 @@ projects. Contributions should improve one of these areas:
 
 ## Source of Truth
 
-Use this precedence order when making changes:
+Review behavior belongs in `skills/teim-review/`: schemas define artifact
+shape, the finding policy defines reportable issues, the workflow defines
+sequencing, and role prompts define candidate generation and validation.
+Supporting prose must describe that implementation. Keep resources inside the
+skill so direct installation includes everything required at runtime.
 
-1. `schemas/review-report-schema.json`
-2. `prompts/teim-review-core.md` and `config/tool-profiles.json`
-3. `agents/`, `skills/`, `.claude-plugin/`, `.cursor/rules/`, and `plugins/`
-4. `roles/`, `playbooks/`, `zuul.d/`, `tools/`
-5. `docs/` and `references/`
+Skillsaw is pinned in `.pre-commit-config.yaml` and runs in the normal lint
+environment. Keep the common skill layout (`scripts/`, `references/`, and
+optional `assets/`); place schemas under `references/schemas/`. Fix structural
+errors without introducing a baseline or suppressing new package findings.
 
-If behavior changes, encode it in the schema or agent prompts first.
-
-The mirrored files under `plugins/teim-review/references/` must stay aligned
-with the shared sources they package for Codex installs.
+Maintain one definition per skill and one set of teim-review role prompts. Do not add tool-specific
+copies or model profiles. Model selection belongs to the harness or CI.
+Subagents are optional; preserve the sequential main-thread fallback.
+Keep security and maintainability audits explicit-only in both frontmatter
+and `agents/openai.yaml`. Document conversion retains tool/model discovery.
 
 ## Compatibility Rules
 
@@ -46,18 +50,12 @@ This repository currently preserves these entrypoints:
 - `teim-review@openstack-ai-style-guide`
 - Claude: `/teim-review`
 - Codex: `$teim-review`
-- `agents/teim-review-agent.md`
-- `schemas/review-report-schema.json`
+- `skills/teim-review/SKILL.md`
+- `skills/teim-review/references/schemas/review-report-schema.json`
 - `teim-code-review`
 
 Do not rename or move them without updating all dependent wiring and tests in
 the same change.
-
-## Legacy Material
-
-`docs/checklists/`, `docs/examples/`, and `docs/templates/` are retained for
-compatibility and reference. They are not the primary product surface. Avoid
-adding new authoritative rules there.
 
 ## Testing
 
@@ -69,7 +67,7 @@ tox -e py3
 tox -e linters
 ```
 
-If `tox` is unavailable, run the unit tests directly and note the gap.
+If `tox` is unavailable, use `uvx tox -e py3,linters`.
 
 ## AI Attribution
 

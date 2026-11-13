@@ -8,8 +8,7 @@ standards, policy, and review guidance. They are the source material from
 which curated internal guidance is derived.
 
 They are not the place where runtime review behavior, orchestration, or output
-contracts are defined. Those remain in `schemas/`, `agents/`, `skills/`, and
-the workflow glue.
+contracts are defined. Those remain in the portable `skills/` packages and CI workflow glue.
 
 ## Available References
 
@@ -183,8 +182,8 @@ When updating reference documents:
    - Update relevant sections in main guides
 
 3. **Update Dependent Files:**
-   - `docs/comprehensive-guide.md`
-   - `docs/quick-rules.md`
+   - `skills/teim-review/references/comprehensive-guide.md`
+   - `skills/teim-review/references/quick-rules.md`
    - Templates and examples as needed
 
 4. **Create PR:**
@@ -220,16 +219,16 @@ When updating reference documents:
            │
            ▼
 ┌──────────────────────┐
-│ docs/quick-rules     │  ◄── Curated baseline guidance
-│ docs/comprehensive   │
-│ docs/knowledge/      │  ◄── Derived overlays and examples
+│ skill quick-rules    │  ◄── Curated baseline guidance
+│ skill comprehensive  │
+│ skill knowledge/     │  ◄── Derived overlays and examples
 └──────────────────────┘
 ```
 
 `references/` is the source of truth for external standards snapshots.
-`docs/` contains the repository's derived and constructed review knowledge.
-Runtime review behavior is then encoded in the review agents, skills, schema,
-and workflow prompts.
+`skills/teim-review/references/` contains the derived review knowledge.
+Runtime review behavior is encoded in the skill workflow, role prompts, and
+bundled schemas.
 
 ## Using References
 
@@ -251,12 +250,12 @@ derived guidance is optimized for regular review use:
 
 **For baseline review context:**
 
-- Use `docs/quick-rules.md` (concise, AI-optimized)
-- Use `docs/comprehensive-guide.md` (detailed examples)
+- Use `skills/teim-review/references/quick-rules.md` (concise, AI-optimized)
+- Use `skills/teim-review/references/comprehensive-guide.md` (detailed examples)
 
 **For overlays and examples:**
 
-- Use `docs/knowledge/` as it grows
+- Use `skills/teim-review/references/knowledge/` as it grows
 - Prefer overlays and examples as supporting context, not replacement policy
 
 **For Deep Dive and provenance:**
@@ -268,9 +267,9 @@ derived guidance is optimized for regular review use:
 
 When you have questions:
 
-1. **Quick answer:** Check `docs/quick-rules.md`
-2. **Detailed baseline guidance:** Check `docs/comprehensive-guide.md`
-3. **Internal overlays/examples:** Check `docs/knowledge/`
+1. **Quick answer:** Check `skills/teim-review/references/quick-rules.md`
+2. **Detailed baseline guidance:** Check `skills/teim-review/references/comprehensive-guide.md`
+3. **Internal overlays/examples:** Check `skills/teim-review/references/knowledge/`
 4. **Canonical snapshot:** Check `references/`
 5. **Deepest dive:** Follow `source_url` to the original upstream document
 
@@ -305,7 +304,7 @@ If you find the references are out of date:
 
 1. **Open an issue** describing what's outdated
 2. **Fetch updated content** from authoritative source
-3. **Convert to markdown** (use doc-to-markdown agent if available)
+3. **Convert to markdown** using the `doc-to-markdown` skill when available
 4. **Update metadata** (conversion_date, source_url)
 5. **Submit PR** with DCO sign-off
 
@@ -320,12 +319,12 @@ review rules themselves.
 
 **The baseline derived guides are:**
 
-- `docs/comprehensive-guide.md`
-- `docs/quick-rules.md`
+- `skills/teim-review/references/comprehensive-guide.md`
+- `skills/teim-review/references/quick-rules.md`
 
 **The derived internal knowledge base is:**
 
-- `docs/knowledge/`
+- `skills/teim-review/references/knowledge/`
 
 **These references are:**
 
@@ -364,8 +363,8 @@ For questions about:
 
 - **Content of references:** Check the official source URLs
 - **Updates to references:** Open an issue
-- **Derived guidance interpretation:** See `docs/comprehensive-guide.md` and
-  `docs/knowledge/`
+- **Derived guidance interpretation:** See `skills/teim-review/references/comprehensive-guide.md` and
+  `skills/teim-review/references/knowledge/`
 - **Contributing:** See CONTRIBUTING.md
 
 ---

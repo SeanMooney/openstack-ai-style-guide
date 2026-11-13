@@ -7,24 +7,25 @@ ai_code_review_model: "opus"
 # Zuul inventory file (copied from the executor to the CI node by the playbook)
 ai_code_review_inventory_file: "{{ ai_code_review_output_dir }}/inventory.yaml"
 
-# Style guide files
+# Portable skill and bundled guidance
 ai_code_review_style_guide_project: "{{ ansible_user_dir }}/openstack-ai-style-guide"
+ai_code_review_skill_root: "{{ ai_code_review_style_guide_project }}/skills/teim-review"
 ai_code_review_style_guide_quick_rules: >-
-  {{ ai_code_review_style_guide_project }}/docs/quick-rules.md
+  {{ ai_code_review_style_guide_project }}/skills/teim-review/references/quick-rules.md
 ai_code_review_style_guide_comprehensive: >-
-  {{ ai_code_review_style_guide_project }}/docs/comprehensive-guide.md
+  {{ ai_code_review_style_guide_project }}/skills/teim-review/references/comprehensive-guide.md
 ai_code_review_finding_policy: >-
-  {{ ai_code_review_style_guide_project }}/prompts/teim-review-finding-policy.md
+  {{ ai_code_review_style_guide_project }}/skills/teim-review/references/finding-policy.md
 ai_code_review_knowledge_root: >-
-  {{ ai_code_review_style_guide_project }}/docs/knowledge
+  {{ ai_code_review_style_guide_project }}/skills/teim-review/references/knowledge
 
 # JSON schema for the final deterministic review report.
 ai_code_review_json_schema: >-
-  {{ ai_code_review_style_guide_project }}/schemas/review-report-schema.json
+  {{ ai_code_review_style_guide_project }}/skills/teim-review/references/schemas/review-report-schema.json
 ai_code_review_candidate_findings_schema: >-
-  {{ ai_code_review_style_guide_project }}/schemas/candidate-findings-schema.json
+  {{ ai_code_review_style_guide_project }}/skills/teim-review/references/schemas/candidate-findings-schema.json
 ai_code_review_validated_findings_schema: >-
-  {{ ai_code_review_style_guide_project }}/schemas/validated-findings-schema.json
+  {{ ai_code_review_style_guide_project }}/skills/teim-review/references/schemas/validated-findings-schema.json
 
 # Output files
 ai_code_review_report_file: "{{ ai_code_review_output_dir }}/review-report.json"
@@ -52,10 +53,12 @@ ai_code_review_project_src_dir: "{{ ansible_user_dir }}/{{ zuul.project.src_dir 
 
 # Claude CLI configuration
 ai_code_review_claude_binary: "claude"
+ai_code_review_claude_settings_file: "{{ ansible_user_dir }}/.claude/settings.json"
 ai_code_review_anthropic_auth_token: ""
 ai_code_review_anthropic_api_url: ""
 ai_code_review_claude_effort: "medium"
-ai_code_review_claude_bare: true
+# Delegation is unavailable in bare mode, even with Agent explicitly allowed.
+ai_code_review_claude_bare: false
 ai_code_review_claude_plugin_dir: "{{ ai_code_review_style_guide_project }}"
 
 # Virtual environment for Python scripts (validation, repair)

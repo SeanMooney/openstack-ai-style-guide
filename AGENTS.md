@@ -6,95 +6,54 @@ documentation.
 
 ## What Is Authoritative
 
-When changing review behavior, distinguish between knowledge tiers and runtime
-contracts:
-
-1. `references/` for canonical snapshots of external coding standards and
-   policy
-2. `docs/quick-rules.md`, `docs/comprehensive-guide.md`, and `docs/knowledge/`
-   for curated baseline and derived internal review knowledge
-3. `prompts/teim-review-core.md`, `config/tool-profiles.json`, and
-   `schemas/review-report-schema.json` for provider-neutral runtime behavior
-   and report contracts
-4. `agents/`, `skills/`, `.claude-plugin/`, `.cursor/rules/`, and
-   `plugins/teim-review/` for tool-native adapters
-5. `roles/`, `playbooks/`, `zuul.d/`, and `tools/` for execution glue
-
-Do not update README or supporting docs to introduce runtime behavior that is
-not encoded in the shared core, schema, adapters, or workflow glue.
+- `references/` contains canonical external policy snapshots.
+- `skills/teim-review/` is the single portable review package:
+  - `SKILL.md` is the entrypoint.
+  - `references/workflow.md` owns orchestration.
+  - `references/finding-policy.md` owns finding admission and quality.
+  - `references/reviewer.md` and `references/validator.md` define review roles.
+  - `references/quick-rules.md`, `references/comprehensive-guide.md`, and
+    `references/knowledge/` contain curated coding guidance.
+  - `references/schemas/` owns output contracts; `scripts/` owns deterministic processing.
+- Root `plugin.json` targets published Agent Plugins 1.0.0.
+- `.claude-plugin/`, `.codex-plugin/`, `.cursor-plugin/`,
+  `.agents/plugins/`, and `package.json` contain distribution metadata.
+- `roles/`, `playbooks/`, and `zuul.d/` integrate the same skill with CI.
+- `skills/security-auditor/` and `skills/code-maintainability-auditor/` are
+  explicit-only standalone audits. Preserve both their frontmatter invocation
+  flag and `agents/openai.yaml` policy.
+- `skills/doc-to-markdown/` is discoverable by tools and documentation workflows.
+- Standalone skills are siblings of teim-review, not extra stages in its CI flow.
+  There is no native standalone agent directory or agent discovery alias.
 
 ## Runtime Contracts
 
-Preserve these unless the change explicitly updates all dependent wiring and
-tests in the same commit:
+Preserve these unless all dependent wiring and tests change together:
 
-- plugin name `teim-review`
-- marketplace identity `openstack-ai-style-guide`
-- skill path `skills/teim-review/SKILL.md`
-- orchestrator `agents/teim-review-agent.md`
-- shared workflow `prompts/teim-review-core.md`
-- semantic profiles `config/tool-profiles.json`
-- review schema `schemas/review-report-schema.json`
-- local output directory `.teim-review/`
+- plugin name `teim-review` and marketplace `openstack-ai-style-guide`
+- entrypoint `skills/teim-review/SKILL.md`
+- local output directory `.teim-review/` and existing artifact filenames
+- published schema identifiers and report shape
 - Zuul job `teim-code-review`
 
-## Review-System Layout
+## Portability
 
-```text
-.agents/plugins/  Codex repo marketplace catalog
-.cursor/rules/    Cursor-native project rules
-.claude-plugin/   plugin metadata and marketplace catalog
-config/           semantic model profile aliases
-plugins/          Codex-native plugin bundles
-prompts/          provider-neutral review workflow
-agents/           operational review intent and orchestration
-skills/           interactive entrypoints
-schemas/          structured output contracts
-tools/            report transforms and validators
-roles/            Ansible implementation units
-playbooks/        workflow orchestration
-zuul.d/           CI job definitions
-docs/             active docs plus legacy support content
-references/       canonical external standards snapshots
-```
+Maintain one definition per skill and one set of teim-review role prompts. Do not add manually
+maintained tool-specific copies, model profiles, or named-agent requirements.
+Plugin manifests may expose the shared `skills/` tree. Keep bundled resource
+links inside the skill so a copied installation works outside this checkout.
+Resolve target project instructions from `project_dir`, not `skill_root`.
 
-## Knowledge Areas
+Use supported and permitted general-purpose subagents when available; otherwise
+run reviewer and validator sequentially in the main thread. The artifacts and
+finding policy stay the same. Never describe main-thread passes as independent
+validation. Model selection belongs to the harness or CI configuration.
 
-- `references/` contains canonical external source snapshots.
-- `docs/quick-rules.md` and `docs/comprehensive-guide.md` are curated baseline
-  guides distilled from references and internal review knowledge.
-- `docs/knowledge/` is the growing internal knowledge base for overlays,
-  examples, and retrieval-oriented review material.
-- `docs/checklists/` and `docs/templates/` are archived/legacy support areas.
+Claude Code still discovers the default `skills/` directory. Its CLI envelope,
+authentication, model aliases, and publication wiring remain CI concerns.
+Do not require custom execution adapters for another skills-compatible harness.
 
 ## Known Review Exceptions
-
-### Plugin manifest defaults
-
-`.claude-plugin/plugin.json` intentionally omits explicit `agents_dir` and
-`skills_dir` fields because Claude Code auto-discovers the default layout.
-
-### Shared core first
-
-When adding support for a new AI tool, put reusable workflow behavior in
-`prompts/teim-review-core.md` first, then add a thin tool adapter. Do not fork
-review logic across Claude, Codex, and Cursor files unless the difference is
-truly tool-specific.
-
-### Tool-native adapters
-
-- Claude distribution uses `.claude-plugin/`, `agents/`, and `skills/`.
-- Codex distribution uses `.agents/plugins/` and `plugins/teim-review/`.
-  Codex interactive invocation is `$teim-review`.
-- Cursor distribution uses `.cursor/rules/` and `cursor/`.
-
-### Codex plugin mirrors
-
-`plugins/teim-review/references/` contains install-safe mirrored copies of the
-shared core files that the Codex plugin skill can read after installation. The
-authoritative sources remain `prompts/teim-review-core.md` and
-`config/tool-profiles.json`. If either source changes, update the mirrored
-plugin references and tests in the same change.
 
 ### Ruff formatting
 
@@ -120,7 +79,7 @@ When changing the repo structure or wiring:
 Preferred local commands:
 
 - `tox -e py3`
-- `tox -e linters`
+- `tox -e linters` (includes pinned Skillsaw checks)
 
 If `tox` is not installed locally, use `uvx tox ...` instead. `uvx` is the
 preferred fallback for ad hoc verification in this repository.

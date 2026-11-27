@@ -134,6 +134,46 @@ class TestRenderHtml(test.NoDBTestCase):
 
         self.assertThat(html_content, matchers.Contains('Confidence: 0.125'))
 
+    def test_empty_report_does_not_render_stale_minor_fix_assessment(self):
+        """Legacy empty reports cannot display stale merge caveats."""
+        review = self._create_sample_review()
+        for stats in ('statistics', 'statistics_html_only'):
+            review[stats] = dict.fromkeys(review[stats], 0)
+        review['issues'] = dict.fromkeys(review['issues'], [])
+        review['summary']['assessment'] = 'Ready with minor fixes'
+        review['summary']['priority_focus'] = 'Address remaining review notes'
+
+        html = self.render_html.render_html_template(review)
+
+        self.assertIn('No retained findings', html)
+        self.assertNotIn('Ready with minor fixes', html)
+        self.assertNotIn('Address remaining review notes', html)
+
+    def test_summary_counts_html_only_findings(self):
+        """Zero inline findings must not hide HTML-only review concerns."""
+        review = self._create_sample_review()
+        review['statistics'] = dict.fromkeys(review['statistics'], 0)
+        review['statistics_html_only']['high'] = 1
+        review['statistics_html_only']['total'] = 1
+        review['issues']['high'] = review['issues'].pop('critical')
+        review['issues']['critical'] = []
+        review['summary']['assessment'] = 'Ready'
+
+        html = self.render_html.render_html_template(review)
+        summary = html.split('aria-label="Summary"', 1)[1]
+
+        self.assertIn('0 Critical, 1 High', summary)
+        self.assertIn('0 inline, 1 HTML-only', summary)
+        self.assertIn('Overall Assessment</strong>: Needs work', summary)
+
+    def test_coverage_text_is_escaped(self):
+        """Free-text coverage must not introduce markup into the report."""
+        review = self._create_sample_review()
+        review['summary']['detailed_summary'] = 'Read <script>policy</script>'
+        html = self.render_html.render_html_template(review)
+        self.assertIn('Read &lt;script&gt;policy&lt;/script&gt;', html)
+        self.assertNotIn('<script>policy</script>', html)
+
     def test_extract_review_data_from_wrapper(self):
         """Test extracting review data from Claude CLI wrapper."""
         wrapper_data = {

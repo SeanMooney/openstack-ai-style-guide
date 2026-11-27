@@ -21,6 +21,9 @@ import sys
 from pathlib import Path
 from typing import Any
 
+import jsonschema
+from review_summary import finding_assessment
+
 
 SEVERITIES = ('critical', 'high', 'warnings', 'suggestions')
 
@@ -28,6 +31,8 @@ SEVERITIES = ('critical', 'high', 'warnings', 'suggestions')
 def load_json(path: Path) -> Any:
     """Load a JSON artifact, unwrapping Claude structured output."""
     data = json.loads(path.read_text(encoding='utf-8'))
+    if isinstance(data, dict) and data.get('is_error'):
+        raise ValueError('review execution failed; cannot assemble a clean report')
     if isinstance(data, dict) and isinstance(data.get('structured_output'), dict):
         return data['structured_output']
     return data
@@ -123,32 +128,39 @@ def context_from_validated(
     }
 
 
-def summary_for(report: dict[str, Any], accepted_count: int) -> dict[str, str]:
+def summary_for(
+    report: dict[str, Any], accepted_count: int, rejected_count: int = 0,
+    review_basis: str = '',
+) -> dict[str, str]:
     """Build a deterministic review summary."""
     inline = report['statistics']
     html = report['statistics_html_only']
-    total = accepted_count
-    if inline['critical'] or html['critical']:
-        assessment = 'Blocked'
-        focus = 'Address critical review findings before merge'
-    elif inline['high'] or html['high']:
-        assessment = 'Needs work'
-        focus = 'Address high severity review findings before merge'
-    elif inline['warnings'] or html['warnings']:
-        assessment = 'Ready with minor fixes'
-        focus = 'Review the retained warnings and HTML-only observations'
-    elif inline['suggestions'] or html['suggestions']:
-        assessment = 'Ready with minor fixes'
-        focus = 'Consider the retained suggestions before merge'
+    assessment = finding_assessment(report)
+    if accepted_count == 0:
+        assessment = {
+            'assessment': 'No findings',
+            'priority_focus': 'No concern met the review admission gate',
+        }
+    if accepted_count + rejected_count == 0:
+        outcome = (
+            'The reviewer produced no candidates. Validation had no individual '
+            'claims to assess; it was not a second full review. '
+        )
     else:
-        assessment = 'Ready'
-        focus = 'No actionable review findings were retained'
-
+        outcome = (
+            f'Validation accepted {accepted_count} and rejected '
+            f'{rejected_count} candidate(s). '
+        )
+    coverage = review_basis or 'Coverage and execution evidence were not recorded.'
+    qualification = (
+        'Absence of findings is not proof of correctness or merge approval. '
+        if accepted_count == 0 else ''
+    )
     return {
-        'assessment': assessment,
-        'priority_focus': focus,
+        **assessment,
         'detailed_summary': (
-            f'The review validation stage accepted {total} finding(s). '
+            f'{outcome}{qualification}'
+            f'Review coverage and limitations: {coverage}\n\n'
             f'{inline["total"]} finding(s) are eligible for inline publication '
             f'before deterministic routing, and {html["total"]} finding(s) are '
             'represented as patch-level or out-of-patch observations.'
@@ -197,7 +209,10 @@ def build_report(
     report['statistics_html_only']['total'] = sum(
         report['statistics_html_only'][severity] for severity in SEVERITIES
     )
-    report['summary'] = summary_for(report, len(accepted))
+    report['summary'] = summary_for(
+        report, len(accepted), len(validated.get('rejected_findings', [])),
+        validated.get('context', {}).get('review_basis', ''),
+    )
     return report
 
 
@@ -219,8 +234,15 @@ def main() -> int:
     try:
         validated = load_json(args.validated_findings)
         review_context = load_json(args.review_context)
-    except (OSError, json.JSONDecodeError, ValueError) as exc:
-        print(f'ERROR: failed to load input artifact: {exc}', file=sys.stderr)
+        schema_path = (
+            Path(__file__).resolve().parents[1]
+            / 'references/schemas/validated-findings-schema.json'
+        )
+        jsonschema.validate(validated, load_json(schema_path))
+    except (OSError, json.JSONDecodeError, ValueError,
+            jsonschema.ValidationError) as exc:
+        message = exc.message if isinstance(exc, jsonschema.ValidationError) else str(exc)
+        print(f'ERROR: failed to load input artifact: {message}', file=sys.stderr)
         return 1
 
     report = build_report(validated, review_context)

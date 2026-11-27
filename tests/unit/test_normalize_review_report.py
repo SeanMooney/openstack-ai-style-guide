@@ -84,6 +84,37 @@ class TestNormalizeReviewReport(test.NoDBTestCase):
             matchers.Equals(report),
         )
 
+    def test_filtering_last_finding_updates_assessment(self):
+        """No retained issues must not leave a stale minor-fix assessment."""
+        raw = self._report()
+        raw['issues']['warnings'][0]['confidence'] = 0.60
+        raw['summary']['assessment'] = 'Ready with minor fixes'
+
+        report, diagnostics = self.normalizer.normalize_report(raw)
+
+        self.assertEqual(0, report['statistics']['total'])
+        self.assertEqual(0, report['statistics_html_only']['total'])
+        self.assertEqual(1, len(diagnostics['dropped_findings']))
+        self.assertEqual('No retained findings',
+                         report['summary']['assessment'])
+        self.assertIn('not the same as a reviewer producing zero candidates',
+                      report['summary']['detailed_summary'])
+
+    def test_html_only_warning_prevents_clean_assessment(self):
+        """A warning routed away from inline publication remains visible."""
+        raw = self._report()
+        raw['issues']['warnings'][0]['confidence'] = 0.70
+        report, _diagnostics = self.normalizer.normalize_report(raw)
+        self.assertEqual(0, report['statistics']['total'])
+        self.assertEqual(1, report['statistics_html_only']['total'])
+        self.assertEqual('Ready with minor fixes',
+                         report['summary']['assessment'])
+
+    def test_missing_summary_is_incomplete_even_with_empty_findings(self):
+        """An absent completion summary cannot imply a clean review."""
+        report, _diagnostics = self.normalizer.normalize_report({})
+        self.assertEqual('Incomplete', report['summary']['assessment'])
+
     def test_inline_routing_and_stats_are_recalculated(self):
         """High-confidence changed-line issues become inline comments."""
         report, diagnostics = self.normalizer.normalize_report(
@@ -260,6 +291,14 @@ class TestNormalizeReviewReport(test.NoDBTestCase):
         """The CLI writes normalized report and diagnostics files."""
         tempdir = pathlib.Path(self.useFixture(fixtures.TempDir()).path)
         raw_report = tempdir / 'review-report.raw.json'
+        validated = tempdir / 'validated-findings.json'
+        validated.write_text(json.dumps({
+            'context': {
+                'change': 'Test normalization', 'scope': 'Test scope',
+                'review_basis': 'Static fixture review completed',
+            },
+            'accepted_findings': [], 'rejected_findings': [],
+        }))
         output = tempdir / 'review-report.json'
         diagnostics = tempdir / 'review-validation.json'
         raw_report.write_text(
@@ -281,6 +320,8 @@ class TestNormalizeReviewReport(test.NoDBTestCase):
                     str(tempdir),
                     '--raw-report',
                     str(raw_report),
+                    '--validated-findings',
+                    str(validated),
                     '--output',
                     str(output),
                     '--diagnostics',
@@ -293,3 +334,71 @@ class TestNormalizeReviewReport(test.NoDBTestCase):
         self.assertThat(result, matchers.Equals(0))
         self.assertTrue(output.exists())
         self.assertTrue(diagnostics.exists())
+
+    def test_cli_requires_successful_validated_findings(self):
+        """Omitted, missing, malformed, and failed validator outputs fail."""
+        tempdir = pathlib.Path(self.useFixture(fixtures.TempDir()).path)
+        raw = tempdir / 'raw.json'
+        validated = tempdir / 'validated.json'
+        output = tempdir / 'report.json'
+        diagnostics = tempdir / 'diagnostics.json'
+        raw.write_text(json.dumps(self._report()))
+        arguments = [
+            'normalize_review_report.py', '--raw-report', str(raw),
+            '--project-dir', str(tempdir), '--output', str(output),
+            '--diagnostics', str(diagnostics),
+        ]
+        self.useFixture(fixtures.MonkeyPatch('sys.argv', arguments))
+        self.assertEqual(2, self.assertRaises(SystemExit,
+                                            self.normalizer.main).code)
+        arguments.extend(['--validated-findings', str(validated)])
+        self.assertEqual(1, self.normalizer.main())
+        for payload in ['{', '{}', '{"is_error": true, "structured_output": {}}']:
+            validated.write_text(payload)
+            self.assertEqual(1, self.normalizer.main())
+        self.assertFalse(output.exists())
+        self.assertFalse(diagnostics.exists())
+
+    def test_cli_preserves_critical_patch_level_assessment(self):
+        """Required validator output retains critical observation severity."""
+        tempdir = pathlib.Path(self.useFixture(fixtures.TempDir()).path)
+        raw = tempdir / 'raw.json'
+        validated_path = tempdir / 'validated.json'
+        output = tempdir / 'report.json'
+        diagnostics = tempdir / 'diagnostics.json'
+        finding = {
+            'id': 'CF-001', 'category': 'correctness',
+            'title': 'Patch loses persisted state',
+            'description': 'The patch loses persisted scheduler state.',
+            'evidence': 'The changed operation removes persisted state.',
+            'source_basis': 'Changed source code',
+            'relation_to_change': 'State loss is introduced by the patch.',
+            'location': None, 'impact': 'Operators lose their stored state.',
+            'recommendation': 'Preserve the state before returning success.',
+            'severity': 'critical', 'confidence': 0.95,
+            'anchor_kind': 'patch_level',
+            'validation_rationale': 'State loss follows from the changed code.',
+        }
+        validated = {
+            'context': {
+                'change': 'Change scheduler behavior', 'scope': 'Scheduler',
+                'review_basis': 'Static review and validation completed',
+            },
+            'accepted_findings': [finding], 'rejected_findings': [],
+        }
+        builder = test.load_script(
+            'skills/teim-review/scripts/build_review_report.py'
+        )
+        raw.write_text(json.dumps(builder.build_report(validated, {})))
+        validated_path.write_text(json.dumps(validated))
+        self.useFixture(fixtures.MonkeyPatch('sys.argv', [
+            'normalize_review_report.py', '--raw-report', str(raw),
+            '--project-dir', str(tempdir), '--output', str(output),
+            '--diagnostics', str(diagnostics),
+            '--validated-findings', str(validated_path),
+        ]))
+        self.assertEqual(0, self.normalizer.main())
+        report = json.loads(output.read_text())
+        self.assertEqual(0, report['statistics']['total'])
+        self.assertEqual(1, report['statistics_html_only']['critical'])
+        self.assertEqual('Blocked', report['summary']['assessment'])

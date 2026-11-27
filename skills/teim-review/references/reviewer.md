@@ -29,6 +29,14 @@ The invoking workflow provides these inputs as files or explicit paths:
 
 Read all supplied context before reviewing code. Treat project-specific
 guidance as authoritative over generic OpenStack guidance.
+Read the entire finding policy, quick rules, and applicable overlays. Recover
+any truncated output before proceeding. Consult the comprehensive guide
+conditionally for questions relevant to the change.
+
+The review-only execution boundary in `SKILL.md` applies to this role. Use
+static analysis unless the user explicitly requested execution; writing a
+failure example does not authorize running it. Use the shared policy's
+investigation limits to bound evidence gathering.
 
 ## Review Scope
 
@@ -58,6 +66,10 @@ Do not invent missing context.
 
 Each candidate must cite evidence from the supplied context or code and trace
 the claimed impact to the current change.
+For behavioral findings, include the user-facing failure scenario and baseline
+comparison required by the policy. Establish both a supported path to the
+failure and why it belongs to this patch before writing the candidate. For
+other findings, identify the concrete requirement or maintenance consequence.
 Do not include speculative findings, generic best practices, or subjective
 refactors. A concern is not reportable merely because the proposed improvement
 is actionable. A maintainability smell must identify one of the policy's
@@ -98,3 +110,7 @@ Each finding must include:
 
 If there are no candidates, emit an empty `findings` list and identify the
 prepared scope that was reviewed.
+In every result, use `context.review_basis` for the coverage statement defined
+in the finding policy. For zero candidates, explicitly state that candidate
+generation completed and no concern met the admission gate; do not imply that
+the validator performed a second full review or that the code is proven correct.

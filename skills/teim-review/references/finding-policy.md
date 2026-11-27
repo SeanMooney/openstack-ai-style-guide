@@ -93,6 +93,12 @@ complete prepared repository state. Examine:
 Do not assume that a merely possible input or runtime state is supported. Trace
 the path from available code, tests, or supplied context.
 
+For a behavioral finding, compare the same scenario in the review baseline and
+the proposed change. Identify what the patch introduces, worsens, or makes
+newly reachable. A failing scenario in the proposed code alone does not show a
+regression. For uncommitted changes, use the corresponding prepared baseline;
+do not substitute unrelated history.
+
 ### Stated Intent
 
 Compare the implementation with intent that is actually available to the
@@ -110,6 +116,12 @@ Report an intent finding only when the accessible source shows that the change:
 If no intent source states requirements for the changed behavior, continue
 reviewing behavior and standards. Do not infer requirements from the
 implementation and then fault the implementation for not meeting them.
+
+An incomplete fix can be in scope even when part of the defect predates the
+patch, but cite the specific accessible requirement that remains unmet and
+explain how the example demonstrates that omission. A nearby edit, rewritten
+line, improved message formatting, or broad claim of readability is not by
+itself a requirement to repair every pre-existing diagnostic or behavior.
 
 ### Standards And Maintainability
 
@@ -169,6 +181,51 @@ Do not create or accept findings for:
 If the reviewer cannot cite an observable behavior, applicable requirement, or
 defined maintenance risk and trace it to the current change, leave the concern
 out. False positives erode trust and reduce the value of the review.
+
+## Investigation Limits
+
+Gather enough evidence to decide whether a concern passes the admission gate.
+Follow changed code and relevant callers, guards, tests, and documentation.
+Inspect history only to resolve a specific baseline or compatibility question;
+stop when that question is answered. Both roles must read this entire policy,
+the quick rules, and applicable overlays in full, recovering truncated output.
+The comprehensive guide is conditional: consult relevant topics when needed.
+
+For a missing dependency, check its documented source or known local location.
+If unavailable, record the missing evidence rather than repeatedly searching
+the filesystem, fetching sources, installing the project, or attempting imports.
+Use additional external sources only when the caller has supplied them within
+the review scope. The review-only boundary still applies to all investigation.
+
+Once evidence supports acceptance or rejection, record the decision and move
+on. Revisit it only when new evidence appears or a user challenges a specific
+premise. Do not keep searching to rescue a speculative candidate. Omit or reject
+a concern whose reachable path, relevance, or consequence cannot be established
+from available evidence; mention material evidence limits in the review summary.
+There is no finding quota.
+
+## Coverage And Empty Results
+
+Every reviewer result must include a concise coverage statement in
+`context.review_basis`: the actual revision and files examined, the policy and
+guidance read, the reasoning areas checked, execution mode (static analysis or
+explicitly authorized execution), and any missing evidence or incomplete scope.
+Describe work actually performed; supplying a file path or issuing a truncated
+read does not establish coverage. Do not manufacture positive findings or
+long per-file narratives to justify an empty list.
+
+When candidate generation completes with no reportable issue, write an empty
+`findings` list and explicitly say that no concern met the admission gate.
+Missing context, unread required policy, tool failure, or incomplete scope must
+be reported as an execution failure or coverage limitation, not disguised as a
+completed clean review. The validator must preserve the reviewer's coverage
+statement and add what it validated; for an empty list, there are no individual
+claims to validate and this is not a second full review.
+
+Keep distinct: zero candidates, candidates all rejected, and accepted findings
+later filtered from publication. An empty inline-comment list can still have
+HTML-only findings. Report these counts and coverage accurately; absence of
+findings is not proof of correctness or authorization to merge.
 
 ## Security Decision Framework
 
@@ -401,8 +458,10 @@ impact. Do not attach an inline finding to an unmodified line.
 
 Use `out_of_patch` only when tracing changed code necessarily exposes behavior
 in an unmodified location and that behavior either explains an in-scope impact
-or is newly reachable because of the change. Omit pre-existing defects that the
-change neither invokes nor makes relevant.
+or is newly reachable because of the change. Merely encountering an existing
+defect while following a caller does not make it an in-scope finding. Apply the
+baseline comparison or specific unmet-requirement test above; omit unrelated
+pre-existing defects even when a convenient changed-line anchor exists.
 
 Do not decide whether a finding is inline or HTML-only, assign
 `reporting_mode`, calculate statistics, or choose publication behavior.
@@ -417,8 +476,35 @@ Each finding must communicate:
 - concrete evidence another reviewer can verify
 - the source basis for the claim
 - why it belongs in the current review
+- an example of reaching the failure from the affected user's perspective
 - the practical impact
 - a specific and feasible recommendation
+
+For behavioral findings, give the action or input, necessary preconditions,
+expected behavior, and actual failure. The affected user may be an API or CLI
+consumer, operator, or developer using a supported internal interface. Trace
+the example through input validation and relevant guards; a direct internal
+function call alone does not prove public API reachability. For an API example,
+include the endpoint and a minimal request body that passes preceding checks
+and reaches the claimed error. Include relevant configuration or version
+conditions when they determine reachability.
+
+Construct examples through static analysis by default. Label inferred outcomes
+as such and distinguish them from supplied or explicitly authorized execution
+evidence. An example is an explanation, not a request to run code. For a
+documentation, rule, or maintainability finding without a runtime failure,
+describe a concrete misuse, violated requirement, or future edit and its
+consequence instead of inventing a runtime reproduction.
+
+Make the comment understandable without opening the supporting analysis: lead
+with the trigger and consequence, then the smallest useful remedy. Include a
+compact input example when it materially clarifies the finding. Keep detailed
+call traces, baseline evidence, and policy justification in `evidence`,
+`relation_to_change`, and `validation_rationale`; avoid repeating them across
+the comment's description, impact, and recommendation. Keep material
+qualifications, including pre-existing behavior or an unmet-requirement basis,
+visible in the comment. A requested paste-ready comment should contain only
+the comment, with no artifact inventory or workflow narration.
 
 Keep findings concise without sacrificing necessary evidence or actionable
 guidance. As writing targets, keep titles to one line within 120 characters,
@@ -432,9 +518,10 @@ to satisfy them.
 Before emitting or accepting a finding:
 
 1. Confirm its evidence and source basis are accessible and accurately cited.
-2. Trace the claimed behavior or rule application again.
+2. Verify the concrete failure example through relevant guards, or the concrete
+   rule or maintenance consequence for a non-behavioral finding.
 3. Confirm the issue was introduced, exposed, or made relevant by the prepared
-   review scope.
+   review scope using baseline behavior or a specific unmet requirement.
 4. Apply the high-signal admission gate; being actionable is not enough.
 5. Confirm the finding names an observable developer, user, operator, or system
    outcome rather than only a rule or pattern.
@@ -443,3 +530,15 @@ Before emitting or accepting a finding:
 8. Remove duplicates and combine findings with the same root cause.
 9. Check that the language is constructive, clear, and complete.
 10. Reject any concern about AI attribution or inferred AI usage.
+
+## Challenges And Corrections
+
+Treat a user's challenge as a request to reassess the disputed premise rather
+than defend the existing finding. Check the necessary evidence and state
+whether the finding stands, needs qualification, or should be withdrawn under
+this policy. Explain the decisive evidence briefly; do not ask the user to
+choose whether unsupported evidence is sufficient. Ask only for a missing
+requirement or fact that would change the decision, and state the current
+conclusion and evidence limit in the meantime. Preserve the distinction between
+reachability, change relevance, and severity: proving one does not establish
+the others.

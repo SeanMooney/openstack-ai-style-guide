@@ -221,7 +221,7 @@
         "assessment": {
           "type": "string",
           "description": "Overall readiness assessment",
-          "enum": ["Ready", "Ready with minor fixes", "Needs work", "Requires significant changes", "Blocked"]
+          "enum": ["No findings", "No retained findings", "Incomplete", "Ready", "Ready with minor fixes", "Needs work", "Requires significant changes", "Blocked"]
         },
         "priority_focus": {
           "type": "string",

@@ -14,7 +14,7 @@ adapters or hand-maintained package mirrors.
 - `references/validator.md`: validation of existing candidates.
 - `references/quick-rules.md`, `references/comprehensive-guide.md`, and
   `references/knowledge/`: curated review knowledge.
-- `references/schemas/`: unchanged candidate, validated, and final report formats.
+- `references/schemas/`: candidate, validated, and final report contracts.
 - `scripts/`: deterministic preparation, assembly, normalization, and HTML.
 
 `skill_root` locates installed resources. `project_dir` locates the code and
@@ -34,6 +34,37 @@ a failed subagent does not justify silently switching execution modes.
 
 The skill does not select models or configure model tiers. The interactive
 harness controls its model, and CI selects a single model through job variables.
+
+Both roles read the entire finding policy and quick rules, recovering truncated
+reads. Quick rules are the compressed operational summary; the comprehensive
+guide is an optional expanded explanation consulted for relevant questions.
+Applicable knowledge overlays are read in full.
+
+## Coverage and empty results
+
+The reviewer records actual scope, policy reads, reasoning areas, execution
+mode, completion, and evidence limits in `context.review_basis`, including when
+there are no candidates. The validator preserves that statement and appends
+its own validation scope. With an empty candidate list there are no individual
+claims to validate; the validator does not claim a second full review.
+
+Report assembly carries that statement into the summary shown in HTML. A valid
+review with no accepted findings is labelled `No findings`, distinguishing zero
+candidates from candidates all rejected. Normalization recalculates assessment
+after filtering and uses `No retained findings` when publication has removed
+the remaining concerns. Missing completion summaries are `Incomplete`; failed
+execution envelopes and invalid validated artifacts cannot produce a clean
+report through the report builder. Existing assessment labels remain valid for
+older reports. None of these labels grants merge approval.
+
+The normalizer requires `--validated-findings` and checks the validator output
+against its schema before writing a report. Missing files, failed execution
+envelopes, and malformed results fail normalization. Both review roles must
+complete and produce their artifacts even when there are no findings.
+
+The HTML summary counts both inline and HTML-only findings and shows their
+publication counts separately, so zero inline comments cannot hide retained
+observations or contradict the assessment.
 
 ## CI
 

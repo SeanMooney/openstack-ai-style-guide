@@ -28,11 +28,15 @@ review, validation, and deterministic report generation.
 ## Review-only boundary
 
 Invoking this skill authorizes review and the required review artifacts only.
-Do not run project tests, linters, pre-commit, builds, benchmarks, or CI jobs
-unless the user explicitly requests them. Repository instructions describing
-checks for code changes do not authorize running those checks during review.
-Read existing tests and supplied CI results as evidence; report unavailable
-execution evidence as a limitation.
+Use static analysis by default: read source, tests, documentation, and supplied
+CI results. Do not run project tests, linters, pre-commit, builds, benchmarks,
+or CI jobs, or import or execute the code under review, unless the user
+explicitly requests that execution. This includes ad hoc snippets and minimal
+reproductions, even when described as read-only or not a test suite. Requests
+to explain, trace, or illustrate a finding do not authorize execution.
+Repository instructions describing checks for code changes do not authorize
+running those checks during review. Distinguish statically inferred behavior
+from supplied or explicitly authorized execution evidence.
 
 Do not broaden the requested revision or task scope, apply fixes, or perform
 unrelated audits. Read surrounding code only as needed to trace in-scope
@@ -54,6 +58,9 @@ Wait for candidate generation before starting the separate validator subagent.
 The parent coordinates and verifies artifacts; it must not replace either role
 with its own reasoning merely because the review is small or delegation takes
 longer. Use the native delegation tool, without requiring named agent files.
+Pass the prepared paths and execution boundary without rereviewing the change
+or copying the full policy into each delegation prompt. Let each role read its
+bundled instructions and the shared policy.
 
 When subagents are unavailable or delegation is disallowed, execute both roles
 sequentially in the main thread. Write candidate findings before validating
@@ -71,6 +78,11 @@ Use the harness's existing model settings throughout. This skill does not
 select models, route work to cheaper models, or require named native agents.
 
 The [finding policy](references/finding-policy.md) owns review criteria.
-Read the [quick rules](references/quick-rules.md), relevant sections of the
-[comprehensive guide](references/comprehensive-guide.md), and applicable
-[knowledge overlays](references/knowledge/README.md) as coding references.
+Both roles must read the entire finding policy and
+[quick rules](references/quick-rules.md), plus applicable
+[knowledge overlays](references/knowledge/README.md) in full. Consult the
+[comprehensive guide](references/comprehensive-guide.md) conditionally for
+relevant topics. Recover truncated reads in bounded chunks before claiming
+coverage; paths or headings alone do not establish that a policy was read.
+Use the finding policy's investigation limits and finding construction rules
+for both roles and interactive follow-up questions.

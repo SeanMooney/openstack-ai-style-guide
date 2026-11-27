@@ -39,6 +39,7 @@ from pathlib import Path
 from typing import Any, Dict, List
 
 import jsonschema
+from review_summary import finding_assessment
 
 
 # WCAG AA compliant colors for carbon/slate + orange→pink theme
@@ -83,7 +84,7 @@ def render_html_template(review_data: Dict[str, Any]) -> str:
     positive_html = render_positive_observations(positive_observations)
     patch_level_html = render_patch_level_observations(patch_level)
     out_of_patch_html = render_out_of_patch_observations(out_of_patch)
-    summary_html = render_summary_section(summary, statistics)
+    summary_html = render_summary_section(summary, review_data)
 
     # Complete HTML document
     return f"""<!DOCTYPE html>
@@ -433,22 +434,33 @@ to a changed file line. They are also summarized in the Zuul change comment.</p>
 """
 
 
-def render_summary_section(summary: Dict[str, str], statistics: Dict[str, int]) -> str:
+def render_summary_section(
+    summary: Dict[str, str], review_data: Dict[str, Any],
+) -> str:
     """Render summary section."""
-    assessment = escape_html(summary.get('assessment', 'N/A'))
-    priority_focus = escape_html(summary.get('priority_focus', 'N/A'))
+    statistics = review_data.get('statistics', {})
+    html_stats = review_data.get('statistics_html_only', {})
+    current = finding_assessment(review_data)
+    if summary.get('assessment') == 'Incomplete' or (current['assessment'] == 'No retained findings'
+          and summary.get('assessment') == 'No findings'):
+        current = summary
+    assessment = escape_html(current['assessment'])
+    priority_focus = escape_html(current['priority_focus'])
     detailed_summary = escape_html(summary.get('detailed_summary', 'N/A'))
 
-    critical = statistics.get('critical', 0)
-    high = statistics.get('high', 0)
-    warnings = statistics.get('warnings', 0)
-    suggestions = statistics.get('suggestions', 0)
+    critical = statistics.get('critical', 0) + html_stats.get('critical', 0)
+    high = statistics.get('high', 0) + html_stats.get('high', 0)
+    warnings = statistics.get('warnings', 0) + html_stats.get('warnings', 0)
+    suggestions = statistics.get('suggestions', 0) + html_stats.get('suggestions', 0)
+    inline_total = statistics.get('total', 0)
+    html_total = html_stats.get('total', 0)
 
     return f"""<section role="region" aria-label="Summary">
 <h2>Summary</h2>
 <ul>
-<li><strong>Total Issues</strong>: {critical} Critical, {high} High, {warnings} Warnings,
+<li><strong>Retained Findings</strong>: {critical} Critical, {high} High, {warnings} Warnings,
 {suggestions} Suggestions</li>
+<li><strong>Publication</strong>: {inline_total} inline, {html_total} HTML-only</li>
 <li><strong>Overall Assessment</strong>: {assessment}</li>
 <li><strong>Priority Focus</strong>: {priority_focus}</li>
 </ul>

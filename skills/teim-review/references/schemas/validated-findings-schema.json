@@ -20,6 +20,7 @@
         },
         "review_basis": {
           "type": "string",
+          "description": "Preserve the reviewer's actual coverage and evidence limits, then append validation scope and execution mode. For zero candidates, state that no individual claims were validated; do not claim a second full review.",
           "minLength": 1
         }
       },

@@ -20,6 +20,7 @@
         },
         "review_basis": {
           "type": "string",
+          "description": "Coverage statement: actual revision/files and reasoning areas examined, full policy and quick-rules reads, conditional guidance, execution mode, completion and evidence limits. Required even for zero candidates.",
           "minLength": 1
         }
       },

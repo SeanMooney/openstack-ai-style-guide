@@ -22,6 +22,14 @@ absolute path is supplied. The target repository is a separate `project_dir`.
 Resolve all paths to absolute paths. Keep the target repository and installed
 skill resources distinct. Install required Python dependencies in an available
 environment; do not substitute model-authored context for deterministic tools.
+Use an interpreter with the skill's dependencies, including PyYAML and
+`jsonschema`, for the helper scripts and artifact checks. Record its absolute
+path and pass it to both roles. The `python3` commands below assume that
+interpreter; substitute its path when necessary. Do not write replacement
+schema validators when an interpreter lacks a dependency; use or provision a
+skill environment within the harness permissions, or report the setup failure.
+This tooling permission does not authorize installing the reviewed project's
+dependencies to execute it.
 
 ## 1. Prepare scope and context
 
@@ -81,10 +89,19 @@ thread as described in `SKILL.md`. Supply:
 - The requested revision or worktree scope and `project_dir`.
 - Absolute paths to the finding policy, coding guidance, relevant knowledge,
   `references/schemas/candidate-findings-schema.json`, and candidate output file.
+- The review-only execution boundary and the interpreter path for artifact
+  tooling. Reference the bundled policy rather than copying it into the prompt.
+
+The parent verifies prepared inputs and coordinates the roles; candidate
+investigation belongs to the reviewer. Use the shared policy's investigation
+limits rather than performing a preliminary full review in the parent.
 
 Write `candidate-findings.json`, including an empty findings list when there
 are no candidates. Verify it exists and conforms to the candidate schema before
 starting validation. Do not generate findings in parallel with validation.
+Require the finding policy's coverage statement in `context.review_basis`.
+Confirm both roles read the full shared policy and quick rules, recovering
+truncated reads; an empty candidate list does not waive those reads.
 
 ## 3. Validate findings
 
@@ -94,8 +111,10 @@ scope, and guidance. Write `validated-findings.json` conforming to
 candidates but must not introduce new findings.
 
 Validate both artifacts with Python's `jsonschema` library and the supplied
-schemas. Do not proceed with invalid artifacts or replace an unsuccessful
-review with an empty successful report.
+schemas using the selected interpreter. The parent owns these deterministic
+checks; the roles produce findings rather than devising validation tools.
+Do not proceed with invalid artifacts or replace an unsuccessful review with
+an empty successful report.
 
 If `findings_only` is true, return the validated findings object as the final
 response and stop here. Also write both findings artifacts. This lets CI own
@@ -125,6 +144,11 @@ Honor supplied artifact paths and schema overrides. Validate the final report
 against `json_schema`. Deleted files remain in review scope, but a finding
 anchored to a path absent from `project_dir` is retained as HTML-only rather
 than published inline. `/COMMIT_MSG` remains a supported synthetic anchor.
+Normalization requires `--validated-findings`: the validator role's output
+must exist and pass its schema even when both findings lists are empty. A
+missing, invalid, or failed validator result is an execution failure, not an
+optional diagnostic artifact. Both review roles must complete before report
+assembly; an empty review never skips the validator role.
 When HTML is requested:
 
 ```bash
@@ -143,6 +167,27 @@ For a full review, summarize the scope, accepted/rejected finding counts,
 artifact paths, and whether review used subagents or the main thread. State
 missing context or failed steps that limit the result. Do not claim independent
 validation when both passes ran in the main thread.
+For zero candidates, explicitly distinguish completed candidate generation from
+an incomplete or failed review, and state that validation had no individual
+claims to check. Report coverage and evidence limits, rather than treating an
+empty list as proof of correctness or approval to merge. Report assembly must
+retain this coverage statement for the HTML report as well as the final reply.
+Use `No findings` for a valid review with no accepted findings, retaining the
+distinction between zero candidates and all candidates rejected in the summary.
+Use `No retained findings` when publication filtering removed the findings;
+never infer completed review coverage from that label. Missing completion
+evidence must remain explicit as `Incomplete` or an execution failure.
 Identify the reviewer and validator subagents when delegated, or the specific
 capability or permission that required main-thread fallback. A supported and
 permitted delegation tool must be used for both roles.
+
+## Interactive follow-up
+
+Apply the finding policy's challenge-handling rules when a user questions a
+finding. Answer the disputed premise directly, revisiting only the necessary
+evidence. An explanation or example request retains the static-analysis
+boundary. Provide a concise, paste-ready comment when requested, with a minimal
+input example where useful and any material scope qualification preserved.
+If a reassessment changes an accepted finding or its disposition, update the
+candidate and validated artifacts as appropriate and regenerate any reports
+already produced so the saved review agrees with the corrected conclusion.

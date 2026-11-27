@@ -22,6 +22,9 @@ import sys
 from pathlib import Path
 from typing import Any
 
+import jsonschema
+from review_summary import finding_assessment
+
 
 SEVERITIES = ('critical', 'high', 'warnings', 'suggestions')
 
@@ -61,6 +64,8 @@ def load_json_with_trailing_text(path: Path) -> Any:
 
 def extract_structured_output(data: Any) -> Any:
     """Return Claude structured_output when a CLI wrapper is present."""
+    if isinstance(data, dict) and data.get('is_error'):
+        raise ValueError('review execution failed')
     if isinstance(data, dict) and isinstance(data.get('structured_output'), dict):
         return data['structured_output']
     return data
@@ -159,11 +164,12 @@ def empty_report() -> dict[str, Any]:
         'out_of_patch_observations': [],
         'patch_level_observations': [],
         'summary': {
-            'assessment': 'Ready',
-            'priority_focus': 'No actionable findings were retained',
+            'assessment': 'Incomplete',
+            'priority_focus': 'Review completion and coverage were not established',
             'detailed_summary': (
-                'The deterministic normalizer did not retain actionable '
-                'findings from the structured review output.'
+                'The structured review did not supply a complete summary. '
+                'Empty findings alone do not establish successful execution '
+                'or coverage of the requested review scope.'
             ),
         },
     }
@@ -179,6 +185,13 @@ def ensure_report_shape(data: Any, diagnostics: dict[str, Any]) -> dict[str, Any
     for key in report:
         if key in data:
             report[key] = data[key]
+
+    if (not isinstance(report.get('summary'), dict)
+            or not all(isinstance(report['summary'].get(key), str)
+                       for key in ('assessment', 'priority_focus',
+                                   'detailed_summary'))):
+        report['summary'] = empty_report()['summary']
+        diagnostics['repairs'].append('replaced incomplete review summary')
 
     if not isinstance(report.get('issues'), dict):
         diagnostics['repairs'].append('replaced non-object issues with empty buckets')
@@ -336,6 +349,22 @@ def normalize_report(
         preserve_html_stats=preserve_html_stats,
         project_dir=project_dir,
     )
+    if report['summary'].get('assessment') != 'Incomplete':
+        assessment = finding_assessment(report)
+        if (assessment['assessment'] == 'No retained findings'
+                and not diagnostics['dropped_findings']
+                and report['summary'].get('assessment') == 'No findings'):
+            assessment = {
+                'assessment': 'No findings',
+                'priority_focus': report['summary']['priority_focus'],
+            }
+        report['summary'].update(assessment)
+    if diagnostics['dropped_findings']:
+        report['summary']['detailed_summary'] += (
+            '\n\nPublication filtering removed '
+            f'{len(diagnostics["dropped_findings"])} finding(s); '
+            'this is not the same as a reviewer producing zero candidates.'
+        )
     return report, diagnostics
 
 
@@ -348,7 +377,8 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument('--project-dir', required=True, type=Path,
                         help='Reviewed checkout; absent files are never inline anchors.')
     parser.add_argument('--candidate-findings', type=Path)
-    parser.add_argument('--validated-findings', type=Path)
+    parser.add_argument('--validated-findings', required=True, type=Path,
+                        help='Required schema-valid output of the validator role.')
     parser.add_argument('--changed-files', type=Path)
     parser.add_argument('--changed-lines', type=Path)
     parser.add_argument('--schema', type=Path)
@@ -364,10 +394,22 @@ def main() -> int:
         print(f'ERROR: review checkout not found: {args.project_dir}', file=sys.stderr)
         return 1
     try:
+        validated = extract_structured_output(
+            load_json_with_trailing_text(args.validated_findings)
+        )
+        validated_schema = (
+            Path(__file__).resolve().parents[1]
+            / 'references/schemas/validated-findings-schema.json'
+        )
+        jsonschema.validate(
+            validated, load_json_with_trailing_text(validated_schema)
+        )
         raw_data = load_json_with_trailing_text(args.raw_report)
         raw_report = extract_structured_output(raw_data)
-    except (OSError, json.JSONDecodeError, ValueError) as exc:
-        print(f'ERROR: failed to read raw report: {exc}', file=sys.stderr)
+    except (OSError, json.JSONDecodeError, ValueError,
+            jsonschema.ValidationError) as exc:
+        message = exc.message if isinstance(exc, jsonschema.ValidationError) else str(exc)
+        print(f'ERROR: failed to read review artifacts: {message}', file=sys.stderr)
         return 1
 
     changed_files = load_changed_files(args.changed_files)
@@ -377,9 +419,7 @@ def main() -> int:
         changed_files,
         changed_lines,
         project_dir=args.project_dir,
-        preserve_html_stats=(
-            args.validated_findings is not None and args.validated_findings.exists()
-        ),
+        preserve_html_stats=True,
     )
     load_optional_artifact(
         args.candidate_findings, 'candidate_findings', diagnostics

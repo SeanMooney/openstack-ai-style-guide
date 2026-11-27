@@ -25,6 +25,11 @@ The invoking workflow provides:
 - output path for validated findings
 
 Read the candidate findings and supporting context before making decisions.
+Read the entire shared finding policy and quick rules, plus applicable overlays
+in full, even for an empty candidate list. Recover truncated reads. Consult the
+comprehensive guide conditionally for the candidate being checked. The
+review-only execution boundary in `SKILL.md` applies: requests to explain or
+illustrate a candidate do not authorize importing or executing project code.
 
 ## Validation Policy
 
@@ -45,8 +50,22 @@ gate. Reject candidates that are:
   by the change
 - concerned with inferred AI use or AI attribution footers
 
+For each candidate, check the strongest plausible reason to reject it: an
+unreachable input, an earlier guard, unchanged baseline behavior, an intentional
+exception, or insufficient impact. Verify the proposed failure example through
+the supported entry point and compare the relevant behavior before and after
+the patch. An incomplete-fix claim must identify the specific accessible
+requirement left unmet. Reject when a counterargument holds; a changed line
+anchor alone does not establish relevance.
+
+Keep this pass focused on the candidates and their supporting paths rather
+than repeating the full review. Apply the shared policy's investigation limits;
+record decisive acceptance or rejection evidence in `validation_rationale`.
+
 You may improve accepted finding wording for clarity, but must not invent new
 findings. If a concern was not present in the candidate file, do not add it.
+Preserve a concise, independently understandable comment; keep detailed call
+traces and policy justification in supporting evidence and validation rationale.
 
 Review each candidate's proposed `severity`, `confidence`, and `anchor_kind`
 against the shared policy. Keep the proposed values when they are supported by
@@ -71,6 +90,11 @@ Accepted findings must include the candidate data plus:
 - `confidence`
 - `anchor_kind`
 - `validation_rationale`
+
+Preserve the reviewer's coverage statement in `context.review_basis` and append
+the validation scope, execution mode, and evidence limits. With zero candidates,
+explicitly record that there were no individual claims to validate. Do not
+replace the reviewer's coverage with a claim of a second complete review.
 
 Rejected findings must include:
 

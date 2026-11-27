@@ -248,6 +248,72 @@ class TestBuildReviewReport(test.NoDBTestCase):
             matchers.Equals('Consider the retained suggestions before merge'),
         )
 
+    def test_empty_review_preserves_coverage_through_html_pipeline(self):
+        """A completed empty review reports coverage without merge approval."""
+        context = {
+            'change': 'Clarify review instructions',
+            'scope': 'Five instruction files against HEAD',
+            'review_basis': (
+                'Read all five diffs and the entire shared policy and quick '
+                'rules. Static review only; runtime behavior was not measured.'
+            ),
+        }
+        raw = self.builder.build_report({
+            'context': context, 'accepted_findings': [],
+            'rejected_findings': [],
+        }, {'impact': 'Review instruction changes only'})
+        normalizer = test.load_script(
+            'skills/teim-review/scripts/normalize_review_report.py'
+        )
+        renderer = test.load_script(
+            'skills/teim-review/scripts/render_html_from_json.py'
+        )
+        report, diagnostics = normalizer.normalize_report(raw)
+        html = renderer.render_html_template(report)
+
+        self.assertEqual('No findings', report['summary']['assessment'])
+        self.assertEqual([], diagnostics['fatal_errors'])
+        self.assertIn('reviewer produced no candidates', html)
+        self.assertIn('not a second full review', html)
+        self.assertIn(context['review_basis'], html)
+        self.assertNotIn('Overall Assessment</strong>: Ready', html)
+        self.assertNotIn('minor fixes', html)
+
+    def test_all_rejected_is_distinct_from_zero_candidates(self):
+        """Rejected candidates do not become a claim of no investigation."""
+        report = self.builder.build_report({
+            'accepted_findings': [],
+            'rejected_findings': [
+                {'candidate_id': 'CF-001', 'reason': 'Pre-existing behavior'},
+            ],
+        }, {})
+        summary = report['summary']
+        self.assertEqual('No findings', summary['assessment'])
+        self.assertIn('accepted 0 and rejected 1', summary['detailed_summary'])
+        self.assertNotIn('produced no candidates', summary['detailed_summary'])
+
+    def test_cli_rejects_incomplete_or_failed_review(self):
+        """Missing finding lists and failed envelopes cannot look clean."""
+        tempdir = pathlib.Path(self.useFixture(fixtures.TempDir()).path)
+        findings = tempdir / 'validated.json'
+        context = tempdir / 'context.json'
+        output = tempdir / 'report.json'
+        context.write_text('{}')
+        self.useFixture(fixtures.MonkeyPatch('sys.argv', [
+            'build_review_report.py', '--validated-findings', str(findings),
+            '--review-context', str(context), '--output', str(output),
+        ]))
+        for payload in [
+            {},
+            {'accepted_findings': []},
+            {'is_error': True, 'structured_output': {
+                'accepted_findings': [], 'rejected_findings': [],
+            }},
+        ]:
+            findings.write_text(json.dumps(payload))
+            self.assertEqual(1, self.builder.main())
+            self.assertFalse(output.exists())
+
     def test_cli_writes_report_and_unwrapped_validated_findings(self):
         """The CLI accepts a Claude wrapper and writes deterministic outputs."""
         tempdir = pathlib.Path(self.useFixture(fixtures.TempDir()).path)

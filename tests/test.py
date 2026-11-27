@@ -14,6 +14,8 @@
 
 import importlib.util
 import pathlib
+import sys
+from unittest import mock
 
 from oslo_config import cfg
 from oslotest import base
@@ -40,7 +42,10 @@ def load_script(script_path, module_name=None):
         module_name = full_path.stem
     spec = importlib.util.spec_from_file_location(module_name, full_path)
     module = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(module)
+    # Standalone helpers can import siblings when invoked directly. Preserve
+    # that same import environment while loading them for unit tests.
+    with mock.patch.object(sys, 'path', [str(full_path.parent), *sys.path]):
+        spec.loader.exec_module(module)
     return module
 
 
